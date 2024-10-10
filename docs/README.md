@@ -3,101 +3,102 @@ sidebar_position: 1
 sidebar_label: Introduction
 ---
 
-# The Zed Project
+# SuperDB
 
-Zed offers a new approach to data that makes it easier to manipulate and manage
-your data.
-
-With Zed's new [super-structured data model](formats/README.md#2-zed-a-super-structured-pattern),
+SuperDB offers a new approach that makes it easier to manipulate and manage
+your data.  With its [super-structured data model](formats/README.md#2-zed-a-super-structured-pattern),
 messy JSON data can easily be given the fully-typed precision of relational tables
 without giving up JSON's uncanny ability to represent eclectic data.
 
 ## Getting Started
 
-Trying out Zed is easy: just [install](install.md) the command-line tool
-[`zq`](commands/zq.md) and run through the [zq tutorial](tutorials/zq.md).
+Trying out SuperDB is easy: just [install](install.md) the command-line tool
+[`super`](commands/zq.md) and run through the [tutorial](tutorials/zq.md).
 
-`zq` is a lot like [`jq`](https://stedolan.github.io/jq/)
-but is built from the ground up as a search and analytics engine based
-on the [Zed data model](formats/zed.md).  Since Zed data is a
-proper superset of JSON, `zq` also works natively with JSON.
+Compared to putting JSON data in a relational column, the
+[super-structured data model](formats/zed.md) makes it really easy to
+mash up JSON with your relational tables.  The `super` command is a little
+like [DuckDB](https://duckdb.org/) and a little like
+[`jq`](https://stedolan.github.io/jq/) but super-structured data ties the
+two patterns together with strong typing of dynamic values.
 
-While `zq` and the Zed data formats are production quality, the Zed project's
-[Zed data lake](commands/zed.md) is a bit [earlier in development](commands/zed.md#status).
-
-For a non-technical user, Zed is as easy to use as web search
-while for a technical user, Zed exposes its technical underpinnings
+For a non-technical user, SuperDB is as easy to use as web search
+while for a technical user, SuperDB exposes its technical underpinnings
 in a gradual slope, providing as much detail as desired,
 packaged up in the easy-to-understand
-[ZSON data format](formats/zson.md) and
-[Zed language](language/README.md).
+[Super JSON data format](formats/zson.md) and
+[SuperPipe language](language/README.md).
+
+While `super` and its accompanying data formats are production quality, the project's
+[SuperDB data lake](commands/zed.md) is a bit [earlier in development](commands/zed.md#status).
 
 ## Terminology
 
-"Zed" is an umbrella term that describes
+"Super" is an umbrella term that describes
 a number of different elements of the system:
-* The [Zed data model](formats/zed.md) is the abstract definition of the data types and semantics
-that underlie the Zed formats.
-* The [Zed formats](formats/README.md) are a family of
-[sequential (ZNG)](formats/zng.md), [columnar (VNG)](formats/vng.md),
-and [human-readable (ZSON)](formats/zson.md) formats that all adhere to the
-same abstract Zed data model.
-* A [Zed lake](commands/zed.md) is a collection of Zed data stored
+* The [super data model](formats/zed.md) is the abstract definition of the data types and semantics
+that underlie the super-structured data formats.
+* The [super data formats](formats/README.md) are a family of
+[human-readable (Super JSON, SUP)](formats/zson.md),
+[sequential (Binary Super JSON, SUPZ)](formats/zng.md), and
+[columnar (Super Parquet, SPAR)](formats/vng.md) formats that all adhere to the
+same abstract super data model.
+* The [SuperPipe language](language/README.md) is the system's pipeline language for performing
+queries, searches, analytics, transformations, or any of the above combined together.
+* A  [SuperPipe query](language/overview.md) is a script that performs
+search and/or analytics.
+* A [SuperPipe shaper](language/shaping.md) is a script that performs
+data transformation to _shape_
+the input data into the desired set of organizing super-structured data types called "shapes",
+which are traditionally called _schemas_ in relational systems but are
+much more flexible in SuperDB.
+* A [SuperDB data lake](commands/zed.md) is a collection of super-structured data stored
 across one or more [data pools](commands/zed.md#data-pools) with ACID commit semantics and
 accessed via a [Git](https://git-scm.com/)-like API.
-* The [Zed language](language/README.md) is the system's pipeline language for performing
-queries, searches, analytics, transformations, or any of the above combined together.
-* A  [Zed query](language/overview.md) is a Zed script that performs
-search and/or analytics.
-* A [Zed shaper](language/shaping.md) is a Zed script that performs
-data transformation to _shape_
-the input data into the desired set of organizing Zed data types called "shapes",
-which are traditionally called _schemas_ in relational systems but are
-much more flexible in the Zed system.
 
 ## Digging Deeper
 
-The [Zed language documentation](language/README.md)
-is the best way to learn about `zq` in depth.
-All of its examples use `zq` commands run on the command line.
-Run `zq -h` for a list of command options and online help.
+The [SuperPipe language documentation](language/README.md)
+is the best way to learn about `super` in depth.
+All of its examples use `super` commands run on the command line.
+Run `super -h` for a list of command options and online help.
 
-The [Zed lake documentation](commands/zed.md)
-is the best way to learn about `zed`.
-All of its examples use `zed` commands run on the command line.
-Run `zed -h` or `-h` with any subcommand for a list of command options
-and online help.  The same language query that works for `zq` operating
-on local files or streams also works for `zed query` operating on a lake.
+The [`super db` documentation](commands/zed.md)
+is the best way to learn about the SuperDB data lake.
+All of its examples use `super db` commands run on the command line.
+Run `super db -h` or `-h` with any subcommand for a list of command options
+and online help.  The same language query that works for `super` operating
+on local files or streams also works for `super db query` operating on a lake.
 
 ## Design Philosophy
 
-The design philosophy for Zed is based on composable building blocks
-built from self-describing data structures.  Everything in a Zed lake
-is built from Zed data and each system component can be run and tested in isolation.
+The design philosophy for SuperDB is based on composable building blocks
+built from self-describing data structures.  Everything in a SuperDB data lake
+is built from super-structured data and each system component can be run and tested in isolation.
 
-Since Zed data is self-describing, this approach makes stream composition
-very easy.  Data from a Zed query can trivially be piped to a local
-instance of `zq` by feeding the resulting Zed stream to stdin of `zq`, for example,
+Since super-structured data is self-describing, this approach makes stream composition
+very easy.  Data from a SuperPipe query can trivially be piped to a local
+instance of `super` by feeding the resulting output stream to stdin of `super`, for example,
 ```
-zed query "from pool | ...remote query..." | zq "...local query..." -
+super db query "from pool | ...remote query..." | super "...local query..." -
 ```
-There is no need to configure the Zed entities with schema information
+There is no need to configure the SuperDB entities with schema information
 like [protobuf configs](https://developers.google.com/protocol-buffers/docs/proto3)
 or connections to
 [schema registries](https://docs.confluent.io/platform/current/schema-registry/index.html).
 
-A Zed lake is completely self-contained, requiring no auxiliary databases
+A SuperDB data lake is completely self-contained, requiring no auxiliary databases
 (like the [Hive metastore](https://cwiki.apache.org/confluence/display/hive/design))
 or other third-party services to interpret the lake data.
-Once copied, a new service can be instantiated by pointing a `zed serve`
+Once copied, a new service can be instantiated by pointing a `super db serve`
 at the copy of the lake.
 
 Functionality like [data compaction](commands/zed.md#manage) and retention are all API-driven.
 
-Bite-sized components are unified by the Zed data, usually in the ZNG format:
+Bite-sized components are unified by the super-structured data, usually in the SUPZ format:
 * All lake meta-data is available via meta-queries.
-* All like operations available through the service API are also available
-directly via the `zed` command.
+* All lake operations available through the service API are also available
+directly via the `super db` command.
 * Lake management is agent-driven through the API.  For example, instead of complex policies
 like data compaction being implemented in the core with some fixed set of
 algorithms and policies, an agent can simply hit the API to obtain the meta-data
