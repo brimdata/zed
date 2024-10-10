@@ -7,9 +7,9 @@ type Coalesce struct{}
 
 func (c *Coalesce) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	for i := range args {
-		val := &args[i]
+		val := args[i].Under()
 		if !val.IsNull() && !val.IsMissing() && !val.IsQuiet() {
-			return *val
+			return args[i]
 		}
 	}
 	return zed.Null
