@@ -68,6 +68,9 @@ func (s *Strftime) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 			return s.zctx.WrapError("strftime: "+err.Error(), formatArg)
 		}
 	}
+	if timeArg.IsNull() {
+		return zed.NullString
+	}
 	out := s.formatter.FormatString(timeArg.AsTime().Time())
 	return zed.NewString(out)
 }

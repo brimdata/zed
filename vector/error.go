@@ -46,11 +46,15 @@ func NewMissing(zctx *zed.Context, len uint32) *Error {
 }
 
 func NewWrappedError(zctx *zed.Context, msg string, val Any) *Error {
+	msgVec := NewConst(zed.NewString(msg), val.Len(), nil)
+	return NewVecWrappedError(zctx, msgVec, val)
+}
+
+func NewVecWrappedError(zctx *zed.Context, msg Any, val Any) *Error {
 	recType := zctx.MustLookupTypeRecord([]zed.Field{
-		{Name: "message", Type: zed.TypeString},
+		{Name: "message", Type: msg.Type()},
 		{Name: "on", Type: val.Type()},
 	})
-	sval := NewConst(zed.NewString(msg), val.Len(), nil)
-	rval := NewRecord(recType, []Any{sval, val}, val.Len(), nil)
+	rval := NewRecord(recType, []Any{msg, val}, val.Len(), nil)
 	return &Error{Typ: zctx.LookupTypeError(recType), Vals: rval}
 }
