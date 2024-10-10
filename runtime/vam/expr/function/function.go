@@ -42,6 +42,9 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	case "split":
 		argmin, argmax = 2, 2
 		f = &Split{zctx}
+	case "strftime":
+		argmin, argmax = 2, 2
+		f = &Strftime{zctx: zctx}
 	case "trim":
 		f = &Trim{zctx}
 	case "typeof":
