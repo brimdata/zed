@@ -110,6 +110,8 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 	case *dag.Output:
 		// XXX Ignore Output op for vectors for now.
 		return parent, nil
+	case *dag.Over:
+		return b.compileVamOver(o, parent)
 	case *dag.Pass:
 		return parent, nil
 	case *dag.Put:
@@ -182,6 +184,35 @@ func newDagRecordExprForPath(path []string, expr dag.Expr) *dag.RecordExpr {
 			&dag.Field{Kind: "Field", Name: path[0], Value: expr},
 		},
 	}
+}
+
+func (b *Builder) compileVamOver(over *dag.Over, parent vector.Puller) (vector.Puller, error) {
+	// withNames, withExprs, err := b.compileDefs(over.Defs)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	exprs, err := b.compileVamExprs(over.Exprs)
+	if err != nil {
+		return nil, err
+	}
+	o := vamop.NewOver(b.zctx(), parent, exprs)
+	if over.Body == nil {
+		return o, nil
+	}
+	scope := o.NewScope()
+	exits, err := b.compileVamSeq(over.Body, []vector.Puller{scope})
+	if err != nil {
+		return nil, err
+	}
+	var exit vector.Puller
+	if len(exits) == 1 {
+		exit = exits[0]
+	} else {
+		// This can happen when output of over body
+		// is a fork or switch.
+		exit = vamop.NewCombine(b.rctx, exits)
+	}
+	return o.NewScopeExit(exit), nil
 }
 
 func (b *Builder) compileVamSeq(seq dag.Seq, parents []vector.Puller) ([]vector.Puller, error) {
