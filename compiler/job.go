@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/runtime"
 	"github.com/brimdata/zed/runtime/sam/op"
 	"github.com/brimdata/zed/runtime/vam"
+	vamop "github.com/brimdata/zed/runtime/vam/op"
 	"github.com/brimdata/zed/runtime/vcache"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -164,7 +165,12 @@ func VectorCompile(rctx *runtime.Context, query string, object *vcache.Object) (
 	if err != nil {
 		return nil, err
 	}
-	return vam.NewMaterializer(outputs[0]), nil
+	if len(outputs) == 1 {
+		puller = outputs[0]
+	} else {
+		puller = vamop.NewCombine(rctx, outputs)
+	}
+	return vam.NewMaterializer(puller), nil
 }
 
 func VectorFilterCompile(rctx *runtime.Context, query string, src *data.Source, head *lakeparse.Commitish) (zbuf.Puller, error) {

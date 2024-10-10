@@ -349,11 +349,15 @@ func (b *Builder) compileLeaf(o dag.Op, parent zbuf.Puller) (zbuf.Puller, error)
 				return nil, err
 			}
 			if len(v.Body) > 1 {
-				p, err := b.compileVamSeq(v.Body[1:], []vector.Puller{puller})
+				outputs, err := b.compileVamSeq(v.Body[1:], []vector.Puller{puller})
 				if err != nil {
 					return nil, err
 				}
-				puller = p[0]
+				if len(outputs) == 1 {
+					puller = outputs[0]
+				} else {
+					puller = vop.NewCombine(b.rctx, outputs)
+				}
 			}
 			return vam.NewMaterializer(puller), nil
 		}
