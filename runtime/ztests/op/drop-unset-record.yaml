@@ -1,5 +1,7 @@
 zed: drop id
 
+vector: true
+
 input: |
   {id:null({ip:ip}),id2:{ip:1.1.1.1}}
 

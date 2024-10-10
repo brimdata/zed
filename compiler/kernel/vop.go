@@ -5,6 +5,7 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/optimizer"
+	"github.com/brimdata/zed/pkg/field"
 	samexpr "github.com/brimdata/zed/runtime/sam/expr"
 	vamexpr "github.com/brimdata/zed/runtime/vam/expr"
 	vamop "github.com/brimdata/zed/runtime/vam/op"
@@ -73,6 +74,13 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vector.Puller) (vector.Puller,
 			return nil, err
 		}
 		return vamop.NewYield(b.zctx(), parent, []vamexpr.Evaluator{e}), nil
+	case *dag.Drop:
+		fields := make(field.List, 0, len(o.Args))
+		for _, e := range o.Args {
+			fields = append(fields, e.(*dag.This).Path)
+		}
+		dropper := vamexpr.NewDropper(b.zctx(), fields)
+		return vamop.NewYield(b.zctx(), parent, []vamexpr.Evaluator{dropper}), nil
 	case *dag.Filter:
 		e, err := b.compileVamExpr(o.Expr)
 		if err != nil {
