@@ -1,0 +1,19 @@
+zed: drop level0.level1.level2.level3
+
+vector: true
+
+input: |
+  {
+    level0: {
+      level1: {
+        level2: {
+          level3: "hi",
+          foo: 1,
+          bar: 2
+        }
+      }
+    }
+  }
+
+output: |
+  {level0:{level1:{level2:{foo:1,bar:2}}}}
