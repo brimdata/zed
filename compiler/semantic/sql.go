@@ -14,8 +14,6 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-//XXX embed errors isntead of passing back
-
 // Analyze a SQL select expression which may have arbitrary nested subqueries
 // and always has sources embedded.  Because data sources are explicit, we never
 // have a parent operator of a select and thus a Seq is not passed in here.
@@ -24,7 +22,7 @@ func (a *analyzer) semSQLSelect(sel *ast.Select) dag.Seq {
 		a.error(sel, errors.New("SELECT DISTINCT not yet supported"))
 		return dag.Seq{badOp()}
 	}
-	if sel.Value {
+	if sel.Value || a.isImpliedSelectValue(sel.Args) {
 		return a.semSelectValue(sel)
 	}
 	selection, err := a.newSQLSelection(sel.Args)
@@ -77,6 +75,17 @@ func (a *analyzer) semSQLSelect(sel *ast.Select) dag.Seq {
 		seq = []dag.Op{dag.PassOp}
 	}
 	return seq
+}
+
+func (a *analyzer) isImpliedSelectValue(assignments ast.Assignments) bool {
+	if len(assignments) != 1 {
+		return false
+	}
+	assignment := assignments[0]
+	if v, _ := a.isAgg(assignment.RHS); v != nil {
+		return false
+	}
+	return assignment.LHS == nil
 }
 
 func (a *analyzer) semSelectValue(sel *ast.Select) dag.Seq {

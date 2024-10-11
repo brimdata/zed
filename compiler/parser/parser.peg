@@ -141,7 +141,7 @@ Operation
     }
 
 EndOfOp = __ (Pipe / SearchKeywordGuard / "=>" / ")" / EOF)
-Pipe = "|" !("{" / "[")
+Pipe = "|>" / "|" !("{" / "[")
 
 Leg = __ "=>" __ seq:Seq { return seq, nil }
 
@@ -256,7 +256,7 @@ Regexp
 /// === Aggregations ===
 
 Aggregation
-  = Summarize? keys:GroupByKeys limit:LimitArg {
+  = Summarize keys:GroupByKeys limit:LimitArg {
       return &ast.Summarize{
         Kind: "Summarize",
         Keys: sliceOf[ast.Assignment](keys),
@@ -264,7 +264,7 @@ Aggregation
         StartPos: c.pos.offset,
       }, nil
     }
-  / Summarize? aggs:AggAssignments keys:(_ GroupByKeys)? limit:LimitArg {
+  / Summarize aggs:AggAssignments keys:(_ GroupByKeys)? limit:LimitArg {
       s := &ast.Summarize{
         Kind: "Summarize",
         Aggs: sliceOf[ast.Assignment](aggs),
@@ -277,10 +277,10 @@ Aggregation
       return s, nil
     }
 
-Summarize = "summarize" _
+Summarize = KW_AGGREGATE _ / ("summarize" _)?
 
 GroupByKeys
-  = ByToken _ columns:FlexAssignments { return columns, nil }
+  = (KW_GROUP _)? ByToken _ columns:FlexAssignments { return columns, nil }
 
 LimitArg
   = _ "with" _ "-limit" _ limit:UInt { return limit, nil }
@@ -1076,7 +1076,7 @@ Primary
   / "(" __ expr:Expr __ ")" { return expr, nil }
 
 OverExpr
-  = "over" _ exprs:Exprs locals:Locals? __ "|" __ body:Seq {
+  = ("over" / "from") _ exprs:Exprs locals:Locals? __ Pipe __ body:Seq {
       return &ast.OverExpr{
           Kind: "OverExpr",
           KeywordPos: c.pos.offset,
@@ -1750,7 +1750,25 @@ EOKW = !KeyWordChars
 /// === SuperSQL ===
 
 SuperSQL
-  = __ s:SelectExpr __ EOF { return []any{s}, nil } 
+  = SQLSeq
+  / __ s:SelectExpr __ EOF { return []any{s}, nil } 
+
+SQLSeq
+  = first:SelectExpr rest:SQLSeqTail* {
+      return prepend(first, rest), nil
+    }
+
+SQLSeqTail = __ Pipe __ o:SQLPipeOp { return o, nil }  
+
+SQLPipeOp
+  = SelectExpr
+  / WhereOp
+  / DropOp 
+  / RenameOp //XXX this needs to use as syntax
+  / &KW_AGGREGATE SummarizeOp
+  / FuseOp
+  // NOT YET - AsOp, 
+
 
 SelectExpr 
   = with:OptWithClause
@@ -2228,6 +2246,8 @@ SQLGuard =
   / KW_USING
   / KW_ON
 
+KW_AGGREGATE  = "AGGREGATE"i    !IdentifierStart
+
 KW_ONLY = "ONLY"i       !IdentifierStart
 KW_NULLS    = "NULLS"i       !IdentifierStart
 KW_NULL     = "NULL"i       !IdentifierStart
@@ -2240,7 +2260,6 @@ KW_SELECT   = "SELECT"i     !IdentifierStart
 KW_RECURSIVE= "RECURSIVE"   !IdentifierStart
 KW_IGNORE   = "IGNORE"i     !IdentifierStart
 KW_EXPLAIN  = "EXPLAIN"i    !IdentifierStart
-KW_PARTITION = "PARTITION"i !IdentifierStart { return "PARTITION", nil }
 
 KW_INTO     = "INTO"i       !IdentifierStart
 KW_FROM     = "FROM"i       !IdentifierStart
