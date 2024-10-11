@@ -1,6 +1,8 @@
 package function
 
 import (
+	"slices"
+
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/field"
 	"github.com/brimdata/zed/runtime/sam/expr/function"
@@ -16,6 +18,9 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 	switch name {
 	case "base64":
 		f = &Base64{zctx}
+	case "coalesce":
+		argmax = -1
+		f = &Coalesce{}
 	case "fields":
 		f = NewFields(zctx)
 	case "hex":
@@ -64,8 +69,9 @@ func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, e
 }
 
 func underAll(args []vector.Any) []vector.Any {
+	out := slices.Clone(args)
 	for i := range args {
-		args[i] = vector.Under(args[i])
+		out[i] = vector.Under(args[i])
 	}
-	return args
+	return out
 }

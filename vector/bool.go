@@ -71,6 +71,23 @@ func (b *Bool) String() string {
 	return s.String()
 }
 
+func Or(a, b *Bool) *Bool {
+	if b == nil {
+		return a
+	}
+	if a == nil {
+		return b
+	}
+	if a.Len() != b.Len() {
+		panic("or'ing two different length bool vectors")
+	}
+	out := NewBoolEmpty(a.Len(), nil)
+	for i := range a.Len() {
+		out.Bits[i] = a.Bits[i] | b.Bits[i]
+	}
+	return out
+}
+
 // BoolValue returns the value of slot in vec if the value is a Boolean.  It
 // returns false otherwise.
 func BoolValue(vec Any, slot uint32) bool {
@@ -88,4 +105,44 @@ func BoolValue(vec Any, slot uint32) bool {
 		return BoolValue(vec.Any, vec.Index[slot])
 	}
 	return false
+}
+
+func NullsOf(v Any) *Bool {
+	switch v := v.(type) {
+	case *Array:
+		return v.Nulls
+	case *Bytes:
+		return v.Nulls
+	case *Const:
+		return v.Nulls
+	case *Dict:
+		return v.Nulls
+	case *Error:
+		return Or(v.Nulls, NullsOf(v.Vals))
+	case *Float:
+		return v.Nulls
+	case *Int:
+		return v.Nulls
+	case *Map:
+		return v.Nulls
+	case *Named:
+		return NullsOf(v.Any)
+	case *Net:
+		return v.Nulls
+	case *Record:
+		return v.Nulls
+	case *Set:
+		return v.Nulls
+	case *String:
+		return v.Nulls
+	case *TypeValue:
+		return v.Nulls
+	case *Uint:
+		return v.Nulls
+	case *Union:
+		return v.Nulls
+	case *View:
+		return nullsView(NullsOf(v.Any), v.Index)
+	}
+	panic(v)
 }
