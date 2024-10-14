@@ -142,7 +142,7 @@ func NullsOf(v Any) *Bool {
 	case *Union:
 		return v.Nulls
 	case *View:
-		return nullsView(NullsOf(v.Any), v.Index)
+		return NewView(v.Index, NullsOf(v.Any)).(*Bool)
 	}
 	panic(v)
 }
