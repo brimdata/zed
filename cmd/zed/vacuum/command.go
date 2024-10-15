@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zed/cli/poolflags"
-	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/plural"
+	"github.com/brimdata/super/cli/poolflags"
+	"github.com/brimdata/super/cmd/zed/root"
+	"github.com/brimdata/super/pkg/charm"
+	"github.com/brimdata/super/pkg/plural"
 )
 
 var Cmd = &charm.Spec{

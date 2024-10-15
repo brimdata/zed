@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"unicode/utf8"
 
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super/zcode"
 )
 
 const (

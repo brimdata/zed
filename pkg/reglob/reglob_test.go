@@ -3,7 +3,7 @@ package reglob_test
 import (
 	"testing"
 
-	"github.com/brimdata/zed/pkg/reglob"
+	"github.com/brimdata/super/pkg/reglob"
 	"github.com/stretchr/testify/require"
 )
 

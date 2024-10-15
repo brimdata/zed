@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/brimdata/zed"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/pkg/fs"
-	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	astzed "github.com/brimdata/super/compiler/ast/zed"
+	"github.com/brimdata/super/pkg/fs"
+	"github.com/brimdata/super/zcode"
+	"github.com/brimdata/super/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

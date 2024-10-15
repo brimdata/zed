@@ -3,9 +3,9 @@ package commits
 import (
 	"fmt"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/lake/data"
+	"github.com/brimdata/super/pkg/nano"
 	"github.com/segmentio/ksuid"
 )
 

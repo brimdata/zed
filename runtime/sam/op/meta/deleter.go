@@ -4,12 +4,12 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/lake"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zson"
 	"github.com/segmentio/ksuid"
 )
 

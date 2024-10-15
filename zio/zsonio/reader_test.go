@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zio/zsonio"
+	"github.com/brimdata/super/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

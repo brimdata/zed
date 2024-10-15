@@ -1,8 +1,8 @@
 package optimizer
 
 import (
-	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/optimizer/demand"
+	"github.com/brimdata/super/compiler/ast/dag"
+	"github.com/brimdata/super/compiler/optimizer/demand"
 )
 
 func insertDemand(seq dag.Seq) dag.Seq {

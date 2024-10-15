@@ -1,10 +1,10 @@
 package fuse
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/runtime/sam/expr/agg"
-	"github.com/brimdata/zed/runtime/sam/op/spill"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/runtime/sam/expr/agg"
+	"github.com/brimdata/super/runtime/sam/op/spill"
 )
 
 // Fuser buffers records written to it, assembling from them a unified schema of

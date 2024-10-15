@@ -3,14 +3,14 @@ package kernel
 import (
 	"fmt"
 
-	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/optimizer"
-	"github.com/brimdata/zed/pkg/field"
-	samexpr "github.com/brimdata/zed/runtime/sam/expr"
-	vamexpr "github.com/brimdata/zed/runtime/vam/expr"
-	vamop "github.com/brimdata/zed/runtime/vam/op"
-	"github.com/brimdata/zed/vector"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super/compiler/ast/dag"
+	"github.com/brimdata/super/compiler/optimizer"
+	"github.com/brimdata/super/pkg/field"
+	samexpr "github.com/brimdata/super/runtime/sam/expr"
+	vamexpr "github.com/brimdata/super/runtime/vam/expr"
+	vamop "github.com/brimdata/super/runtime/vam/op"
+	"github.com/brimdata/super/vector"
+	"github.com/brimdata/super/zbuf"
 )
 
 // compile compiles a DAG into a graph of runtime operators, and returns

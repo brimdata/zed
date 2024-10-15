@@ -4,15 +4,15 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/cli/outputflags"
-	"github.com/brimdata/zed/cmd/zed/dev/vector"
-	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/runtime/vam"
-	"github.com/brimdata/zed/runtime/vcache"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/cli/outputflags"
+	"github.com/brimdata/super/cmd/zed/dev/vector"
+	"github.com/brimdata/super/cmd/zed/root"
+	"github.com/brimdata/super/pkg/charm"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/runtime/vam"
+	"github.com/brimdata/super/runtime/vcache"
+	"github.com/brimdata/super/zbuf"
 )
 
 var Copy = &charm.Spec{

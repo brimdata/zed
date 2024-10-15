@@ -4,11 +4,11 @@ import (
 	"bufio"
 	"os"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/bufwriter"
-	"github.com/brimdata/zed/pkg/fs"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/bufwriter"
+	"github.com/brimdata/super/pkg/fs"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zio/zngio"
 )
 
 // File provides a means to write a sequence of zng records to temporary

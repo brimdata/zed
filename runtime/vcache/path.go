@@ -3,7 +3,7 @@ package vcache
 import (
 	"fmt"
 
-	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/super/pkg/field"
 )
 
 // A path is an array of string or Forks

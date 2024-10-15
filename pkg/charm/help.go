@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zed/pkg/terminal"
+	"github.com/brimdata/super/pkg/terminal"
 	"github.com/kr/text"
 )
 

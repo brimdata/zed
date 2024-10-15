@@ -4,12 +4,12 @@ import (
 	"errors"
 	"net/netip"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zcode"
+	"github.com/brimdata/super/zson"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#network_of
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#network_of
 type NetworkOf struct {
 	zctx *zed.Context
 }
@@ -74,7 +74,7 @@ func addressAndMask(address, mask zed.Value) zed.Value {
 	return val
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#cidr_match
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#cidr_match
 type CIDRMatch struct {
 	zctx *zed.Context
 }

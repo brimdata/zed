@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/commits"
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/sam/op/meta"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/lake"
+	"github.com/brimdata/super/lake/commits"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/runtime/sam/op/meta"
+	"github.com/brimdata/super/zbuf"
 	"github.com/segmentio/ksuid"
 )
 

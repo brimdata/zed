@@ -5,12 +5,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zio/zsonio"
+	"github.com/brimdata/super/zson"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#parse_uri
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#parse_uri
 type ParseURI struct {
 	zctx      *zed.Context
 	marshaler *zson.MarshalZNGContext
@@ -76,7 +76,7 @@ func (p *ParseURI) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return out
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#parse_zson
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#parse_zson
 type ParseZSON struct {
 	zctx *zed.Context
 	sr   *strings.Reader

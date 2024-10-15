@@ -3,9 +3,9 @@ package zsonio
 import (
 	"io"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zcode"
+	"github.com/brimdata/super/zson"
 )
 
 type Reader struct {

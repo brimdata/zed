@@ -664,10 +664,10 @@ input to perform well.
 
 This proved a challenge as `zq` is written in [Go](https://go.dev/) and Go's JSON package
 is not particularly performant.  To this end, `zq` has its own lean and simple
-[JSON tokenizer](https://pkg.go.dev/github.com/brimdata/zed/pkg/jsonlexer),
+[JSON tokenizer](https://pkg.go.dev/github.com/brimdata/super/pkg/jsonlexer),
 which performs quite well,
 and is
-[integrated tightly](https://github.com/brimdata/zed/blob/main/zio/jsonio/reader.go)
+[integrated tightly](https://github.com/brimdata/super/blob/main/zio/jsonio/reader.go)
 with Zed's internal data representation.
 Moreover, like `jq`,
 `zq`'s JSON parser does not require objects to be newline delimited and can

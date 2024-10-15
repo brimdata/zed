@@ -3,7 +3,7 @@ package vng
 import (
 	"io"
 
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 )
 
 type Int64Encoder struct {

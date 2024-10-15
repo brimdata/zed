@@ -1,12 +1,12 @@
 package function
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/field"
+	"github.com/brimdata/super/zcode"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#flatten
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#flatten
 type Flatten struct {
 	zcode.Builder
 	keyType    zed.Type

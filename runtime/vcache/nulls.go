@@ -4,8 +4,8 @@ import (
 	"io"
 	"sync"
 
-	"github.com/brimdata/zed/vector"
-	"github.com/brimdata/zed/vng"
+	"github.com/brimdata/super/vector"
+	"github.com/brimdata/super/vng"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -3,10 +3,10 @@ package traverse
 import (
 	"context"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zcode"
 )
 
 // Expr provides provides glue to run a traversal subquery in expression

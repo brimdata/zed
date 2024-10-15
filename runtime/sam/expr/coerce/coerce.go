@@ -3,9 +3,9 @@ package coerce
 import (
 	"bytes"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/byteconv"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/byteconv"
+	"github.com/brimdata/super/zson"
 	"golang.org/x/exp/constraints"
 )
 

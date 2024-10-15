@@ -1,8 +1,8 @@
 package meta
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime/sam/expr"
 )
 
 type pruner struct {

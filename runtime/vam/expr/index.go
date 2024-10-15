@@ -1,8 +1,8 @@
 package expr
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/vector"
 )
 
 // Index represents an index operator "container[index]" where container is

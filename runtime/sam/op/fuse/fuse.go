@@ -3,9 +3,9 @@ package fuse
 import (
 	"sync"
 
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/sam/op"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/runtime/sam/op"
+	"github.com/brimdata/super/zbuf"
 )
 
 var MemMaxBytes = 128 * 1024 * 1024

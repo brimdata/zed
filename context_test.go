@@ -3,8 +3,8 @@ package zed_test
 import (
 	"testing"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

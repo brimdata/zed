@@ -6,9 +6,9 @@ import (
 	"net/netip"
 	"strings"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/byteconv"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/byteconv"
+	"github.com/brimdata/super/zcode"
 )
 
 type searchByPred struct {

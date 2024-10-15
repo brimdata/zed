@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/ztest"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/ztest"
 )
 
 func testSuccessful(t *testing.T, e, input, expected string) {

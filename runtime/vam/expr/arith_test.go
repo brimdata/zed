@@ -3,8 +3,8 @@ package expr
 import (
 	"testing"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/vector"
 	"github.com/stretchr/testify/assert"
 )
 

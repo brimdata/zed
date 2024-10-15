@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super/vector"
 )
 
 var opToAlpha = map[string]string{
@@ -28,8 +28,8 @@ func main() {
 	fmt.Fprintln(&buf)
 	fmt.Fprintln(&buf, "package expr")
 	fmt.Fprintln(&buf, "import (")
-	fmt.Fprintln(&buf, `"github.com/brimdata/zed"`)
-	fmt.Fprintln(&buf, `"github.com/brimdata/zed/vector"`)
+	fmt.Fprintln(&buf, `"github.com/brimdata/super"`)
+	fmt.Fprintln(&buf, `"github.com/brimdata/super/vector"`)
 	fmt.Fprintln(&buf, ")")
 
 	var ents strings.Builder

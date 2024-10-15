@@ -3,8 +3,8 @@ package exec
 import (
 	"sync"
 
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/zbuf"
 	"github.com/segmentio/ksuid"
 )
 

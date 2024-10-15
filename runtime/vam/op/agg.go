@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/vam/expr"
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime/vam/expr"
+	"github.com/brimdata/super/vector"
 )
 
 //XXX need to make sure vam operator objects are returned to GC as they are finished

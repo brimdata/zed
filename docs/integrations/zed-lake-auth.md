@@ -101,8 +101,8 @@ checkbox to enable the **Device Code** grant type.
 the most recent Zed tools from source.
 
    ```
-   $ go install github.com/brimdata/zed/cmd/zed@latest
-   go: downloading github.com/brimdata/zed v1.6.0
+   $ go install github.com/brimdata/super/cmd/zed@latest
+   go: downloading github.com/brimdata/super v1.6.0
 
    $ zed -version
    Version: v1.6.0
@@ -148,7 +148,7 @@ Now that we've configured both Auth0 and the Zed lake service, we can test the
 authenticated login flow with our Zed clients. The video below shows this
 using [Zui v1.0.0](https://github.com/brimdata/zui/releases/tag/v1.0.0)
 and the Zed CLI tooling and Zed Python client
-[v1.6.0](https://github.com/brimdata/zed/releases/tag/v1.6.0).
+[v1.6.0](https://github.com/brimdata/super/releases/tag/v1.6.0).
 
 ### Summary:
 

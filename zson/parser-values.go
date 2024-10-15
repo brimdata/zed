@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/brimdata/zed"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	astzed "github.com/brimdata/super/compiler/ast/zed"
+	"github.com/brimdata/super/pkg/nano"
+	"github.com/brimdata/super/zcode"
 )
 
 func (p *Parser) ParseValue() (astzed.Value, error) {

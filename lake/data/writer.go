@@ -4,12 +4,12 @@ import (
 	"context"
 	"io"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/lake/seekindex"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/bufwriter"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/lake/seekindex"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/pkg/bufwriter"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/zio/zngio"
 )
 
 // Writer is a zio.Writer that writes a stream of sorted records into a

@@ -16,8 +16,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/brimdata/zed/compiler/ast"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
+	"github.com/brimdata/super/compiler/ast"
+	astzed "github.com/brimdata/super/compiler/ast/zed"
 )
 
 var g = &grammar{

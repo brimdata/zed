@@ -1,9 +1,9 @@
 package expr
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/vector"
 )
 
 // Renamer renames one or more fields in a record.  See [expr.Renamer], on which

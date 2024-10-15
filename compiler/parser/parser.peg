@@ -2,8 +2,8 @@
     package parser
 
     import (
-        "github.com/brimdata/zed/compiler/ast"
-        astzed "github.com/brimdata/zed/compiler/ast/zed"
+        "github.com/brimdata/super/compiler/ast"
+        astzed "github.com/brimdata/super/compiler/ast/zed"
     )
 
 }
@@ -500,7 +500,7 @@ RenameOp
 
 // The paren guard is to allow parsing fuse() as an aggregator. This
 // is temporary pending finalizing the names
-// (https://github.com/brimdata/zed/issues/2114) for the fuse op and
+// (https://github.com/brimdata/super/issues/2114) for the fuse op and
 // aggregator, at which point we may no longer need this.
 FuseOp
   = "fuse" !(__ "(") &EOKW {

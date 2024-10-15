@@ -3,7 +3,7 @@ package agg
 import (
 	"slices"
 
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 )
 
 // Schema constructs a fused type for types passed to Mixin.  Values of any

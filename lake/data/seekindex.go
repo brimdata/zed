@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/lake/seekindex"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/vector"
-	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/lake/seekindex"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/vector"
+	"github.com/brimdata/super/zio/zngio"
+	"github.com/brimdata/super/zson"
 )
 
 func LookupSeekRange(ctx context.Context, engine storage.Engine, path *storage.URI,

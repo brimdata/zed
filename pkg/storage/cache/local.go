@@ -4,8 +4,8 @@ import (
 	"context"
 	"path"
 
-	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/super/lake/data"
+	"github.com/brimdata/super/pkg/storage"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/prometheus/client_golang/prometheus"
 )

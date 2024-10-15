@@ -1,8 +1,8 @@
 package zbuf
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zio"
 )
 
 // Array is a slice of of records that implements the Batch and

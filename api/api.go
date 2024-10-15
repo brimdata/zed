@@ -3,12 +3,12 @@ package api
 import (
 	"context"
 
-	"github.com/brimdata/zed/compiler/parser"
-	"github.com/brimdata/zed/lakeparse"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super/compiler/parser"
+	"github.com/brimdata/super/lakeparse"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/pkg/field"
+	"github.com/brimdata/super/pkg/nano"
+	"github.com/brimdata/super/zbuf"
 	"github.com/segmentio/ksuid"
 )
 

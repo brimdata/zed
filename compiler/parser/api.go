@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/super/compiler/ast"
 )
 
 // ParseZed calls ConcatSource followed by Parse.  If Parse returns an error,

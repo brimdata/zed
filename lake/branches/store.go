@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed/lake/journal"
-	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/super/lake/journal"
+	"github.com/brimdata/super/pkg/storage"
 	"go.uber.org/zap"
 )
 

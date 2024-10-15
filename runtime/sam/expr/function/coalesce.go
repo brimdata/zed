@@ -1,8 +1,8 @@
 package function
 
-import "github.com/brimdata/zed"
+import "github.com/brimdata/super"
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#coalesce
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#coalesce
 type Coalesce struct{}
 
 func (c *Coalesce) Call(_ zed.Allocator, args []zed.Value) zed.Value {

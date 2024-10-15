@@ -3,10 +3,10 @@ package top
 import (
 	"container/heap"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/runtime/sam/op/sort"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/runtime/sam/op/sort"
+	"github.com/brimdata/super/zbuf"
 )
 
 const defaultTopLimit = 100

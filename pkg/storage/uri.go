@@ -4,8 +4,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zson"
 )
 
 type URI url.URL

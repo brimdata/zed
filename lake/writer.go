@@ -4,12 +4,12 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/lake/data"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zio"
 	"github.com/segmentio/ksuid"
 	"golang.org/x/sync/errgroup"
 )

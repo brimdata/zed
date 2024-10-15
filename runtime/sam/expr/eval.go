@@ -8,10 +8,10 @@ import (
 	"math"
 	"regexp"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr/coerce"
-	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime/sam/expr/coerce"
+	"github.com/brimdata/super/zcode"
+	"github.com/brimdata/super/zson"
 )
 
 type Evaluator interface {

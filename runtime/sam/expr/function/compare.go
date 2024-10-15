@@ -1,12 +1,12 @@
 package function
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime/sam/expr"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/runtime/sam/expr"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#compare
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#compare
 type Compare struct {
 	nullsMax, nullsMin expr.CompareFn
 	zctx               *zed.Context

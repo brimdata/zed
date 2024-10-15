@@ -3,11 +3,11 @@ package function
 import (
 	"slices"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime/sam/expr/function"
-	"github.com/brimdata/zed/runtime/vam/expr"
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/field"
+	"github.com/brimdata/super/runtime/sam/expr/function"
+	"github.com/brimdata/super/runtime/vam/expr"
+	"github.com/brimdata/super/vector"
 )
 
 func New(zctx *zed.Context, name string, narg int) (expr.Function, field.Path, error) {

@@ -10,9 +10,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/brimdata/zed"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	astzed "github.com/brimdata/super/compiler/ast/zed"
+	"github.com/brimdata/super/zcode"
 )
 
 // Implied returns true for primitive types whose type can be inferred

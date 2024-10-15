@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/byteconv"
-	"github.com/brimdata/zed/pkg/stringsearch"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/byteconv"
+	"github.com/brimdata/super/pkg/stringsearch"
 )
 
 const (

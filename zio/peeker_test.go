@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio/zsonio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zio/zsonio"
 )
 
 func TestPeeker(t *testing.T) {

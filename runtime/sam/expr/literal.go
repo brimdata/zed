@@ -1,6 +1,6 @@
 package expr
 
-import "github.com/brimdata/zed"
+import "github.com/brimdata/super"
 
 type Literal struct {
 	val zed.Value

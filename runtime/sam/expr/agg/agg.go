@@ -3,8 +3,8 @@ package agg
 import (
 	"fmt"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/anymath"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/anymath"
 )
 
 // MaxValueSize limits the size of a value produced by an aggregate function

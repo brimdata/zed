@@ -3,7 +3,7 @@ package lakemanage
 import (
 	"time"
 
-	"github.com/brimdata/zed/lake/pools"
+	"github.com/brimdata/super/lake/pools"
 )
 
 const DefaultInterval = time.Minute

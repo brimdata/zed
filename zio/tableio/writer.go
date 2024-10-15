@@ -7,10 +7,10 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/zio/zeekio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/zio/zeekio"
+	"github.com/brimdata/super/zson"
 )
 
 type Writer struct {

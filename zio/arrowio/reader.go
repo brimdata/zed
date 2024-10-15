@@ -11,9 +11,9 @@ import (
 	"github.com/apache/arrow/go/v14/arrow/array"
 	"github.com/apache/arrow/go/v14/arrow/ipc"
 	"github.com/apache/arrow/go/v14/parquet/pqarrow"
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/nano"
+	"github.com/brimdata/super/zcode"
 )
 
 // Reader is a zio.Reader for the Arrow IPC stream format.

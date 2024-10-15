@@ -7,7 +7,7 @@ sidebar_label: Schools Data
 
 > This document provides a beginner's overview of the Zed language
 using the [zq command](../commands/zq.md) and
-[real-world data](https://github.com/brimdata/zed/blob/main/testdata/edu/README.md) relating to California schools
+[real-world data](https://github.com/brimdata/super/blob/main/testdata/edu/README.md) relating to California schools
 and test scores.
 
 ## 1. Getting Started
@@ -16,9 +16,9 @@ If you want to follow along by running the examples, simply
 [install zq](../install.md) and copy the
 data files used here into your working directory:
 ```
-curl https://raw.githubusercontent.com/brimdata/zed/main/testdata/edu/schools.zson > schools.zson
-curl https://raw.githubusercontent.com/brimdata/zed/main/testdata/edu/testscores.zson > testscores.zson
-curl https://raw.githubusercontent.com/brimdata/zed/main/testdata/edu/webaddrs.zson > webaddrs.zson
+curl https://raw.githubusercontent.com/brimdata/super/main/testdata/edu/schools.zson > schools.zson
+curl https://raw.githubusercontent.com/brimdata/super/main/testdata/edu/testscores.zson > testscores.zson
+curl https://raw.githubusercontent.com/brimdata/super/main/testdata/edu/webaddrs.zson > webaddrs.zson
 ```
 These files are all encoded in the human-readable [ZSON format](../formats/zson.md)
 so you can easily have a look at them.  ZSON is not optimized for speed but these
@@ -93,7 +93,7 @@ which emits
 Nothing too tricky here.  After a quick review of the shapes and types,
 you will notice they are just three relatively simple tables, which is no surprise
 since we obtained the original data from
-[SQLite database files](https://github.com/brimdata/zed/blob/main/testdata/edu/README.md).
+[SQLite database files](https://github.com/brimdata/super/blob/main/testdata/edu/README.md).
 
 ## 3. Searching
 

@@ -1,9 +1,9 @@
 package zfmt
 
 import (
-	"github.com/brimdata/zed/compiler/ast/dag"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super/compiler/ast/dag"
+	astzed "github.com/brimdata/super/compiler/ast/zed"
+	"github.com/brimdata/super/zson"
 )
 
 func DAG(seq dag.Seq) string {

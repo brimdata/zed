@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/cli"
-	"github.com/brimdata/zed/cli/inputflags"
-	"github.com/brimdata/zed/cli/outputflags"
-	"github.com/brimdata/zed/cli/queryflags"
-	"github.com/brimdata/zed/cli/runtimeflags"
-	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zfmt"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/zsonio"
+	zed "github.com/brimdata/super"
+	"github.com/brimdata/super/cli"
+	"github.com/brimdata/super/cli/inputflags"
+	"github.com/brimdata/super/cli/outputflags"
+	"github.com/brimdata/super/cli/queryflags"
+	"github.com/brimdata/super/cli/runtimeflags"
+	"github.com/brimdata/super/compiler"
+	"github.com/brimdata/super/pkg/charm"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zfmt"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zio/zsonio"
 )
 
 var Cmd = &charm.Spec{
@@ -36,7 +36,7 @@ Output is written to one or more files or to standard output.
 
 A Zed query is comprised of one or more operators interconnected
 into a pipeline using the Unix pipe character "|".
-See https://github.com/brimdata/zed/tree/main/docs/language
+See https://github.com/brimdata/super/tree/main/docs/language
 for details.
 
 Supported input formats include CSV, JSON, NDJSON, Parquet,
@@ -88,8 +88,7 @@ by converting your data to the efficient binary form of Zed called ZNG, e.g.,
   zq <query> fast.zng
   ...
 
-Please see https://github.com/brimdata/zq and
-https://github.com/brimdata/zed for more information.
+Please see https://github.com/brimdata/super for more information.
 `,
 	New: New,
 }

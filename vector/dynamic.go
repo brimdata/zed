@@ -1,8 +1,8 @@
 package vector
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zcode"
 )
 
 // Dynamic is an ordered sequence of values taken from one or more

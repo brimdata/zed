@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	pkgfs "github.com/brimdata/zed/pkg/fs"
+	pkgfs "github.com/brimdata/super/pkg/fs"
 )
 
 type FileSystem struct {

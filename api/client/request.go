@@ -9,10 +9,10 @@ import (
 	"net/http/httptrace"
 	"time"
 
-	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super/api"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zio/zngio"
+	"github.com/brimdata/super/zson"
 )
 
 type Request struct {

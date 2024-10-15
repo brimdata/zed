@@ -3,9 +3,9 @@ package function
 import (
 	"strings"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/grok"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/grok"
+	"github.com/brimdata/super/zcode"
 )
 
 type Grok struct {

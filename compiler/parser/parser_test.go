@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/compiler/parser"
-	"github.com/brimdata/zed/pkg/fs"
-	"github.com/brimdata/zed/ztest"
+	"github.com/brimdata/super/compiler"
+	"github.com/brimdata/super/compiler/parser"
+	"github.com/brimdata/super/pkg/fs"
+	"github.com/brimdata/super/ztest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

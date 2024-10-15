@@ -4,7 +4,7 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimdata/zed/lakeparse"
+	"github.com/brimdata/super/lakeparse"
 )
 
 type Flags struct {

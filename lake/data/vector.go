@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"io/fs"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/bufwriter"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/vng"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/vngio"
-	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/bufwriter"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/vng"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zio/vngio"
+	"github.com/brimdata/super/zio/zngio"
 	"github.com/segmentio/ksuid"
 )
 

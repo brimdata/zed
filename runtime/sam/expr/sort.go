@@ -8,9 +8,9 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/zio"
 )
 
 type SortEvaluator struct {

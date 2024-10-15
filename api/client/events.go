@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super/api"
+	"github.com/brimdata/super/zson"
 )
 
 type EventsClient struct {

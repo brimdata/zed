@@ -5,8 +5,8 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/brimdata/zed/pkg/byteconv"
-	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/super/pkg/byteconv"
+	"github.com/brimdata/super/pkg/nano"
 )
 
 // formatTime formats ts as a Zeek time value.  A Zeek time value is a

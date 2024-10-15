@@ -1,13 +1,13 @@
 package function
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/nano"
+	"github.com/brimdata/super/vector"
 	"github.com/lestrrat-go/strftime"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#strftime
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#strftime
 type Strftime struct {
 	zctx *zed.Context
 }

@@ -3,7 +3,7 @@ package vector_test
 import (
 	"testing"
 
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super/vector"
 	"github.com/stretchr/testify/require"
 )
 

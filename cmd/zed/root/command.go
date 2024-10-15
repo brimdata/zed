@@ -3,9 +3,9 @@ package root
 import (
 	"flag"
 
-	"github.com/brimdata/zed/cli"
-	"github.com/brimdata/zed/cli/lakeflags"
-	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/super/cli"
+	"github.com/brimdata/super/cli/lakeflags"
+	"github.com/brimdata/super/pkg/charm"
 )
 
 var Zed = &charm.Spec{

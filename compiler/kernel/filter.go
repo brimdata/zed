@@ -1,9 +1,9 @@
 package kernel
 
 import (
-	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super/compiler/ast/dag"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/zbuf"
 )
 
 type Filter struct {

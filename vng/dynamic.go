@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zcode"
+	"github.com/brimdata/super/zio"
 	"golang.org/x/sync/errgroup"
 )
 

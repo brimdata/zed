@@ -3,10 +3,10 @@ package extent
 import (
 	"fmt"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/zson"
 )
 
 // For now, we do slow-path stuff here but the interface will allow us

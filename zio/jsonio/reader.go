@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/byteconv"
-	"github.com/brimdata/zed/pkg/jsonlexer"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/byteconv"
+	"github.com/brimdata/super/pkg/jsonlexer"
 	"golang.org/x/text/unicode/norm"
 )
 

@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zngbytes"
-	"github.com/brimdata/zed/zson"
+	zed "github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/zio/zngio"
+	"github.com/brimdata/super/zngbytes"
+	"github.com/brimdata/super/zson"
 	"go.uber.org/zap"
 )
 
@@ -176,7 +176,7 @@ func (s *Store) getSnapshot(ctx context.Context, unmarshaler *zson.UnmarshalZNGC
 }
 
 func (s *Store) putSnapshot(ctx context.Context, at ID, table map[string]Entry) error {
-	// XXX This needs to be an atomic write for file systems: brimdata/zed#4277.
+	// XXX This needs to be an atomic write for file systems: brimdata/super#4277.
 	w, err := s.journal.engine.Put(ctx, s.snapshotURI())
 	if err != nil {
 		return err

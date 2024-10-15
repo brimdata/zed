@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 )
 
 // Context provides states used by all procs to provide the outside context

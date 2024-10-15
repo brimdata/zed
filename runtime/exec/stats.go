@@ -3,12 +3,12 @@ package exec
 import (
 	"context"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/commits"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/runtime/sam/expr/extent"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/lake"
+	"github.com/brimdata/super/lake/commits"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/pkg/nano"
+	"github.com/brimdata/super/runtime/sam/expr/extent"
 )
 
 // XXX for backward compat keep this for now, and return branchstats for pool/main

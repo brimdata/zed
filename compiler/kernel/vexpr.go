@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/pkg/field"
-	vamexpr "github.com/brimdata/zed/runtime/vam/expr"
-	vamfunc "github.com/brimdata/zed/runtime/vam/expr/function"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super/compiler/ast/dag"
+	"github.com/brimdata/super/pkg/field"
+	vamexpr "github.com/brimdata/super/runtime/vam/expr"
+	vamfunc "github.com/brimdata/super/runtime/vam/expr/function"
+	"github.com/brimdata/super/zson"
 )
 
 func (b *Builder) compileVamExpr(e dag.Expr) (vamexpr.Evaluator, error) {

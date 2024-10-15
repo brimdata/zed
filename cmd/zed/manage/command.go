@@ -6,11 +6,11 @@ import (
 	"flag"
 	"os"
 
-	"github.com/brimdata/zed/cli/lakeflags"
-	"github.com/brimdata/zed/cli/logflags"
-	"github.com/brimdata/zed/cmd/zed/internal/lakemanage"
-	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/super/cli/lakeflags"
+	"github.com/brimdata/super/cli/logflags"
+	"github.com/brimdata/super/cmd/zed/internal/lakemanage"
+	"github.com/brimdata/super/cmd/zed/root"
+	"github.com/brimdata/super/pkg/charm"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )

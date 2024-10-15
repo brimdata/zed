@@ -1,7 +1,7 @@
 package expr
 
 import (
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 )
 
 // Context is an interface to a scope and value allocator for expressions.

@@ -1,8 +1,8 @@
 package queryio
 
 import (
-	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super/api"
+	"github.com/brimdata/super/zson"
 )
 
 var unmarshaler *zson.UnmarshalZNGContext

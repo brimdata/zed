@@ -4,9 +4,9 @@ import (
 	"errors"
 	"hash/maphash"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/op/spill"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime/sam/op/spill"
+	"github.com/brimdata/super/zcode"
 )
 
 type Shaper struct {

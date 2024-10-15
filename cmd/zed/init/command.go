@@ -5,10 +5,10 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/lake/api"
-	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/super/cmd/zed/root"
+	"github.com/brimdata/super/lake/api"
+	"github.com/brimdata/super/pkg/charm"
+	"github.com/brimdata/super/pkg/storage"
 	"go.uber.org/zap"
 )
 

@@ -5,10 +5,10 @@ import (
 	"io"
 	"sort"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/zcode"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -1,10 +1,10 @@
 package function
 
 import (
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#len
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#len
 type LenFn struct {
 	zctx *zed.Context
 }

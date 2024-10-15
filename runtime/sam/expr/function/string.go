@@ -5,11 +5,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/agnivade/levenshtein"
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zcode"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#replace
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#replace
 type Replace struct {
 	zctx *zed.Context
 }
@@ -36,7 +36,7 @@ func (r *Replace) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return zed.NewString(strings.ReplaceAll(s, old, new))
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#run_len
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#run_len
 type RuneLen struct {
 	zctx *zed.Context
 }
@@ -53,7 +53,7 @@ func (r *RuneLen) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return zed.NewInt64(int64(utf8.RuneCountInString(s)))
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#lower
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#lower
 type ToLower struct {
 	zctx *zed.Context
 }
@@ -70,7 +70,7 @@ func (t *ToLower) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return zed.NewString(strings.ToLower(s))
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#upper
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#upper
 type ToUpper struct {
 	zctx *zed.Context
 }
@@ -91,7 +91,7 @@ type Trim struct {
 	zctx *zed.Context
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#trim
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#trim
 func (t *Trim) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	val := args[0].Under()
 	if !val.IsString() {
@@ -104,7 +104,7 @@ func (t *Trim) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return zed.NewString(strings.TrimSpace(s))
 }
 
-// // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#split
+// // https://github.com/brimdata/super/blob/main/docs/language/functions.md#split
 type Split struct {
 	zctx *zed.Context
 	typ  zed.Type
@@ -138,7 +138,7 @@ func (s *Split) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return zed.NewValue(s.typ, b)
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#join
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#join
 type Join struct {
 	zctx    *zed.Context
 	builder strings.Builder
@@ -171,7 +171,7 @@ func (j *Join) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return zed.NewString(b.String())
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#levenshtein
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#levenshtein
 type Levenshtein struct {
 	zctx *zed.Context
 }

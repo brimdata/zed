@@ -3,7 +3,7 @@ package zbuf
 import (
 	"testing"
 
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 	"github.com/stretchr/testify/require"
 )
 

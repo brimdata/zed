@@ -3,9 +3,9 @@ package expr
 import (
 	"slices"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/field"
+	"github.com/brimdata/super/vector"
 )
 
 // Dropper drops one or more fields in a record.  If it drops all fields of a

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super/zcode"
 )
 
 type Builder interface {

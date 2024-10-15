@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/skim"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/skim"
 )
 
 const (

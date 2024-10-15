@@ -1,11 +1,11 @@
 package function
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/vector"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#quiet
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#quiet
 type Quiet struct {
 	zctx *zed.Context
 }

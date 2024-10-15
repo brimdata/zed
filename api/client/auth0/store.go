@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	zedfs "github.com/brimdata/zed/pkg/fs"
-	"github.com/brimdata/zed/pkg/storage"
+	zedfs "github.com/brimdata/super/pkg/fs"
+	"github.com/brimdata/super/pkg/storage"
 )
 
 const version = 1

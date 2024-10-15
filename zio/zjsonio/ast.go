@@ -1,7 +1,7 @@
 package zjsonio
 
 import (
-	"github.com/brimdata/zed/pkg/unpack"
+	"github.com/brimdata/super/pkg/unpack"
 )
 
 var unpacker = make(unpack.Reflector)

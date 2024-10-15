@@ -5,7 +5,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super/zson"
 )
 
 // shouldEscape determines if the given code point at the given position

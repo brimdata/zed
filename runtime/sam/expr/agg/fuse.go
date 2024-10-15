@@ -3,7 +3,7 @@ package agg
 import (
 	"fmt"
 
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 )
 
 type fuse struct {

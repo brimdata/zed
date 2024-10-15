@@ -3,8 +3,8 @@ package vcache
 import (
 	"fmt"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/vector"
 )
 
 func project(zctx *zed.Context, paths Path, s shadow) vector.Any {

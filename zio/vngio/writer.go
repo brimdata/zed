@@ -3,7 +3,7 @@ package vngio
 import (
 	"io"
 
-	"github.com/brimdata/zed/vng"
+	"github.com/brimdata/super/vng"
 )
 
 // NewWriter returns a writer to w.
