@@ -22,7 +22,7 @@ func (a *analyzer) semSQLSelect(sel *ast.Select) dag.Seq {
 		a.error(sel, errors.New("SELECT DISTINCT not yet supported"))
 		return dag.Seq{badOp()}
 	}
-	if sel.Value || a.isImpliedSelectValue(sel.Args) {
+	if sel.Value {
 		return a.semSelectValue(sel)
 	}
 	selection, err := a.newSQLSelection(sel.Args)
