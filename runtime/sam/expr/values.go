@@ -313,9 +313,15 @@ func (c *collectionBuilder) append(val zed.Value) {
 }
 
 func (c *collectionBuilder) appendSpread(inner zed.Type, b zcode.Bytes) {
+	union, _ := zed.TypeUnder(inner).(*zed.TypeUnion)
 	for it := b.Iter(); !it.Done(); {
-		c.types = append(c.types, inner)
-		c.bytes = append(c.bytes, it.Next())
+		typ := inner
+		bytes := it.Next()
+		if union != nil {
+			typ, bytes = union.Untag(bytes)
+		}
+		c.types = append(c.types, typ)
+		c.bytes = append(c.bytes, bytes)
 	}
 }
 
