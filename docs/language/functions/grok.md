@@ -117,7 +117,7 @@ present in Zed's implementation, you can create a Logstash-based preprocessing
 pipeline that uses its
 [Grok filter plugin](https://www.elastic.co/guide/en/logstash/current/plugins-filters-grok.html)
 and send its output as JSON to Zed tools. Issue
-[zed/3151](https://github.com/brimdata/super/issues/3151) provides some tips for
+[super/3151](https://github.com/brimdata/super/issues/3151) provides some tips for
 getting started. If you pursue this approach, please add a comment to the
 issue describing your use case or come talk to us on
 [community Slack](https://www.brimdata.io/join-slack/).
