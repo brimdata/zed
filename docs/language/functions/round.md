@@ -16,7 +16,7 @@ which must be a numeric type.  The return type retains the type of the argument.
 ### Examples
 
 ```mdtest-command
-echo '3.14 -1.5 0 1' | zq -z 'yield round(this)' -
+echo '3.14 -1.5 0 1' | super query -z -c 'yield round(this)' -
 ```
 =>
 ```mdtest-output

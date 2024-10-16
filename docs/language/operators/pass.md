@@ -17,7 +17,7 @@ with operators that handle multiple branches of the pipeline such as
 
 _Copy input to output_
 ```mdtest-command
-echo '1 2 3' | zq -z pass -
+echo '1 2 3' | super query -z -c pass -
 ```
 =>
 ```mdtest-output
@@ -28,7 +28,7 @@ echo '1 2 3' | zq -z pass -
 
 _Copy each input value to three parallel pipeline branches and leave the values unmodified on one of them_
 ```mdtest-command
-echo '"HeLlo, WoRlD!"' | zq -z '
+echo '"HeLlo, WoRlD!"' | super query -z -c '
   fork (
     => pass
     => upper(this)

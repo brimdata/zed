@@ -1,5 +1,5 @@
 script: |
-  zq -z 'lower(this)' -
+  super query -z -c 'lower(this)' -
 
 inputs:
   - name: stdin

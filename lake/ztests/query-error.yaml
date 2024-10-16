@@ -1,10 +1,10 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  ! zed query ''
-  ! zed query 'from HEAD'
-  ! zed query 'from :unknownmeta'
-  ! zed query 'from doesnotexist'
+  export SUPER_LAKE=test
+  super db init -q
+  ! super db query ''
+  ! super db query 'from HEAD'
+  ! super db query 'from :unknownmeta'
+  ! super db query 'from doesnotexist'
 
 outputs:
   - name: stderr

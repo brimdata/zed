@@ -11,15 +11,15 @@ base64(s: string) -> bytes
 
 ### Description
 
-The _base64_ function encodes a Zed bytes value `b` as a
+The _base64_ function encodes a bytes value `b` as a
 a [Base64](https://en.wikipedia.org/wiki/Base64) string,
-or decodes a Base64 string `s` into a Zed bytes value.
+or decodes a Base64 string `s` into a bytes value.
 
 ### Examples
 
 Encode byte sequence `0x010203` into its Base64 string:
 ```mdtest-command
-echo '0x010203' | zq -z 'yield base64(this)' -
+echo '0x010203' | super query -z -c 'yield base64(this)' -
 ```
 =>
 ```mdtest-output
@@ -27,7 +27,7 @@ echo '0x010203' | zq -z 'yield base64(this)' -
 ```
 Decode "AQID" into byte sequence `0x010203`:
 ```mdtest-command
-echo '"AQID"' | zq -z 'yield base64(this)' -
+echo '"AQID"' | super query -z -c 'yield base64(this)' -
 ```
 =>
 ```mdtest-output
@@ -35,7 +35,7 @@ echo '"AQID"' | zq -z 'yield base64(this)' -
 ```
 Encode ASCII string into Base64-encoded string:
 ```mdtest-command
-echo '"hello, world"' | zq -z 'yield base64(bytes(this))' -
+echo '"hello, world"' | super query -z -c 'yield base64(bytes(this))' -
 ```
 =>
 ```mdtest-output
@@ -43,7 +43,7 @@ echo '"hello, world"' | zq -z 'yield base64(bytes(this))' -
 ```
 Decode a Base64 string and cast the decoded bytes to a string:
 ```mdtest-command
-echo '"aGVsbG8gd29ybGQ="' | zq -z 'yield string(base64(this))' -
+echo '"aGVsbG8gd29ybGQ="' | super query -z -c 'yield string(base64(this))' -
 ```
 =>
 ```mdtest-output

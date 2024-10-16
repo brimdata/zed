@@ -1,9 +1,9 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q -seekstride 11B -orderby ts:desc logs
-  zed load -use logs -q in.zson
-  zq -z test/*/data/*-seek.zng
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -q -seekstride 11B -orderby ts:desc logs
+  super db load -use logs -q in.zson
+  super query -z test/*/data/*-seek.zng
 
 inputs:
   - name: in.zson

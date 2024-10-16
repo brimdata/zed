@@ -1,6 +1,6 @@
 script: |
-  ! zc -s -I error-duplicate-parameters.zed
-  ! zc -s -I error-const-lhs.zed
+  ! super dev compile -s -I error-duplicate-parameters.zed
+  ! super dev compile -s -I error-const-lhs.zed
 
 inputs:
   - name: error-duplicate-parameters.zed

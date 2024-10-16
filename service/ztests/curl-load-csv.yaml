@@ -1,12 +1,12 @@
 script: |
   source service.sh
-  zed create -q -orderby a test
+  super db create -q -orderby a test
   curl -H Content-Type:text/csv --data-binary @in.csv \
-    --fail $ZED_LAKE/pool/test/branch/main | zq -z commit:=0 -
+    --fail $SUPER_LAKE/pool/test/branch/main | super query -z -c commit:=0 -
   curl -H Content-Type:text/csv --data-binary @in-dot.csv \
-    --fail $ZED_LAKE/pool/test/branch/main?csv.delim=. | zq -z commit:=0 -
+    --fail $SUPER_LAKE/pool/test/branch/main?csv.delim=. | super query -z -c commit:=0 -
   echo //
-  zed query -z 'from test'
+  super db query -z 'from test'
 
 inputs:
   - name: in.csv

@@ -18,7 +18,7 @@ is not provided, the value of N defaults to `1`.
 
 _Grab first two values of arbitrary sequence_
 ```mdtest-command
-echo '1 "foo" [1,2,3]' | zq -z 'head 2' -
+echo '1 "foo" [1,2,3]' | super query -z -c 'head 2' -
 ```
 =>
 ```mdtest-output
@@ -28,7 +28,7 @@ echo '1 "foo" [1,2,3]' | zq -z 'head 2' -
 
 _Grab first two values of arbitrary sequence, using a different representation of two_
 ```mdtest-command
-echo '1 "foo" [1,2,3]' | zq -z 'head 1+1' -
+echo '1 "foo" [1,2,3]' | super query -z -c 'head 1+1' -
 ```
 =>
 ```mdtest-output
@@ -38,7 +38,7 @@ echo '1 "foo" [1,2,3]' | zq -z 'head 1+1' -
 
 _Grab the first record of a record sequence_
 ```mdtest-command
-echo '{a:"hello"}{b:"world"}' | zq -z head -
+echo '{a:"hello"}{b:"world"}' | super query -z -c head -
 ```
 =>
 ```mdtest-output

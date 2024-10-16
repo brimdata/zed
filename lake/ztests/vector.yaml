@@ -1,14 +1,14 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -use -q POOL
-  zed load -q in.zson
-  id=$(zed query -f text 'from POOL@main:objects | yield ksuid(id)')
-  zed vector add -q $id
-  zed query -Z 'from POOL@main:vectors | drop id'
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -use -q POOL
+  super db load -q in.zson
+  id=$(super db query -f text 'from POOL@main:objects | yield ksuid(id)')
+  super db vector add -q $id
+  super db query -Z 'from POOL@main:vectors | drop id'
   echo ===
-  zed vector delete -q $id
-  zed query -Z 'from POOL@main:vectors | drop id'
+  super db vector delete -q $id
+  super db query -Z 'from POOL@main:vectors | drop id'
   echo ===
 
 inputs:

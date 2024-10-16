@@ -1,9 +1,9 @@
 script: |
   source service.sh
-  zed create -q test
-  zed load -q -use test 1.zson
-  zed load -q -use test 2.zson
-  zed query -f lake "from test@main:objects"
+  super db create -q test
+  super db load -q -use test 1.zson
+  super db load -q -use test 2.zson
+  super db query -f lake "from test@main:objects"
 
 inputs:
   - name: service.sh

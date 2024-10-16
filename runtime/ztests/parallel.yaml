@@ -1,5 +1,5 @@
 script: |
-  zq -z 'join (file B.zson) on a=b b:=b' A.zson
+  super query -z -c 'join (file B.zson) on a=b b:=b' A.zson
 
 inputs:
   - name: A.zson

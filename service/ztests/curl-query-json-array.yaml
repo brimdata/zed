@@ -1,7 +1,7 @@
 script: |
   source service.sh
-  zed create -q test
-  curl -H "Accept: application/json" -d '{"query":"from :pools | cut name"}' $ZED_LAKE/query
+  super db create -q test
+  curl -H "Accept: application/json" -d '{"query":"from :pools | cut name"}' $SUPER_LAKE/query
 
 inputs:
   - name: service.sh

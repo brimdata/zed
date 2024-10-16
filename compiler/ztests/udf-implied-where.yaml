@@ -1,5 +1,5 @@
 script: |
-  zc -C -s 'func h(e): ( has(e) ) h(foo)'
+  super dev compile -C -s 'func h(e): ( has(e) ) h(foo)'
 
 outputs:
   - name: stdout

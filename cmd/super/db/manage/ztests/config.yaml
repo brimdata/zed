@@ -1,0 +1,34 @@
+script: |
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -q test1
+  super db create -q test2
+  super db create -q test3
+  super db branch -use test2 -q live
+  super db manage -config=inherit.yaml -log.path=inherit.log
+  super query -Z -c 'msg == "updating pool" | cut name, branch | sort name' inherit.log > inherit.zson
+
+inputs:
+  - name: inherit.yaml
+    data: |
+      interval: 1s
+      pools:
+        - pool: test1
+        - pool: test2
+          branch: "live"
+
+outputs:
+  - name: inherit.zson
+    data: | 
+      {
+          name: "test1",
+          branch: "main"
+      }
+      {
+          name: "test2",
+          branch: "live"
+      }
+  - name: stderr
+    data: ""
+  - name: stdout
+    data: ""

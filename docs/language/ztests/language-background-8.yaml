@@ -1,12 +1,12 @@
 # ============================================================================
-# NOTE: This is a test to protect an example shown in the Zed language
-# docs. If you need to make changes to the Zed below to make the tests pass
+# NOTE: This is a test to protect an example shown in the SuperPipe language
+# docs. If you need to make changes to the SuperPipe below to make the tests pass
 # again after a change, the docs likely need to be updated as well.
 #
 # See https://github.com/brimdata/super/pull/2901 for details
 # ============================================================================
 
-# The Zed being tested below is exactly as it appears in the top-level
+# The SuperPipe being tested below is exactly as it appears in the top-level
 # docs/language/README.md.
 
 zed: |

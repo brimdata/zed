@@ -20,7 +20,7 @@ network is inferred from `val`, which in this case, must be an IPv4 address.
 
 Compute the network address of an IP using an `ip` mask argument:
 ```mdtest-command
-echo '10.1.2.129' | zq -z 'yield network_of(this, 255.255.255.128)' -
+echo '10.1.2.129' | super query -z -c 'yield network_of(this, 255.255.255.128)' -
 ```
 =>
 ```mdtest-output
@@ -29,7 +29,7 @@ echo '10.1.2.129' | zq -z 'yield network_of(this, 255.255.255.128)' -
 
 Compute the network address of an IP given an integer prefix argument:
 ```mdtest-command
-echo '10.1.2.129' | zq -z 'yield network_of(this, 25)' -
+echo '10.1.2.129' | super query -z -c 'yield network_of(this, 25)' -
 ```
 =>
 ```mdtest-output
@@ -38,7 +38,7 @@ echo '10.1.2.129' | zq -z 'yield network_of(this, 25)' -
 
 Compute the network address implied by IP classful addressing:
 ```mdtest-command
-echo '10.1.2.129' | zq -z 'yield network_of(this)' -
+echo '10.1.2.129' | super query -z -c 'yield network_of(this)' -
 ```
 =>
 ```mdtest-output
@@ -47,7 +47,7 @@ echo '10.1.2.129' | zq -z 'yield network_of(this)' -
 
 The network of a value that is not an IP is an error:
 ```mdtest-command
-echo 1 | zq -z 'yield network_of(this)' -
+echo 1 | super query -z -c 'yield network_of(this)' -
 ```
 =>
 ```mdtest-output
@@ -56,7 +56,7 @@ error({message:"network_of: not an IP",on:1})
 
 Network masks must be contiguous:
 ```mdtest-command
-echo '10.1.2.129' | zq -z 'yield network_of(this, 255.255.128.255)' -
+echo '10.1.2.129' | super query -z -c 'yield network_of(this, 255.255.128.255)' -
 ```
 =>
 ```mdtest-output

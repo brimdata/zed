@@ -1,8 +1,8 @@
 script: |
   source service.sh
-  zed create -q test
-  zed load -q -use test -
-  zed query -z 'from test'
+  super db create -q test
+  super db load -q -use test -
+  super db query -z 'from test'
 
 inputs:
   - name: service.sh

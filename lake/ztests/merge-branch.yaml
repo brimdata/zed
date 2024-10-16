@@ -1,29 +1,29 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -use -q -orderby k POOL
-  zed load -q -message "initial load of a.zson into main" a.zson
-  zed branch -q child
-  zed use -q @child
-  zed load -q -message "initial load of b.zson into child" b.zson
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -use -q -orderby k POOL
+  super db load -q -message "initial load of a.zson into main" a.zson
+  super db branch -q child
+  super db use -q @child
+  super db load -q -message "initial load of b.zson into child" b.zson
   echo === main ===
-  zed query -z "from POOL"
+  super db query -z "from POOL"
   echo === child ===
-  zed query -z "from POOL@child"
+  super db query -z "from POOL@child"
   echo === child after merge ===
-  zed merge -q main
-  zed query -z "from POOL@child"
+  super db merge -q main
+  super db query -z "from POOL@child"
   echo === main after merge ===
-  zed query -z "from POOL"
+  super db query -z "from POOL"
   echo === main after load c ===
-  zed load -q -use POOL c.zson
-  zed query -z "from POOL"
+  super db load -q -use POOL c.zson
+  super db query -z "from POOL"
   echo === child after main load c ===
-  zed query -z "from POOL@child"
+  super db query -z "from POOL@child"
   echo === main after child load a and merge ===
-  zed load -q a.zson
-  zed merge -q main
-  zed query -z "from POOL"
+  super db load -q a.zson
+  super db merge -q main
+  super db query -z "from POOL"
 
 inputs:
   - name: a.zson

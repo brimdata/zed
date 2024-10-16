@@ -21,7 +21,7 @@ can appear in a field name.
 
 Extract the fields of a nested record:
 ```mdtest-command
-echo '{a:1,b:2,c:{d:3,e:4}}' | zq -z 'yield fields(this)' -
+echo '{a:1,b:2,c:{d:3,e:4}}' | super query -z -c 'yield fields(this)' -
 ```
 =>
 ```mdtest-output
@@ -30,7 +30,7 @@ echo '{a:1,b:2,c:{d:3,e:4}}' | zq -z 'yield fields(this)' -
 Easily convert to dotted names if you prefer:
 ```mdtest-command
 echo '{a:1,b:2,c:{d:3,e:4}}' |
-  zq -z 'over fields(this) | yield join(this,".")' -
+  super query -z -c 'over fields(this) | yield join(this,".")' -
 ```
 =>
 ```mdtest-output
@@ -41,7 +41,7 @@ echo '{a:1,b:2,c:{d:3,e:4}}' |
 ```
 A record is expected:
 ```mdtest-command
-echo 1 | zq -z 'yield {f:fields(this)}' -
+echo 1 | super query -z -c 'yield {f:fields(this)}' -
 ```
 =>
 ```mdtest-output

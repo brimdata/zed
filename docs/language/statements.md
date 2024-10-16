@@ -15,7 +15,7 @@ where `<id>` is an identifier and `<expr>` is a constant [expression](expression
 that must evaluate to a constant at compile time and not reference any
 runtime state such as `this`, e.g.,
 ```mdtest-command
-echo '{r:5}{r:10}' | zq -z "const PI=3.14159 2*PI*r" -
+echo '{r:5}{r:10}' | super query -z -c "const PI=3.14159 2*PI*r" -
 ```
 produces
 ```mdtest-output
@@ -24,7 +24,7 @@ produces
 ```
 
 One or more `const` statements may appear only at the beginning of a scope
-(i.e., the main scope at the start of a Zed program,
+(i.e., the main scope at the start of a query,
 the start of the body of a [user-defined operator](#operator-statements),
 or a [lateral scope](lateral-subqueries.md/#lateral-scope)
 defined by an [`over` operator](operators/over.md))
@@ -48,7 +48,7 @@ state such as `this`.
 
 For example,
 ```mdtest-command
-echo 1 2 3 4 | zq -z 'func add1(n): (n+1) add1(this)' -
+echo 1 2 3 4 | super query -z -c 'func add1(n): (n+1) add1(this)' -
 ```
 produces
 ```mdtest-output
@@ -59,7 +59,7 @@ produces
 ```
 
 One or more `func` statements may appear at the beginning of a scope
-(i.e., the main scope at the start of a Zed program,
+(i.e., the main scope at the start of a query,
 the start of the body of a [user-defined operator](#operator-statements),
 or a [lateral scope](lateral-subqueries.md/#lateral-scope)
 defined by an [`over` operator](operators/over.md))
@@ -93,7 +93,7 @@ of [expressions](expressions.md) matching the number of `<param>`s defined in
 the operator's signature.
 
 One or more `op` statements may appear only at the beginning of a scope
-(i.e., the main scope at the start of a Zed program,
+(i.e., the main scope at the start of a query,
 the start of the body of a [user-defined operator](#operator-statements),
 or a [lateral scope](lateral-subqueries.md/#lateral-scope)
 defined by an [`over` operator](operators/over.md))
@@ -105,8 +105,8 @@ to any contained scopes.
 The `this` value of a user-defined operator's sequence is provided by the
 calling sequence.
 
-For instance the program in `myop.zed`
-```mdtest-input myop.zed
+For instance the program in `myop.pipe`
+```mdtest-input myop.pipe
 op myop(): (
   yield this
 )
@@ -114,7 +114,7 @@ myop()
 ```
 run via
 ```mdtest-command
-echo {x:1} | zq -z -I myop.zed -
+echo {x:1} | super query -z -I myop.pipe -
 ```
 produces
 ```mdtest-output
@@ -132,8 +132,8 @@ other expression will result in a compile-time error.
 Because both constant values and path references evaluate in
 [expression](expressions.md) contexts, a `<param>` may often be used inside of
 a user-defined operator without regard to the argument's origin. For instance,
-with the program `params.zed`
-```mdtest-input params.zed
+with the program `params.pipe`
+```mdtest-input params.pipe
 op AddMessage(field_for_message, msg): (
   field_for_message:=msg
 )
@@ -141,10 +141,10 @@ op AddMessage(field_for_message, msg): (
 the `msg` parameter may be used flexibly
 ```mdtest-command
 echo '{greeting: "hi"}' |
-  zq -z -I params.zed 'AddMessage(message, "hello")' -
+  super query -z -I params.pipe -c 'AddMessage(message, "hello")' -
 
 echo '{greeting: "hi"}' |
-  zq -z -I params.zed 'AddMessage(message, greeting)' -
+  super query -z -I params.pipe -c 'AddMessage(message, greeting)' -
 ```
 to produce the respective outputs
 ```mdtest-output
@@ -158,19 +158,19 @@ explicitly mentioned "field" in the name of our first parameter's name may help
 us avoid making mistakes when passing arguments, such as
 ```mdtest-command fails
 echo '{greeting: "hi"}' |
-  zq -z -I params.zed 'AddMessage("message", "hello")' -
+  super query -z -I params.pipe -c 'AddMessage("message", "hello")' -
 ```
 which produces
 ```mdtest-output
-illegal left-hand side of assignment in params.zed at line 2, column 3:
+illegal left-hand side of assignment in params.pipe at line 2, column 3:
   field_for_message:=msg
   ~~~~~~~~~~~~~~~~~~~~~~
 ```
 
 A constant value must be used to pass a parameter that will be referenced as
 the data source of a [`from` operator](operators/from.md). For example, we
-quote the pool name in our program `count-pool.zed`
-```mdtest-input count-pool.zed
+quote the pool name in our program `count-pool.pipe`
+```mdtest-input count-pool.pipe
 op CountPool(pool_name): (
   from pool_name | count()
 )
@@ -180,10 +180,10 @@ CountPool("example")
 
 so that when we prepare and query the pool via
 ```mdtest-command
-zed -q -lake lake init
-zed -q -lake lake create -use example
-echo '{greeting: "hello"}' | zed -q -lake lake load -
-zed -lake lake query -z -I count-pool.zed
+super db -q -lake test init
+super db -q -lake test create -use example
+echo '{greeting: "hello"}' | super db -q -lake test load -
+super db -lake test query -z -I count-pool.pipe
 ```
 
 it produces the output
@@ -194,8 +194,8 @@ it produces the output
 ### Nested Calls
 
 User-defined operators can make calls to other user-defined operators that
-are declared within the same scope or in a parent's scope. To illustrate, a program in `nested.zed`
-```mdtest-input nested.zed
+are declared within the same scope or in a parent's scope. To illustrate, a program in `nested.pipe`
+```mdtest-input nested.pipe
 op add1(x): (
   x := x + 1
 )
@@ -210,7 +210,7 @@ add4(a.b)
 ```
 run via
 ```mdtest-command
-echo '{a:{b:1}}' | zq -z -I nested.zed -
+echo '{a:{b:1}}' | super query -z -I nested.pipe -
 ```
 produces
 ```mdtest-output
@@ -227,10 +227,10 @@ Named types may be created with the syntax
 ```
 type <id> = <type>
 ```
-where `<id>` is an identifier and `<type>` is a [Zed type](data-types.md#first-class-types).
-This creates a new type with the given name in the Zed type system, e.g.,
+where `<id>` is an identifier and `<type>` is a [type](data-types.md#first-class-types).
+This creates a new type with the given name in the type system, e.g.,
 ```mdtest-command
-echo 80 | zq -z 'type port=uint16 cast(this, <port>)' -
+echo 80 | super query -z -c 'type port=uint16 cast(this, <port>)' -
 ```
 produces
 ```mdtest-output
@@ -238,7 +238,7 @@ produces
 ```
 
 One or more `type` statements may appear at the beginning of a scope
-(i.e., the main scope at the start of a Zed program,
+(i.e., the main scope at the start of a query,
 the start of the body of a [user-defined operator](#operator-statements),
 or a [lateral scope](lateral-subqueries.md/#lateral-scope)
 defined by an [`over` operator](operators/over.md))

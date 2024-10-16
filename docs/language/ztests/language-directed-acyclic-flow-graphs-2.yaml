@@ -1,12 +1,12 @@
 # ============================================================================
-# NOTE: This is a test to protect an example shown in the Zed language
-# docs. If you need to make changes to the Zed below to make the tests pass
+# NOTE: This is a test to protect an example shown in the SuperPipe language
+# docs. If you need to make changes to the SuperPipe below to make the tests pass
 # again after a change, the docs likely need to be updated as well.
 #
 # See https://github.com/brimdata/super/pull/2901 for details
 # ============================================================================
 
-# The Zed being tested below has been modified from the way it appears in
+# The SuperPipe being tested below has been modified from the way it appears in
 # docs/language/README.md:
 #
 #   from (
@@ -19,13 +19,13 @@
 # (https://github.com/brimdata/super/issues/2815).
 
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q -orderby color PoolOne
-  zed create -q -orderby price PoolTwo
-  zed load -q -use PoolOne fruit.zson
-  zed load -q -use PoolTwo prices.zson
-  zed query -z -I join.zed
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -q -orderby color PoolOne
+  super db create -q -orderby price PoolTwo
+  super db load -q -use PoolOne fruit.zson
+  super db load -q -use PoolTwo prices.zson
+  super db query -z -I join.pipe
 
 inputs:
   - name: fruit.zson
@@ -40,7 +40,7 @@ inputs:
       {key:"banana",price:2.1}
       {key:"avocado",price:3.}
       {key:"strawberry",price:0.5}
-  - name: join.zed
+  - name: join.pipe
     data: |
       from (
         pool PoolOne => put color:=upper(color) | put namelen:=len(key)

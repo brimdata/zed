@@ -1,0 +1,10 @@
+script: super query -sortmem 1MiB -z -
+
+inputs:
+  - name: stdin
+    data: &stdin |
+      {a:"hello"}
+
+outputs:
+  - name: stdout
+    data: *stdin

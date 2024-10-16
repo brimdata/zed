@@ -1,10 +1,10 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q -orderby s:asc data
-  head -2 in.zson | zed load -q -use data -
-  tail -3 in.zson | zed load -q -use data -
-  zed query -z 'from data | union(s) by len(s) | sort this'
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -q -orderby s:asc data
+  head -2 in.zson | super db load -q -use data -
+  tail -3 in.zson | super db load -q -use data -
+  super db query -z 'from data | union(s) by len(s) | sort this'
 
 inputs:
   - name: in.zson

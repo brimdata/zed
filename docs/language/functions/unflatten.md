@@ -18,7 +18,7 @@ will produce a record identical to `r`.
 Simple:
 ```mdtest-command
 echo '[{key:"a",value:1},{key:["b"],value:2}]' |
-  zq -z 'yield unflatten(this)' -
+  super query -z -c 'yield unflatten(this)' -
 ```
 =>
 ```mdtest-output
@@ -28,7 +28,7 @@ echo '[{key:"a",value:1},{key:["b"],value:2}]' |
 Flatten to unflatten:
 ```mdtest-command
 echo '{a:1,rm:2}' |
-  zq -z 'over flatten(this) => (
+  super query -z -c 'over flatten(this) => (
            key[0] != "rm"
            | yield collect(this)
          )

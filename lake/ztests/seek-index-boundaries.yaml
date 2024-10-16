@@ -1,10 +1,10 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
+  export SUPER_LAKE=test
+  super db init -q
   for o in asc desc; do
     echo // $o | tee /dev/stderr
-    zed create -use -q -seekstride 1B -orderby ts:$o $o
-    seq 20 | zq 'yield {ts:this}' - | zed load -q -
+    super db create -use -q -seekstride 1B -orderby ts:$o $o
+    seq 20 | super query -c 'yield {ts:this}' - | super db load -q -
     source query.sh 'ts == 5'
     source query.sh 'ts < 2'
     source query.sh 'ts <= 2'
@@ -16,7 +16,7 @@ inputs:
   - name: query.sh
     data: |
       echo // $1 | tee /dev/stderr
-      zed query -z -s "$1"
+      super db query -z -s "$1"
 outputs:
   - name: stdout
     data: |

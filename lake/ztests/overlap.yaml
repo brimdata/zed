@@ -1,10 +1,10 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -use -q logs
-  zed load -q babble-split1.zson
-  zed load -q babble-split2.zson
-  zed query -Z "from logs@main:objects | sort -r size | drop id"
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -use -q logs
+  super db load -q babble-split1.zson
+  super db load -q babble-split2.zson
+  super db query -Z "from logs@main:objects | sort -r size | drop id"
 
 inputs:
   - name: babble.zson

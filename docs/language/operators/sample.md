@@ -23,7 +23,7 @@ through it all to slice and dice it.
 
 _A simple sample_
 ```mdtest-command
-echo '1 2 3 "foo" "bar" 10.0.0.1 10.0.0.2' | zq -z 'sample | sort this' -
+echo '1 2 3 "foo" "bar" 10.0.0.1 10.0.0.2' | super query -z -c 'sample | sort this' -
 ```
 =>
 ```mdtest-output
@@ -35,7 +35,7 @@ echo '1 2 3 "foo" "bar" 10.0.0.1 10.0.0.2' | zq -z 'sample | sort this' -
 _Sampling record shapes_
 ```mdtest-command
 echo '{a:1}{a:2}{s:"foo"}{s:"bar"}{a:3,s:"baz"}' |
-  zq -z 'sample | sort a' -
+  super query -z -c 'sample | sort a' -
 ```
 =>
 ```mdtest-output

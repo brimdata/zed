@@ -1,13 +1,13 @@
 script: |
-  zc -C 'from ( pool a => x pool b)'
+  super dev compile -C 'from ( pool a => x pool b)'
   echo === No spaces around parentheses.
-  zc -C 'from(file a)'
-  zc -C 'from(get http://a)'
-  zc -C 'from(pool a)'
+  super dev compile -C 'from(file a)'
+  super dev compile -C 'from(get http://a)'
+  super dev compile -C 'from(pool a)'
   echo === No space before vertical bar.
-  zc -C 'file a| b'
-  zc -C 'get http://a| b'
-  zc -C 'from a| b'
+  super dev compile -C 'file a| b'
+  super dev compile -C 'get http://a| b'
+  super dev compile -C 'from a| b'
 
 outputs:
   - name: stdout

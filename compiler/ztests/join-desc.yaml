@@ -1,12 +1,12 @@
 script: |
-  zq -z -I file.zed > file.zson
+  super query -z -I file.zed > file.zson
   export ZED_LAKE=test
-  zed init -q 
-  zed create -q -use -orderby likes:desc people 
-  zed load -q people.zson
-  zed create -q -use -orderby flavor:desc fruits
-  zed load -q fruits.zson
-  zed query -z -I pool.zed > pool.zson
+  super db init -q 
+  super db create -q -use -orderby likes:desc people 
+  super db load -q people.zson
+  super db create -q -use -orderby flavor:desc fruits
+  super db load -q fruits.zson
+  super db query -z -I pool.zed > pool.zson
 
 inputs:
   - name: people.zson

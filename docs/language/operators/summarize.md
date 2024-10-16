@@ -54,7 +54,7 @@ to a cluster of workers in an adaptive shuffle, though this is not yet implement
 
 Average the input sequence:
 ```mdtest-command
-echo '1 2 3 4' | zq -z 'summarize avg(this)' -
+echo '1 2 3 4' | super query -z -c 'summarize avg(this)' -
 ```
 =>
 ```mdtest-output
@@ -64,7 +64,7 @@ echo '1 2 3 4' | zq -z 'summarize avg(this)' -
 To format the output of a single-valued aggregation into a record, simply specify
 an explicit field for the output:
 ```mdtest-command
-echo '1 2 3 4' | zq -z 'summarize mean:=avg(this)' -
+echo '1 2 3 4' | super query -z -c 'summarize mean:=avg(this)' -
 ```
 =>
 ```mdtest-output
@@ -74,7 +74,7 @@ echo '1 2 3 4' | zq -z 'summarize mean:=avg(this)' -
 When multiple aggregate functions are specified, even without explicit field names,
 a record result is generated with field names implied by the functions:
 ```mdtest-command
-echo '1 2 3 4' | zq -z 'summarize avg(this),sum(this),count()' -
+echo '1 2 3 4' | super query -z -c 'summarize avg(this),sum(this),count()' -
 ```
 =>
 ```mdtest-output
@@ -83,7 +83,7 @@ echo '1 2 3 4' | zq -z 'summarize avg(this),sum(this),count()' -
 
 Sum the input sequence, leaving out the `summarize` keyword:
 ```mdtest-command
-echo '1 2 3 4' | zq -z 'sum(this)' -
+echo '1 2 3 4' | super query -z -c 'sum(this)' -
 ```
 =>
 ```mdtest-output
@@ -93,7 +93,7 @@ echo '1 2 3 4' | zq -z 'sum(this)' -
 Create integer sets by key and sort the output to get a deterministic order:
 ```mdtest-command
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
-  zq -z 'set:=union(v) by key:=k | sort' -
+  super query -z -c 'set:=union(v) by key:=k | sort' -
 ```
 =>
 ```mdtest-output
@@ -105,7 +105,7 @@ echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
 Use a `where` clause:
 ```mdtest-command
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
-  zq -z 'set:=union(v) where v > 1 by key:=k | sort' -
+  super query -z -c 'set:=union(v) where v > 1 by key:=k | sort' -
 ```
 =>
 ```mdtest-output
@@ -117,7 +117,7 @@ echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
 Use separate `where` clauses on each aggregate function:
 ```mdtest-command
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
-  zq -z 'set:=union(v) where v > 1,
+  super query -z -c 'set:=union(v) where v > 1,
          array:=collect(v) where k=="foo"
          by key:=k | sort' -
 ```
@@ -132,7 +132,7 @@ Results are included for `by` groupings that generate null results when `where`
 clauses are used inside `summarize`:
 ```mdtest-command
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
-  zq -z 'sum(v) where k=="bar" by key:=k | sort' -
+  super query -z -c 'sum(v) where k=="bar" by key:=k | sort' -
 ```
 =>
 ```mdtest-output
@@ -144,7 +144,7 @@ echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
 To avoid null results for `by` groupings a just shown, filter before `summarize`:
 ```mdtest-command
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
-  zq -z 'k=="bar" | sum(v) by key:=k | sort' -
+  super query -z -c 'k=="bar" | sum(v) by key:=k | sort' -
 ```
 =>
 ```mdtest-output
@@ -154,7 +154,7 @@ echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
 Output just the unique key values:
 ```mdtest-command
 echo '{k:"foo",v:1}{k:"bar",v:2}{k:"foo",v:3}{k:"baz",v:4}' |
-  zq -z 'by k | sort' -
+  super query -z -c 'by k | sort' -
 ```
 =>
 ```mdtest-output

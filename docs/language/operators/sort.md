@@ -18,7 +18,7 @@ default, the sort order is ascending, from lowest value to highest. If
 `desc` is specified in a sort expression, the sort order for that key is
 descending.
 
-Zed follows the SQL convention that, by default, `null` values appear last
+SuperPipe follows the SQL convention that, by default, `null` values appear last
 in either case of ascending or descending sort.  This can be overridden
 by specifying `-nulls first`.
 
@@ -42,12 +42,12 @@ output is desired.
 If not all data fits in memory, values are spilled to temporary storage
 and sorted with an external merge sort.
 
-Zed's `sort` is [stable](https://en.wikipedia.org/wiki/Sorting_algorithm#Stability)
+SuperPipe's `sort` is [stable](https://en.wikipedia.org/wiki/Sorting_algorithm#Stability)
 such that values with identical sort keys always have the same relative order
 in the output as they had in the input, such as provided by the `-s` option in
 Unix's "sort" command-line utility.
 
-Note that a total order is defined over the space of all Zed values even
+Note that a total order is defined over the space of all values even
 between values of different types so sort order is always well-defined even
 when comparing heterogeneously typed values.
 
@@ -57,7 +57,7 @@ when comparing heterogeneously typed values.
 
 _A simple sort with a null_
 ```mdtest-command
-echo '2 null 1 3' | zq -z 'sort this' -
+echo '2 null 1 3' | super query -z -c 'sort this' -
 ```
 =>
 ```mdtest-output
@@ -68,7 +68,7 @@ null
 ```
 _With no sort expression, sort will sort by [`this`](../pipeline-model.md#the-special-value-this) for non-records_
 ```mdtest-command
-echo '2 null 1 3' | zq -z sort -
+echo '2 null 1 3' | super query -z -c sort -
 ```
 =>
 ```mdtest-output
@@ -79,7 +79,7 @@ null
 ```
 _The "nulls last" default may be overridden_
 ```mdtest-command
-echo '2 null 1 3' | zq -z 'sort -nulls first' -
+echo '2 null 1 3' | super query -z -c 'sort -nulls first' -
 ```
 =>
 ```mdtest-output
@@ -90,7 +90,7 @@ null
 ```
 _With no sort expression, sort's heuristics will find a numeric key_
 ```mdtest-command
-echo '{s:"bar",k:2}{s:"bar",k:3}{s:"foo",k:1}' | zq -z sort -
+echo '{s:"bar",k:2}{s:"bar",k:3}{s:"foo",k:1}' | super query -z -c sort -
 ```
 =>
 ```mdtest-output
@@ -100,7 +100,7 @@ echo '{s:"bar",k:2}{s:"bar",k:3}{s:"foo",k:1}' | zq -z sort -
 ```
 _It's best practice to provide the sort key_
 ```mdtest-command
-echo '{s:"bar",k:2}{s:"bar",k:3}{s:"foo",k:1}' | zq -z 'sort k' -
+echo '{s:"bar",k:2}{s:"bar",k:3}{s:"foo",k:1}' | super query -z -c 'sort k' -
 ```
 =>
 ```mdtest-output
@@ -110,7 +110,7 @@ echo '{s:"bar",k:2}{s:"bar",k:3}{s:"foo",k:1}' | zq -z 'sort k' -
 ```
 _Sort with a secondary key_
 ```mdtest-command
-echo '{s:"bar",k:2}{s:"bar",k:3}{s:"foo",k:2}' | zq -z 'sort k,s' -
+echo '{s:"bar",k:2}{s:"bar",k:3}{s:"foo",k:2}' | super query -z -c 'sort k,s' -
 ```
 =>
 ```mdtest-output
@@ -120,7 +120,7 @@ echo '{s:"bar",k:2}{s:"bar",k:3}{s:"foo",k:2}' | zq -z 'sort k,s' -
 ```
 _Sort by secondary key in reverse order when the primary keys are identical_
 ```mdtest-command
-echo '{s:"bar",k:2}{s:"bar",k:3}{s:"foo",k:2}' | zq -z 'sort k,s desc' -
+echo '{s:"bar",k:2}{s:"bar",k:3}{s:"foo",k:2}' | super query -z -c 'sort k,s desc' -
 ```
 =>
 ```mdtest-output
@@ -131,7 +131,7 @@ echo '{s:"bar",k:2}{s:"bar",k:3}{s:"foo",k:2}' | zq -z 'sort k,s desc' -
 _Sort with a numeric expression_
 ```mdtest-command
 echo '{s:"sum 2",x:2,y:0}{s:"sum 3",x:1,y:2}{s:"sum 0",x:-1,y:-1}' |
-  zq -z 'sort x+y' -
+  super query -z -c 'sort x+y' -
 ```
 =>
 ```mdtest-output
@@ -142,7 +142,7 @@ echo '{s:"sum 2",x:2,y:0}{s:"sum 3",x:1,y:2}{s:"sum 0",x:-1,y:-1}' |
 _Case sensitivity affects sorting "lowest value to highest" in string values_
 ```mdtest-command
 echo '{word:"hello"}{word:"Hi"}{word:"WORLD"}' |
-  zq -z 'sort' -
+  super query -z -c 'sort' -
 ```
 =>
 ```mdtest-output
@@ -153,7 +153,7 @@ echo '{word:"hello"}{word:"Hi"}{word:"WORLD"}' |
 _Case-insensitive sort by using a string expression_
 ```mdtest-command
 echo '{word:"hello"}{word:"Hi"}{word:"WORLD"}' |
-  zq -z 'sort lower(word)' -
+  super query -z -c 'sort lower(word)' -
 ```
 =>
 ```mdtest-output
@@ -163,7 +163,7 @@ echo '{word:"hello"}{word:"Hi"}{word:"WORLD"}' |
 ```
 _Shorthand to reverse the sort order for each key_
 ```mdtest-command
-echo '2 null 1 3' | zq -z 'sort -r' -
+echo '2 null 1 3' | super query -z -c 'sort -r' -
 ```
 =>
 ```mdtest-output

@@ -1,14 +1,14 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q -orderby flavor:asc fruit
-  zed create -q -orderby likes:asc people
-  zed load -q -use fruit fruit.zson
-  zed load -q -use people people.zson
-  zed query -z -I test.zed
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -q -orderby flavor:asc fruit
+  super db create -q -orderby likes:asc people
+  super db load -q -use fruit fruit.zson
+  super db load -q -use people people.zson
+  super db query -z -I test.pipe
 
 inputs:
-  - name: test.zed
+  - name: test.pipe
     data: |
       op test(lpool, rpool, lkey, rkey, ldest, rsrc): (
         from lpool

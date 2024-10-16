@@ -16,7 +16,7 @@ The return value is a float64 or an error.
 ### Examples
 
 ```mdtest-command
-echo '2' | zq -z 'yield pow(this, 5)' -
+echo '2' | super query -z -c 'yield pow(this, 5)' -
 ```
 =>
 ```mdtest-output

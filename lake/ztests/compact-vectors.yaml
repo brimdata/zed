@@ -1,12 +1,12 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -use -q test
-  seq 10 | zq '{ts:this-1,s:f"val{this-1}"}' - | zed load -q -
-  seq 10 | zq '{ts:this-1,s:f"val{this-1}"}' - | zed load -q -
-  ids=$(zed query -f text 'from test@main:objects | yield f"0x{hex(id)}"')
-  zed compact -q -vectors $ids
-  zed query -f lake 'from test@main:vectors'
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -use -q test
+  seq 10 | zq '{ts:this-1,s:f"val{this-1}"}' - | super db load -q -
+  seq 10 | zq '{ts:this-1,s:f"val{this-1}"}' - | super db load -q -
+  ids=$(super db query -f text 'from test@main:objects | yield f"0x{hex(id)}"')
+  super db compact -q -vectors $ids
+  super db query -f lake 'from test@main:vectors'
 
 outputs:
   - name: stdout

@@ -1,11 +1,11 @@
 # Show that null values of pool key can be retrieved
 
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q -orderby k tmp
-  zed load -q -use tmp in.zson
-  zed query -z "from tmp | !has(k)"
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -q -orderby k tmp
+  super db load -q -use tmp in.zson
+  super db query -z "from tmp | !has(k)"
 
 inputs:
   - name: in.zson

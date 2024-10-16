@@ -1,14 +1,14 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q -orderby a:asc poolA
-  zed create -q -orderby b:desc poolB
-  zed load -q -use poolA a.zson
-  zed load -q -use poolB b.zson
-  zed query -Z 'from :pools | drop id | sort name | drop ts'
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -q -orderby a:asc poolA
+  super db create -q -orderby b:desc poolB
+  super db load -q -use poolA a.zson
+  super db load -q -use poolB b.zson
+  super db query -Z 'from :pools | drop id | sort name | drop ts'
   echo ===
-  zed query -Z 'from poolA@main:objects | {nameof:nameof(this),...this} | drop id'
-  zed query -Z 'from poolA:log | cut nameof(this) | drop ts'
+  super db query -Z 'from poolA@main:objects | {nameof:nameof(this),...this} | drop id'
+  super db query -Z 'from poolA:log | cut nameof(this) | drop ts'
 
 inputs:
   - name: a.zson

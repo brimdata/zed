@@ -31,7 +31,7 @@ that can be referenced in any pattern. The included named patterns can be seen
 
 Although Grok functionality appears in many open source tools, it lacks a
 formal specification. As a result, example parsing configurations found via
-web searches may not all plug seamlessly into Zed's `grok` function without
+web searches may not all plug seamlessly into SuperPipe's `grok` function without
 modification.
 
 [Logstash](https://www.elastic.co/logstash) was the first tool to widely
@@ -40,12 +40,12 @@ promote the approach via its
 so it serves as the de facto reference implementation. Many articles have
 been published by Elastic and others that provide helpful guidance on becoming
 proficient in Grok. To help you adapt what you learn from these resources to
-the use of Zed's `grok` function, review the tips below.
+the use of the `grok` function, review the tips below.
 
 :::tip Note
-As these represent areas of possible future Zed enhancement, links to open
+As these represent areas of possible future SuperPipe enhancement, links to open
 issues are provided. If you find a functional gap significantly impacts your
-ability to use Zed's `grok` function, please add a comment to the relevant
+ability to use the `grok` function, please add a comment to the relevant
 issue describing your use case.
 :::
 
@@ -55,8 +55,8 @@ issue describing your use case.
    %{NUMBER:num:int}
    ```
   to store `num` as an integer type instead of as a
-  string. Zed currently accepts this trailing `:type` syntax but effectively
-  ignores it and stores all parsed values as strings. Downstream use of Zed's
+  string. SuperPipe currently accepts this trailing `:type` syntax but effectively
+  ignores it and stores all parsed values as strings. Downstream use of the
   [`cast` function](cast.md) can be used instead for data type conversion.
   ([super/4928](https://github.com/brimdata/super/issues/4928))
 
@@ -65,13 +65,13 @@ issue describing your use case.
    ```
    %{GREEDYDATA:[nested][field]}
    ```
-   to store a value into `{"nested": {"field": ... }}`. In Zed the more common
+   to store a value into `{"nested": {"field": ... }}`. In SuperPipe the more common
    dot-separated field naming convention `nested.field` can be combined
    with the downstream use of the [`nest_dotted` function](nest_dotted.md) to
    store values in nested fields.
    ([super/4929](https://github.com/brimdata/super/issues/4929))
 
-3. Zed's regular expressions syntax does not currently support the
+3. SuperPipe's regular expressions syntax does not currently support the
    "named capture" syntax shown in the
    [Logstash docs](https://www.elastic.co/guide/en/logstash/current/plugins-filters-grok.html#_custom_patterns).
    ([super/4899](https://github.com/brimdata/super/issues/4899))
@@ -101,7 +101,7 @@ issue describing your use case.
 
 4. The Grok implementation for Logstash uses the
    [Oniguruma](https://github.com/kkos/oniguruma) regular expressions library
-   while Zed's `grok` uses Go's [regexp](https://pkg.go.dev/regexp) and
+   while SuperPipe's `grok` uses Go's [regexp](https://pkg.go.dev/regexp) and
    [RE2 syntax](https://github.com/google/re2/wiki/Syntax). These
    implementations share the same basic syntax which should suffice for most
    parsing needs. But per a detailed
@@ -113,10 +113,10 @@ issue describing your use case.
 
 :::tip Note
 If you absolutely require features of Logstash's Grok that are not currently
-present in Zed's implementation, you can create a Logstash-based preprocessing
+present in SuperPipe, you can create a Logstash-based preprocessing
 pipeline that uses its
 [Grok filter plugin](https://www.elastic.co/guide/en/logstash/current/plugins-filters-grok.html)
-and send its output as JSON to Zed tools. Issue
+and send its output as JSON to SuperPipe. Issue
 [super/3151](https://github.com/brimdata/super/issues/3151) provides some tips for
 getting started. If you pursue this approach, please add a comment to the
 issue describing your use case or come talk to us on
@@ -139,7 +139,7 @@ To aid in this workflow, you may find an
 that these have their own
 [differences and limitations](https://github.com/cjslack/grok-debugger).
 If you devise a working Grok config in such a tool be sure to incrementally
-test it with Zed's `grok`. Be mindful of necessary adjustments such as those
+test it with SuperPipe's `grok`. Be mindful of necessary adjustments such as those
 described [above](#comparison-to-other-implementations) and in the [examples](#examples).
 
 ### Need Help?
@@ -152,7 +152,7 @@ on the [community Slack](https://www.brimdata.io/join-slack/).
 Parsing a simple log line using the built-in named patterns:
 ```mdtest-command
 echo '"2020-09-16T04:20:42.45+01:00 DEBUG This is a sample debug log message"' |
-  zq -Z 'yield grok("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}",
+  super query -Z -c 'yield grok("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}",
                     this)' -
 ```
 =>
@@ -164,14 +164,14 @@ echo '"2020-09-16T04:20:42.45+01:00 DEBUG This is a sample debug log message"' |
 }
 ```
 
-Per Zed's handling of [string literals](../expressions.md#literals), the
+As with any [string literal](../expressions.md#literals), the
 leading backslash in escape sequences in string arguments must be doubled,
 such as changing the `\d` to `\\d` if we repurpose the
 [included pattern](#included-patterns) for `NUMTZ` as a `definitions` argument:
 
 ```mdtest-command
 echo '"+7000"' |
-  zq -z 'yield grok("%{MY_NUMTZ:tz}",
+  super query -z -c 'yield grok("%{MY_NUMTZ:tz}",
                     this,
                     "MY_NUMTZ [+-]\\d{4}")' -
 ```
@@ -186,7 +186,7 @@ readability.
 
 ```mdtest-command
 echo '"(555)-1212"' |
-  zq -z 'yield grok("\\(%{PH_PREFIX:prefix}\\)-%{PH_LINE_NUM:line_number}",
+  super query -z -c 'yield grok("\\(%{PH_PREFIX:prefix}\\)-%{PH_LINE_NUM:line_number}",
                     this, 
                     "PH_PREFIX \\d{3}\n" +
                     "PH_LINE_NUM \\d{4}")' -

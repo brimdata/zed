@@ -1,0 +1,15 @@
+script: |
+  source minio.sh
+  mv dns.parquet data/bucket
+  super query -z -c "count()" s3://bucket/dns.parquet
+
+inputs:
+  - name: minio.sh
+    source: ../../../../testdata/minio.sh
+  - name: dns.parquet
+    source: ../../../../zio/parquetio/ztests/dns.parquet
+
+outputs:
+  - name: stdout
+    data: |
+      10(uint64)

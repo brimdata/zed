@@ -1,5 +1,5 @@
 script: |
-  zq -I bug.zed -z -
+  super query -I bug.zed -z -
 
 inputs:
   - name: stdin

@@ -1,6 +1,6 @@
 script: |
   source service.sh
-  curl -d '{"query":"count("}' $ZED_LAKE/compile | zq -z 'cut compilation_errors' -
+  curl -d '{"query":"count("}' $SUPER_LAKE/compile | super query -z -c 'cut compilation_errors' -
 
 inputs:
   - name: service.sh
@@ -8,4 +8,4 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {compilation_errors:[{Msg:"error parsing Zed",Pos:6,End:-1}]}
+      {compilation_errors:[{Msg:"error parsing SuperPipe",Pos:6,End:-1}]}

@@ -25,7 +25,7 @@ that occurred in the input for that output value.
 
 _Simple deduplication_
 ```mdtest-command
-echo '1 2 2 3' | zq -z uniq -
+echo '1 2 2 3' | super query -z -c uniq -
 ```
 =>
 ```mdtest-output
@@ -36,7 +36,7 @@ echo '1 2 2 3' | zq -z uniq -
 
 _Simple deduplication with -c_
 ```mdtest-command
-echo '1 2 2 3' | zq -z 'uniq -c' -
+echo '1 2 2 3' | super query -z -c 'uniq -c' -
 ```
 =>
 ```mdtest-output
@@ -48,7 +48,7 @@ echo '1 2 2 3' | zq -z 'uniq -c' -
 _Use sort to deduplicate non-adjacent values_
 ```mdtest-command
 echo '"hello" "world" "goodbye" "world" "hello" "again"' |
-  zq -z 'sort | uniq' -
+  super query -z -c 'sort | uniq' -
 ```
 =>
 ```mdtest-output
@@ -65,7 +65,7 @@ echo '{ts:2024-09-10T21:12:33Z, action:"start"}
       {ts:2024-09-10T21:12:34Z, action:"running"}
       {ts:2024-09-10T21:12:35Z, action:"running"}
       {ts:2024-09-10T21:12:36Z, action:"stop"}' |
-  zq -z 'uniq' -
+  super query -z -c 'uniq' -
 ```
 =>
 ```mdtest-output

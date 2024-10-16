@@ -31,7 +31,7 @@ if a complex type,
 
 _Reach into nested records_
 ```mdtest-command
-echo '{foo:10}{bar:{s:"baz"}}' | zq -z 'grep("baz")' -
+echo '{foo:10}{bar:{s:"baz"}}' | super query -z -c 'grep("baz")' -
 ```
 =>
 ```mdtest-output
@@ -39,14 +39,14 @@ echo '{foo:10}{bar:{s:"baz"}}' | zq -z 'grep("baz")' -
 ```
 _It only matches string fields_
 ```mdtest-command
-echo '{foo:10}{bar:{s:"baz"}}' | zq -z 'grep("10")' -
+echo '{foo:10}{bar:{s:"baz"}}' | super query -z -c 'grep("10")' -
 ```
 =>
 ```mdtest-output
 ```
 _Match a field name_
 ```mdtest-command
-echo '{foo:10}{bar:{s:"baz"}}' | zq -z 'grep("foo")' -
+echo '{foo:10}{bar:{s:"baz"}}' | super query -z -c 'grep("foo")' -
 ```
 =>
 ```mdtest-output
@@ -54,7 +54,7 @@ echo '{foo:10}{bar:{s:"baz"}}' | zq -z 'grep("foo")' -
 ```
 _Regular expression_
 ```mdtest-command
-echo '{foo:10}{bar:{s:"baz"}}' | zq -z 'grep(/foo|baz/)' -
+echo '{foo:10}{bar:{s:"baz"}}' | super query -z -c 'grep(/foo|baz/)' -
 ```
 =>
 ```mdtest-output
@@ -64,7 +64,7 @@ echo '{foo:10}{bar:{s:"baz"}}' | zq -z 'grep(/foo|baz/)' -
 _Glob with a second argument_
 
 ```mdtest-command
-echo '{s:"bar"}{s:"foo"}{s:"baz"}{t:"baz"}' | zq -z 'grep(b*, s)' -
+echo '{s:"bar"}{s:"foo"}{s:"baz"}{t:"baz"}' | super query -z -c 'grep(b*, s)' -
 ```
 =>
 ```mdtest-output

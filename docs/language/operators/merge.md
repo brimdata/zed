@@ -18,7 +18,7 @@ where the values from the upstream pipeline branches are forwarded based on thes
 
 _Copy input to two pipeline branches and merge_
 ```mdtest-command
-echo '1 2' | zq -z 'fork (=>pass =>pass) | merge this' -
+echo '1 2' | super query -z -c 'fork (=>pass =>pass) | merge this' -
 ```
 =>
 ```mdtest-output

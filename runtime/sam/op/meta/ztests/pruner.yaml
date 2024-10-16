@@ -1,25 +1,25 @@
 # This test makes sure the type context from metadata processing doesn't 
 # leak into the flowgraph, except for metaqueries, where it should.
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q -orderby k:asc tmp
-  zed use -q tmp
-  seq 10 15 | zq '{k:this}' - | zed load -q -
-  seq 8 12 | zq '{k:this}' - | zed load -q -
-  seq 20 25 | zq '{k:this}' - | zed load -q -
-  seq 14 16 | zq '{k:this}' - | zed load -q -
-  zed query "from tmp:objects tap | k > 18" | zq -z "drop id" -
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -q -orderby k:asc tmp
+  super db use -q tmp
+  seq 10 15 | super query -c '{k:this}' - | super db load -q -
+  seq 8 12 | super query -c '{k:this}' - | super db load -q -
+  seq 20 25 | super query -c '{k:this}' - | super db load -q -
+  seq 14 16 | super query -c '{k:this}' - | super db load -q -
+  super db query "from tmp:objects tap | k > 18" | super query -z -c "drop id" -
   echo ===
-  zed query "from tmp:objects tap | k <= 10" | zq -z "drop id" -
+  super db query "from tmp:objects tap | k <= 10" | super query -z -c "drop id" -
   echo ===
-  zed query "from tmp:objects tap | k >= 15 and k < 20" | zq -z "drop id" -
+  super db query "from tmp:objects tap | k >= 15 and k < 20" | super query -z -c "drop id" -
   echo ===
-  zed query  "from tmp:objects tap | k <= 9 or k > 24" | zq -z "drop id" -
+  super db query "from tmp:objects tap | k <= 9 or k > 24" | super query -z -c "drop id" -
   echo ===
-  zed query  'from tmp:objects tap | a[k] == "foo" or k >= 20' | zq -z "drop id" -
+  super db query 'from tmp:objects tap | a[k] == "foo" or k >= 20' | super query -z -c "drop id" -
   echo ===
-  zed query  'from tmp:objects tap | a[k] == "foo" and k >= 20' | zq -z "drop id" -
+  super db query 'from tmp:objects tap | a[k] == "foo" and k >= 20' | super query -z -c "drop id" -
 
 outputs:
   - name: stdout

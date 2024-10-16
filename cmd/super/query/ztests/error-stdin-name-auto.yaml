@@ -1,0 +1,12 @@
+script: |
+  ! super query -
+
+inputs:
+  - name: stdin
+    data: |
+      Garbage!
+
+outputs:
+  - name: stderr
+    regexp: |
+      stdin: format detection error

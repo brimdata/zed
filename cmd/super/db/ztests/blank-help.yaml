@@ -1,0 +1,7 @@
+script: |
+  super db
+
+outputs:
+  - name: stdout
+    regexp: |
+      run SuperDB data lake commands

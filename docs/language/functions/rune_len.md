@@ -18,7 +18,7 @@ this length is the same as the number of UTF-8 characters.
 
 The length in UTF-8 characters of a smiley is 1:
 ```mdtest-command
-echo '"hello" "😎"' | zq -z 'yield rune_len(this)' -
+echo '"hello" "😎"' | super query -z -c 'yield rune_len(this)' -
 ```
 =>
 ```mdtest-output
@@ -28,7 +28,7 @@ echo '"hello" "😎"' | zq -z 'yield rune_len(this)' -
 
 The length in bytes of a smiley is 4:
 ```mdtest-command
-echo '"hello" "😎"' | zq -z 'yield len(bytes(this))' -
+echo '"hello" "😎"' | super query -z -c 'yield len(bytes(this))' -
 ```
 =>
 ```mdtest-output

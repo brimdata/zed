@@ -1,17 +1,17 @@
 script: |
   source service.sh
-  zed create p1
-  zed create p2
+  super db create p1
+  super db create p2
   echo ===
 
   # Verify that the default output format is text of names only.
-  zed ls | sort
+  super db ls | sort
   echo ===
 
   # Verify that output flags are honored.
-  zed ls -f zson | zq -i zson -f zson "cut name | sort name" -
+  super db ls -f zson | super query -i zson -f zson -c "cut name | sort name" -
   echo ===
-  zed ls -f zng | zq -i zng -f table "cut name | sort name" -
+  super db ls -f zng | super query -i zng -f table -c "cut name | sort name" -
   echo ===
 
 inputs:

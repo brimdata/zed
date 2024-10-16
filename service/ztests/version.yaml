@@ -1,6 +1,6 @@
 script: |
   source service.sh
-  zed -version
+  super -version
 
 inputs:
   - name: service.sh

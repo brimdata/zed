@@ -17,7 +17,7 @@ is omitted, it defaults to `this`.  The _is_ function is shorthand for `typeof(v
 
 Test simple types:
 ```mdtest-command
-echo '1.' | zq -z 'yield {yes:is(<float64>),no:is(<int64>)}' -
+echo '1.' | super query -z -c 'yield {yes:is(<float64>),no:is(<int64>)}' -
 ```
 =>
 ```mdtest-output
@@ -26,7 +26,7 @@ echo '1.' | zq -z 'yield {yes:is(<float64>),no:is(<int64>)}' -
 
 Test for a given input's record type or "shape":
 ```mdtest-command
-echo '{s:"hello"}' | zq -z 'yield is(<{s:string}>)' -
+echo '{s:"hello"}' | super query -z -c 'yield is(<{s:string}>)' -
 ```
 =>
 ```mdtest-output
@@ -35,8 +35,8 @@ true
 If you test a named type with it's underlying type, the types are different,
 but if you use the type name or typeunder function, there is a match:
 ```mdtest-command
-echo '{s:"hello"}(=foo)' | zq -z 'yield is(<{s:string}>)' -
-echo '{s:"hello"}(=foo)' | zq -z 'yield is(<foo>)' -
+echo '{s:"hello"}(=foo)' | super query -z -c 'yield is(<{s:string}>)' -
+echo '{s:"hello"}(=foo)' | super query -z -c 'yield is(<foo>)' -
 ```
 =>
 ```mdtest-output
@@ -46,7 +46,7 @@ true
 
 To test the underlying type, just use `==`:
 ```mdtest-command
-echo '{s:"hello"}(=foo)' | zq -z 'yield typeunder(this)==<{s:string}>' -
+echo '{s:"hello"}(=foo)' | super query -z -c 'yield typeunder(this)==<{s:string}>' -
 ```
 =>
 ```mdtest-output

@@ -21,7 +21,7 @@ less than the minimum are discarded).
 
 _Grab the top two values from a sequence of integers_
 ```mdtest-command
-echo '1 5 3 9 23 7' | zq -z 'top 2 this' -
+echo '1 5 3 9 23 7' | super query -z -c 'top 2 this' -
 ```
 =>
 ```mdtest-output
@@ -33,7 +33,7 @@ _Find the two names most frequently referenced in a sequence of records_
 echo '{name:"joe", age:22} {name:"bob", age:37} {name:"liz", age:25}
       {name:"bob", age:18} {name:"liz", age:34} {name:"zoe", age:55}
       {name:"ray", age:44} {name:"sue", age:41} {name:"liz", age:60}' |
-  zq -z 'count() by name | top 2 count' -
+  super query -z -c 'count() by name | top 2 count' -
 ```
 =>
 ```mdtest-output

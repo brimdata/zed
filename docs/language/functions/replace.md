@@ -16,7 +16,7 @@ that occur in string `s` with the string `new`.
 #### Example:
 
 ```mdtest-command
-echo '"oink oink oink"' | zq -z 'yield replace(this, "oink", "moo")' -
+echo '"oink oink oink"' | super query -z -c 'yield replace(this, "oink", "moo")' -
 ```
 =>
 ```mdtest-output

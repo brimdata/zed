@@ -22,7 +22,7 @@ In the second form, where the `name` argument is a string, cast creates
 a new [named type](../data-types.md#named-types) where the name for the type is given by `name` and its
 type is given by `typeof(val)`.  This provides a convenient mechanism
 to create new named types from the input data itself without having to
-hard code the type in the Zed source text.
+hard code the type in the SuperPipe query.
 
 For complex types, the cast function visits each leaf value in `val` and
 casts that value to the corresponding type in `t`.
@@ -51,7 +51,7 @@ and [`order`](./order.md) functions simultaneously.
 
 _Cast primitives to type `ip`_
 ```mdtest-command
-echo '"10.0.0.1" 1 "foo"' | zq -z 'cast(this, <ip>)' -
+echo '"10.0.0.1" 1 "foo"' | super query -z -c 'cast(this, <ip>)' -
 ```
 produces
 ```mdtest-output
@@ -62,7 +62,7 @@ error({message:"cannot cast to ip",on:"foo"})
 
 _Cast a record to a different record type_
 ```mdtest-command
-echo '{a:1,b:2}{a:3}{b:4}' | zq -z 'cast(this, <{b:string}>)' -
+echo '{a:1,b:2}{a:3}{b:4}' | super query -z -c 'cast(this, <{b:string}>)' -
 ```
 produces
 ```mdtest-output
@@ -73,7 +73,7 @@ produces
 
 _Create a name a typed and cast value to the new type_
 ```mdtest-command
-echo '{a:1,b:2}{a:3,b:4}' | zq -z 'cast(this, "foo")' -
+echo '{a:1,b:2}{a:3,b:4}' | super query -z -c 'cast(this, "foo")' -
 ```
 produces
 ```mdtest-output
@@ -84,7 +84,7 @@ produces
 _Derive type names from the properties of data_
 ```mdtest-command
 echo '{x:1,y:2}{r:3}{x:4,y:5}' |
-  zq -z 'switch (
+  super query -z -c 'switch (
            case has(x) => cast(this, "point")
            default => cast(this, "radius")
          )

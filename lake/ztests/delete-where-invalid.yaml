@@ -1,9 +1,9 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -use -q test
-  ! zed delete -where 'me == "hi" | cut me'
-  ! zed delete -where 'cut that'
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -use -q test
+  ! super db delete -where 'me == "hi" | cut me'
+  ! super db delete -where 'cut that'
 
 outputs:
   - name: stdout

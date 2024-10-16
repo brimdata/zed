@@ -1,17 +1,17 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -seekstride 2KB -orderby ts:asc -q asc
-  zed create -seekstride 2KB -orderby ts:desc -q desc
-  zed use -q asc
-  zq "tail 900" babble.zson | zed load -q -
-  zq "head 250" babble.zson | zed load -q -
-  zed query -z -s "from asc | count:=count()"
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -seekstride 2KB -orderby ts:asc -q asc
+  super db create -seekstride 2KB -orderby ts:desc -q desc
+  super db use -q asc
+  zq "tail 900" babble.zson | super db load -q -
+  zq "head 250" babble.zson | super db load -q -
+  super db query -z -s "from asc | count:=count()"
   echo === | tee /dev/stderr
-  zed use -q desc
-  zq "tail 900" babble.zson | zed load -q -
-  zq "head 250" babble.zson | zed load -q -
-  zed query -z -s "from desc | count:=count()"
+  super db use -q desc
+  zq "tail 900" babble.zson | super db load -q -
+  zq "head 250" babble.zson | super db load -q -
+  super db query -z -s "from desc | count:=count()"
 
 inputs:
   - name: babble.zson

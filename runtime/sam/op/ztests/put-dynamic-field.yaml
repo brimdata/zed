@@ -1,22 +1,22 @@
 script: |
-  echo '{a:"hi",b:"hello"}' | zq -z 'this[a][b] := "world" | drop a, b' -
+  echo '{a:"hi",b:"hello"}' | super query -z -c 'this[a][b] := "world" | drop a, b' -
   echo "// ==="
-  echo '{a:{b:"hello"}}' | zq -z 'this[a.b]:="world" | drop a' -
+  echo '{a:{b:"hello"}}' | super query -z -c 'this[a.b]:="world" | drop a' -
   echo "// ==="
-  echo '{a:"hello"}' | zq -z 'this[this["a"]] := "world" | drop a' -
+  echo '{a:"hello"}' | super query -z -c 'this[this["a"]] := "world" | drop a' -
   echo "// ==="
-  echo '{a:{},b:"hello"}' | zq -z 'a[b] := "world" | drop b' -
+  echo '{a:{},b:"hello"}' | super query -z -c 'a[b] := "world" | drop b' -
   echo "// ==="
-  echo '{a:"foo"}' | zq -z 'this[a]["bar"] := "baz" | cut foo' -
+  echo '{a:"foo"}' | super query -z -c 'this[a]["bar"] := "baz" | cut foo' -
   echo "// ==="
   # runtime error cases
-  echo '{a:"hello",b:"hello"}' | zq -z 'this[a] := "world1", this[b] := "world2"' -
+  echo '{a:"hello",b:"hello"}' | super query -z -c 'this[a] := "world1", this[b] := "world2"' -
   echo "// ==="
-  echo '{a:"foo",b:"bar"}' | zq -z 'this[a][b] := "world", this[a] := "world"' -
+  echo '{a:"foo",b:"bar"}' | super query -z -c 'this[a][b] := "world", this[a] := "world"' -
   echo "// ==="
-  echo {} | zq -z 'this[doesnotexist] := "world"' - 
+  echo {} | super query -z -c 'this[doesnotexist] := "world"' - 
   # semantic error cases
-  ! zc -s 'op foo(): ( yield "error" ) put this[foo] := "hello world"'
+  ! super dev compile -s 'op foo(): ( yield "error" ) put this[foo] := "hello world"'
 
 outputs:
   - name: stdout

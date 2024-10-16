@@ -1,9 +1,9 @@
 script: |
   source service.sh
-  ! zed query ''
-  ! zed query 'from HEAD'
-  ! zed query 'from :unknownmeta'
-  ! zed query 'from doesnotexist'
+  ! super db query ''
+  ! super db query 'from HEAD'
+  ! super db query 'from :unknownmeta'
+  ! super db query 'from doesnotexist'
 
 inputs:
   - name: service.sh

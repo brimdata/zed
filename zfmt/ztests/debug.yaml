@@ -1,6 +1,6 @@
 script: |
-  zc -C 'debug f"debug: {this}" | head 1'
-  zc -s -C 'debug f"debug: {this}" | head 1'
+  super dev compile -C 'debug f"debug: {this}" | head 1'
+  super dev compile -s -C 'debug f"debug: {this}" | head 1'
 
 outputs:
   - name: stdout

@@ -25,9 +25,9 @@ var (
 )
 
 func init() {
-	flag.StringVar(&portfile, "portfile", "", "location to write zed lake serve port")
-	flag.StringVar(&pidfile, "pidfile", "", "location to write zed lake serve pid")
-	flag.StringVar(&lakeroot, "lake", "", "Zed lake location")
+	flag.StringVar(&portfile, "portfile", "", "location to write SuperDB lake serve port")
+	flag.StringVar(&pidfile, "pidfile", "", "location to write SuperDB lake serve pid")
+	flag.StringVar(&lakeroot, "lake", "", "SuperDB lake location")
 	flag.Parse()
 }
 
@@ -44,6 +44,7 @@ func main() {
 		os.Exit(1)
 	}
 	args := []string{
+		"db",
 		"serve",
 		"-l=localhost:0",
 		"-lake=" + lakeroot,
@@ -52,7 +53,7 @@ func main() {
 		fmt.Sprintf("-brimfd=%d", r.Fd()),
 	}
 	stderr := bytes.NewBuffer(nil)
-	cmd := exec.Command("zed", args...)
+	cmd := exec.Command("super", args...)
 	cmd.Stderr = stderr
 	cmd.ExtraFiles = []*os.File{r}
 

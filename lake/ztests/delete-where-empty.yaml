@@ -1,9 +1,9 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -use -q test
-  echo '{ts:0}' | zed load -q -
-  ! zed delete -where 'ts > 1'
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -use -q test
+  echo '{ts:0}' | super db load -q -
+  ! super db delete -where 'ts > 1'
 
 outputs:
   - name: stdout

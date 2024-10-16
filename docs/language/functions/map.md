@@ -19,7 +19,7 @@ only one argument. `f` may be a [user-defined function](../statements.md#func-st
 Upper case each element of an array:
 
 ```mdtest-command
-echo '["foo","bar","baz"]' | zq -z 'yield map(this, upper)' -
+echo '["foo","bar","baz"]' | super query -z -c 'yield map(this, upper)' -
 ```
 =>
 ```mdtest-output
@@ -30,7 +30,7 @@ Using a user-defined function to convert an epoch float to a time:
 
 ```mdtest-command
 echo '[1697151533.41415,1697151540.716529]' |
-  zq -z '
+  super query -z -c '
     func floatToTime(x): (
       cast(x*1000000000, <time>)
     )

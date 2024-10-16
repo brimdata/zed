@@ -1,10 +1,10 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q test
-  zed load -q -use test a.zson
-  zed load -q -use test b.zson
-  zed query -z "from test@main:objects | sort min | {min,max}"
+  export SUPER_LAKE=test
+  super db init -q
+  super db create -q test
+  super db load -q -use test a.zson
+  super db load -q -use test b.zson
+  super db query -z "from test@main:objects | sort min | {min,max}"
 
 inputs:
   - name: a.zson

@@ -1,12 +1,12 @@
 skip: "issue #2651"
 
 script: |
-  source services.sh s3://bucket/zqdroot
-  zed new -S 20KiB test
-  zed use test -q
-  zed post babble.zson >/dev/null
+  source services.sh s3://bucket/lake
+  super db new -S 20KiB test
+  super db use test -q
+  super db post babble.zson >/dev/null
   echo ===
-  zed get -z 's=="harefoot-raucous"'
+  super db get -z 's=="harefoot-raucous"'
 
 inputs:
   - name: babble.zson
