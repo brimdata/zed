@@ -28,7 +28,7 @@ in `jq`. If there's glaring functional omissions that are limiting your use of
 [shaping Zeek NDJSON](https://zed.brimdata.io/docs/integrations/zeek/shaping-zeek-ndjson)
 was followed as the input data was being read. In addition to conforming to the
 best practices as described in that article, this also avoids a problem
-described in [a comment in zed/2123](https://github.com/brimdata/super/pull/2123#issuecomment-859164320).
+described in [a comment in super/2123](https://github.com/brimdata/super/pull/2123#issuecomment-859164320).
 Separate tests on our VM confirmed the shaping portion of the runs with NDJSON
 input consumed approximately 5 seconds out of the total run time on each of
 these runs.
