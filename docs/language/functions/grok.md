@@ -69,7 +69,7 @@ issue describing your use case.
    dot-separated field naming convention `nested.field` can be combined
    with the downstream use of the [`nest_dotted` function](nest_dotted.md) to
    store values in nested fields.
-   ([zed/4929](https://github.com/brimdata/super/issues/4929))
+   ([super/4929](https://github.com/brimdata/super/issues/4929))
 
 3. Zed's regular expressions syntax does not currently support the
    "named capture" syntax shown in the
