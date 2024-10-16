@@ -74,7 +74,7 @@ issue describing your use case.
 3. Zed's regular expressions syntax does not currently support the
    "named capture" syntax shown in the
    [Logstash docs](https://www.elastic.co/guide/en/logstash/current/plugins-filters-grok.html#_custom_patterns).
-   ([zed/4899](https://github.com/brimdata/super/issues/4899))
+   ([super/4899](https://github.com/brimdata/super/issues/4899))
 
    Instead use the the approach shown later in that section of the Logstash
    docs by including a custom pattern in the `definitions` argument, e.g.,
