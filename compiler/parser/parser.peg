@@ -1750,15 +1750,14 @@ EOKW = !KeyWordChars
 /// === SuperSQL ===
 
 SuperSQL
-  = __ s:SQLSeq __ EOF           { return s, nil}
-  / __ s:SelectExpr __ EOF  { return []any{s}, nil } 
+  = __ s:SQLPipe __ EOF           { return s, nil}
 
-SQLSeq
-  = first:SelectExpr rest:SQLSeqTail+ {
-      return prepend(first, rest), nil
-    }
+SQLPipe
+  = s:SelectExpr tail:SQLPipeElem* {
+      return prepend(s, tail), nil
+  }
 
-SQLSeqTail = __ Pipe __ o:SQLPipeOp { return o, nil }  
+SQLPipeElem = __ Pipe __ o:SQLPipeOp { return o, nil }
 
 SQLPipeOp
   = SelectExpr
@@ -1770,11 +1769,7 @@ SQLPipeOp
 
   // NOT YET - AsOp, 
 
-//XXX
-SuperTable
-  = SelectExpr pipe:SQLSeqTail* {
-      return nil, nil
-  }
+  
 
 SelectExpr 
   = with:OptWithClause
