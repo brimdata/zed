@@ -1750,11 +1750,11 @@ EOKW = !KeyWordChars
 /// === SuperSQL ===
 
 SuperSQL
-  = SQLSeq
-  / __ s:SelectExpr __ EOF { return []any{s}, nil } 
+  = __ s:SQLSeq __ EOF           { return s, nil}
+  / __ s:SelectExpr __ EOF  { return []any{s}, nil } 
 
 SQLSeq
-  = first:SelectExpr rest:SQLSeqTail* {
+  = first:SelectExpr rest:SQLSeqTail+ {
       return prepend(first, rest), nil
     }
 
@@ -1767,8 +1767,14 @@ SQLPipeOp
   / RenameOp //XXX this needs to use as syntax
   / &KW_AGGREGATE SummarizeOp
   / FuseOp
+
   // NOT YET - AsOp, 
 
+//XXX
+SuperTable
+  = SelectExpr pipe:SQLSeqTail* {
+      return nil, nil
+  }
 
 SelectExpr 
   = with:OptWithClause
