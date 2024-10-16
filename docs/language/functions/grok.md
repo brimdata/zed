@@ -58,7 +58,7 @@ issue describing your use case.
   string. Zed currently accepts this trailing `:type` syntax but effectively
   ignores it and stores all parsed values as strings. Downstream use of Zed's
   [`cast` function](cast.md) can be used instead for data type conversion.
-  ([zed/4928](https://github.com/brimdata/super/issues/4928))
+  ([super/4928](https://github.com/brimdata/super/issues/4928))
 
 2. Some Logstash Grok examples use an optional square bracket syntax for
    storing a parsed value in a nested field, e.g.,
