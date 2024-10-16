@@ -5,9 +5,9 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/super/compiler/ast/dag"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/pkg/field"
 )
 
 // analyzeSortKeys returns how an input order maps to an output order based

@@ -5,7 +5,7 @@ import (
 	"io"
 	"slices"
 
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 )
 
 func Extension(format string) string {

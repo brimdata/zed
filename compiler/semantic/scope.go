@@ -3,11 +3,11 @@ package semantic
 import (
 	"fmt"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/kernel"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/compiler/ast"
+	"github.com/brimdata/super/compiler/ast/dag"
+	"github.com/brimdata/super/compiler/kernel"
+	"github.com/brimdata/super/zson"
 )
 
 type Scope struct {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super/zbuf"
 )
 
 // Catcher wraps an Interface with a Pull method that recovers panics

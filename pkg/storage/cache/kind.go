@@ -5,7 +5,7 @@ package cache
 import (
 	"fmt"
 
-	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/super/pkg/storage"
 )
 
 type Cacheable func(*storage.URI) bool

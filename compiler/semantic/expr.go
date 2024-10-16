@@ -4,16 +4,16 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/ast/dag"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/compiler/kernel"
-	"github.com/brimdata/zed/pkg/reglob"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/runtime/sam/expr/agg"
-	"github.com/brimdata/zed/runtime/sam/expr/function"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/compiler/ast"
+	"github.com/brimdata/super/compiler/ast/dag"
+	astzed "github.com/brimdata/super/compiler/ast/zed"
+	"github.com/brimdata/super/compiler/kernel"
+	"github.com/brimdata/super/pkg/reglob"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/runtime/sam/expr/agg"
+	"github.com/brimdata/super/runtime/sam/expr/function"
+	"github.com/brimdata/super/zson"
 )
 
 func (a *analyzer) semExpr(e ast.Expr) dag.Expr {

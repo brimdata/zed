@@ -4,10 +4,10 @@ import (
 	"context"
 	"io"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/optimizer/demand"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/compiler/optimizer/demand"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/zbuf"
 )
 
 // Open uses engine to open path for reading.  path is a local file path or a

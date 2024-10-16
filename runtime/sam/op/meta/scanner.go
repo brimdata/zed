@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/commits"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/lake"
+	"github.com/brimdata/super/lake/commits"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zson"
 	"github.com/segmentio/ksuid"
 )
 

@@ -3,14 +3,14 @@ package sort
 import (
 	"sync"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/runtime/sam/op"
-	"github.com/brimdata/zed/runtime/sam/op/spill"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/pkg/field"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/runtime/sam/op"
+	"github.com/brimdata/super/runtime/sam/op/spill"
+	"github.com/brimdata/super/zbuf"
 )
 
 // MemMaxBytes specifies the maximum amount of memory that each sort proc

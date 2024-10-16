@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sort"
 
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super/zcode"
 )
 
 type TypeArray struct {

@@ -4,14 +4,14 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/vam/expr"
-	"github.com/brimdata/zed/runtime/vcache"
-	"github.com/brimdata/zed/vector"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super/lake"
+	"github.com/brimdata/super/lake/data"
+	"github.com/brimdata/super/pkg/field"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/runtime/vam/expr"
+	"github.com/brimdata/super/runtime/vcache"
+	"github.com/brimdata/super/vector"
+	"github.com/brimdata/super/zbuf"
 )
 
 type Searcher struct {

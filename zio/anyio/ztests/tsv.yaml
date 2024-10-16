@@ -1,5 +1,5 @@
 # This test purposely has two null values to test the issue found in
-# brimdata/zed#4911.
+# brimdata/super#4911.
 script: |
   zq - | zq -f tsv -
 

@@ -1,12 +1,12 @@
 package function
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zcode"
+	"github.com/brimdata/super/zson"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#typeof
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#typeof
 type TypeOf struct {
 	zctx *zed.Context
 }
@@ -24,7 +24,7 @@ func (t *typeUnder) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return t.zctx.LookupTypeValue(typ)
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#nameof
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#nameof
 type NameOf struct {
 	zctx *zed.Context
 }
@@ -46,7 +46,7 @@ func (n *NameOf) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return n.zctx.Missing()
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#typename
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#typename
 type typeName struct {
 	zctx *zed.Context
 }
@@ -73,7 +73,7 @@ func (t *typeName) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return t.zctx.LookupTypeValue(typ)
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#error
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#error
 type Error struct {
 	zctx *zed.Context
 }
@@ -82,14 +82,14 @@ func (e *Error) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return zed.NewValue(e.zctx.LookupTypeError(args[0].Type()), args[0].Bytes())
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#iserr
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#iserr
 type IsErr struct{}
 
 func (*IsErr) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return zed.NewBool(args[0].IsError())
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#is
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#is
 type Is struct {
 	zctx *zed.Context
 }
@@ -185,7 +185,7 @@ func (h *HasError) hasError(t zed.Type, b zcode.Bytes) (bool, bool) {
 	return hasErr, canCache
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#quiet
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#quiet
 type Quiet struct {
 	zctx *zed.Context
 }
@@ -198,7 +198,7 @@ func (q *Quiet) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return val
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#kind
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#kind
 type Kind struct {
 	zctx *zed.Context
 }

@@ -1,9 +1,9 @@
 package zbuf
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime/sam/expr"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/runtime/sam/expr"
 )
 
 func NewComparator(zctx *zed.Context, sortKeys []order.SortKey) *expr.Comparator {

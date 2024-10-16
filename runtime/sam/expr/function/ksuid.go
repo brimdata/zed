@@ -1,11 +1,11 @@
 package function
 
 import (
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 	"github.com/segmentio/ksuid"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#ksuid
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#ksuid
 type KSUIDToString struct {
 	zctx *zed.Context
 }

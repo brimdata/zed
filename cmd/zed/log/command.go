@@ -4,13 +4,13 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimdata/zed/cli/outputflags"
-	"github.com/brimdata/zed/cli/poolflags"
-	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/compiler/parser"
-	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super/cli/outputflags"
+	"github.com/brimdata/super/cli/poolflags"
+	"github.com/brimdata/super/cmd/zed/root"
+	"github.com/brimdata/super/compiler/parser"
+	"github.com/brimdata/super/pkg/charm"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/zbuf"
 )
 
 var Cmd = &charm.Spec{

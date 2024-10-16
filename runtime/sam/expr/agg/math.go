@@ -3,11 +3,11 @@ package agg
 import (
 	"fmt"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/anymath"
-	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/runtime/sam/expr/coerce"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/anymath"
+	"github.com/brimdata/super/pkg/nano"
+	"github.com/brimdata/super/runtime/sam/expr/coerce"
+	"github.com/brimdata/super/zson"
 )
 
 type consumer interface {

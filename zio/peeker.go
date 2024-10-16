@@ -1,6 +1,6 @@
 package zio
 
-import "github.com/brimdata/zed"
+import "github.com/brimdata/super"
 
 // Peeker wraps a Stream while adding a Peek method, which allows inspection
 // of the next item to be read without actually reading it.

@@ -1,4 +1,4 @@
-module github.com/brimdata/zed
+module github.com/brimdata/super
 
 go 1.23
 

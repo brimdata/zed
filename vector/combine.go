@@ -1,6 +1,6 @@
 package vector
 
-import "github.com/brimdata/zed"
+import "github.com/brimdata/super"
 
 func Combine(base Any, index []uint32, vec Any) Any {
 	c := NewCombiner(base)

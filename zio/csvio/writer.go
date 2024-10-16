@@ -8,10 +8,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/zcode"
+	"github.com/brimdata/super/zson"
 )
 
 var ErrNotDataFrame = errors.New("CSV output requires uniform records but multiple types encountered (consider 'fuse')")

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/field"
 )
 
 type Cutter struct {

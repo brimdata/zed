@@ -1,7 +1,7 @@
 package vector
 
 import (
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super/zcode"
 )
 
 type Dict struct {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/brimdata/zed/compiler/ast"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
+	"github.com/brimdata/super/compiler/ast"
+	astzed "github.com/brimdata/super/compiler/ast/zed"
 )
 
 func sliceOf[E any](s any) []E {

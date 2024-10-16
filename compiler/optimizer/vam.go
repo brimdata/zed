@@ -3,8 +3,8 @@ package optimizer
 import (
 	"context"
 
-	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/super/compiler/ast/dag"
+	"github.com/brimdata/super/pkg/field"
 )
 
 func (o *Optimizer) Vectorize(seq dag.Seq) (dag.Seq, error) {

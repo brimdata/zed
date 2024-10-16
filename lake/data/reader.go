@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/brimdata/zed/lake/seekindex"
-	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/super/lake/seekindex"
+	"github.com/brimdata/super/pkg/storage"
 )
 
 type Reader struct {

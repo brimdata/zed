@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/nano"
+	"github.com/brimdata/super/zcode"
 	"github.com/x448/float16"
 )
 

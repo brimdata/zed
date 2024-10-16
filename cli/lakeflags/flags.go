@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/brimdata/zed/api/client"
-	"github.com/brimdata/zed/api/client/auth0"
-	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/api"
-	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/super/api/client"
+	"github.com/brimdata/super/api/client/auth0"
+	"github.com/brimdata/super/lake"
+	"github.com/brimdata/super/lake/api"
+	"github.com/brimdata/super/pkg/storage"
 	"go.uber.org/zap"
 )
 

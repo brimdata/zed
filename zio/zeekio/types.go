@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 )
 
 var ErrIncompatibleZeekType = errors.New("type cannot be represented in zeek format")

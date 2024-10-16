@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/cli/outputflags"
-	"github.com/brimdata/zed/cmd/zed/dev/dig"
-	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/cli/outputflags"
+	"github.com/brimdata/super/cmd/zed/dev/dig"
+	"github.com/brimdata/super/pkg/charm"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/zcode"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zson"
 )
 
 var Frames = &charm.Spec{

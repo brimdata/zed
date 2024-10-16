@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/lake/commits"
-	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/lake/commits"
+	"github.com/brimdata/super/lake/data"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zson"
 )
 
 // Slicer implements an op that pulls data objects and organizes

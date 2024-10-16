@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/field"
+	"github.com/brimdata/super/zcode"
 )
 
 // Putter is an Evaluator that modifies the record stream with computed values.

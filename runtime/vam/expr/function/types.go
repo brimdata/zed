@@ -1,11 +1,11 @@
 package function
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/vector"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#typeof
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#typeof
 type TypeOf struct {
 	zctx *zed.Context
 }
@@ -15,7 +15,7 @@ func (t *TypeOf) Call(args ...vector.Any) vector.Any {
 	return vector.NewConst(val, args[0].Len(), nil)
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#kind
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#kind
 type Kind struct {
 	zctx *zed.Context
 }

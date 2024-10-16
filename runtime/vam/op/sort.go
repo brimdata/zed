@@ -3,15 +3,15 @@ package op
 import (
 	"bytes"
 
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/runtime/sam/op/sort"
-	"github.com/brimdata/zed/runtime/vam"
-	"github.com/brimdata/zed/runtime/vcache"
-	"github.com/brimdata/zed/vector"
-	"github.com/brimdata/zed/vng"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/runtime/sam/op/sort"
+	"github.com/brimdata/super/runtime/vam"
+	"github.com/brimdata/super/runtime/vcache"
+	"github.com/brimdata/super/vector"
+	"github.com/brimdata/super/vng"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zio"
 )
 
 type Sort struct {

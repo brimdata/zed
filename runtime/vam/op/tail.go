@@ -3,7 +3,7 @@ package op
 import (
 	"slices"
 
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super/vector"
 )
 
 type Tail struct {

@@ -8,15 +8,15 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/brimdata/zed/cli/auto"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/pkg/terminal"
-	"github.com/brimdata/zed/pkg/terminal/color"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zio/emitter"
-	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/super/cli/auto"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/pkg/terminal"
+	"github.com/brimdata/super/pkg/terminal/color"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zio/anyio"
+	"github.com/brimdata/super/zio/emitter"
+	"github.com/brimdata/super/zio/zngio"
 )
 
 type Flags struct {

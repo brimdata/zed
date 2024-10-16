@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/api/client"
-	"github.com/brimdata/zed/service"
-	"github.com/brimdata/zed/service/auth"
+	"github.com/brimdata/super/api"
+	"github.com/brimdata/super/api/client"
+	"github.com/brimdata/super/service"
+	"github.com/brimdata/super/service/auth"
 	"github.com/stretchr/testify/require"
 )
 

@@ -6,10 +6,10 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/skim"
-	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/skim"
+	"github.com/brimdata/super/zcode"
+	"github.com/brimdata/super/zson"
 )
 
 const (

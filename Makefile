@@ -1,11 +1,11 @@
 export GO111MODULE=on
 
 VERSION = $(shell git describe --tags --dirty --always)
-LDFLAGS = -s -X github.com/brimdata/zed/cli.version=$(VERSION)
+LDFLAGS = -s -X github.com/brimdata/super/cli.version=$(VERSION)
 BUILD_COMMANDS = ./cmd/zed ./cmd/zq
 
 ifeq "$(filter-out 386 arm mips mipsle, $(shell go env GOARCH))" ""
-$(error 32-bit architectures are unsupported; see https://github.com/brimdata/zed/issues/4044)
+$(error 32-bit architectures are unsupported; see https://github.com/brimdata/super/issues/4044)
 endif
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:

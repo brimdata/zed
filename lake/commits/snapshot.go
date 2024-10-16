@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime/sam/expr/extent"
-	"github.com/brimdata/zed/zngbytes"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super/lake/data"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/runtime/sam/expr/extent"
+	"github.com/brimdata/super/zngbytes"
+	"github.com/brimdata/super/zson"
 	"github.com/segmentio/ksuid"
 )
 

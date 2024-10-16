@@ -5,11 +5,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/agnivade/levenshtein"
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/vector"
 )
 
-// // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#join
+// // https://github.com/brimdata/super/blob/main/docs/language/functions.md#join
 type Join struct {
 	zctx    *zed.Context
 	builder strings.Builder
@@ -52,7 +52,7 @@ func (j *Join) Call(args ...vector.Any) vector.Any {
 	return out
 }
 
-// // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#levenshtein
+// // https://github.com/brimdata/super/blob/main/docs/language/functions.md#levenshtein
 type Levenshtein struct {
 	zctx *zed.Context
 }
@@ -74,7 +74,7 @@ func (l *Levenshtein) Call(args ...vector.Any) vector.Any {
 	return out
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#replace
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#replace
 type Replace struct {
 	zctx *zed.Context
 }
@@ -108,7 +108,7 @@ func (r *Replace) Call(args ...vector.Any) vector.Any {
 	return vector.NewDynamic(tags, []vector.Any{out, errval})
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#run_len
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#run_len
 type RuneLen struct {
 	zctx *zed.Context
 }
@@ -129,7 +129,7 @@ func (r *RuneLen) Call(args ...vector.Any) vector.Any {
 	return out
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#split
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#split
 type Split struct {
 	zctx *zed.Context
 }
@@ -165,7 +165,7 @@ func (s *Split) Call(args ...vector.Any) vector.Any {
 	return vector.NewArray(s.zctx.LookupTypeArray(zed.TypeString), offsets, values, nulls)
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#lower
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#lower
 type ToLower struct {
 	zctx *zed.Context
 }
@@ -186,7 +186,7 @@ func (t *ToLower) Call(args ...vector.Any) vector.Any {
 	return out
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#upper
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#upper
 type ToUpper struct {
 	zctx *zed.Context
 }
@@ -207,7 +207,7 @@ func (t *ToUpper) Call(args ...vector.Any) vector.Any {
 	return out
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#trim
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#trim
 type Trim struct {
 	zctx *zed.Context
 }

@@ -1,8 +1,8 @@
 package zbuf
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zio"
 )
 
 func Label(label string, batch Batch) Batch {

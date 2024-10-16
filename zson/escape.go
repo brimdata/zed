@@ -22,7 +22,7 @@ func QuotedTypeName(name string) string {
 const hexdigits = "0123456789abcdef"
 
 // QuotedString quotes and escapes a ZSON string for serialization in accordance
-// with the ZSON spec.  It was copied and modified [with attribution](https://github.com/brimdata/zed/blob/main/acknowledgments.txt)
+// with the ZSON spec.  It was copied and modified [with attribution](https://github.com/brimdata/super/blob/main/acknowledgments.txt)
 // from the encoding/json package in the Go source code.
 func QuotedString(s []byte) string {
 	var b strings.Builder
@@ -90,7 +90,7 @@ func Unhex(b byte) byte {
 // All values are true except for the ASCII control characters (0-31), the
 // double quote ("), and the backslash character ("\").
 //
-// This code was copied [with attribution](https://github.com/brimdata/zed/blob/main/acknowledgments.txt)
+// This code was copied [with attribution](https://github.com/brimdata/super/blob/main/acknowledgments.txt)
 // from the encoding/json package in the Go source code.
 var safeSet = [utf8.RuneSelf]bool{
 	' ':      true,

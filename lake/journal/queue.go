@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/zio/zngio"
 )
 
 const ext = "zng"

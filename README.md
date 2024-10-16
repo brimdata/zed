@@ -103,7 +103,7 @@ We modeled this README after
 Philip O'Toole's brilliantly succinct
 [description of `rqlite`](https://github.com/rqlite/rqlite).
 
-[tests-img]: https://github.com/brimdata/zed/workflows/Tests/badge.svg
-[tests]: https://github.com/brimdata/zed/actions?query=workflow%3ATests
-[gopkg-img]: https://pkg.go.dev/badge/github.com/brimdata/zed
-[gopkg]: https://pkg.go.dev/github.com/brimdata/zed
+[tests-img]: https://github.com/brimdata/super/workflows/Tests/badge.svg
+[tests]: https://github.com/brimdata/super/actions?query=workflow%3ATests
+[gopkg-img]: https://pkg.go.dev/badge/github.com/brimdata/super
+[gopkg]: https://pkg.go.dev/github.com/brimdata/super

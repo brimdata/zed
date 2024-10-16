@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/vector"
-	"github.com/brimdata/zed/vng"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/vector"
+	"github.com/brimdata/super/vng"
 )
 
 // The shadow type mirrors the vector.Any implementations here with locks and

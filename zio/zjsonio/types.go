@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 )
 
 type zType interface {

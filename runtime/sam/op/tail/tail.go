@@ -3,7 +3,7 @@ package tail
 import (
 	"slices"
 
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super/zbuf"
 )
 
 type Op struct {

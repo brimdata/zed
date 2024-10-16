@@ -3,11 +3,11 @@ package function
 import (
 	"regexp"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zcode"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#regexp
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#regexp
 type Regexp struct {
 	builder zcode.Builder
 	re      *regexp.Regexp
@@ -42,7 +42,7 @@ func (r *Regexp) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return zed.NewValue(r.typ, r.builder.Bytes())
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#regexp_replace
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#regexp_replace
 type RegexpReplace struct {
 	zctx  *zed.Context
 	re    *regexp.Regexp

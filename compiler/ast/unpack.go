@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/pkg/unpack"
+	astzed "github.com/brimdata/super/compiler/ast/zed"
+	"github.com/brimdata/super/pkg/unpack"
 )
 
 var unpacker = unpack.New(

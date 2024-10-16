@@ -6,12 +6,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/storage"
-	storagemock "github.com/brimdata/zed/pkg/storage/mock"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zio/zsonio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/storage"
+	storagemock "github.com/brimdata/super/pkg/storage/mock"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zio/anyio"
+	"github.com/brimdata/super/zio/zsonio"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

@@ -7,9 +7,9 @@ import (
 
 	"github.com/apache/arrow/go/v14/arrow"
 	"github.com/apache/arrow/go/v14/parquet/pqarrow"
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/arrowio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zio/arrowio"
 )
 
 type Writer struct {

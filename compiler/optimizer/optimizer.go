@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/data"
-	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/super/compiler/ast/dag"
+	"github.com/brimdata/super/compiler/data"
+	"github.com/brimdata/super/lake"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/pkg/field"
 	"github.com/segmentio/ksuid"
 )
 

@@ -1,4 +1,4 @@
-//go:generate mockgen -destination=./mock/mock_engine.go -package=mock github.com/brimdata/zed/pkg/storage Engine
+//go:generate mockgen -destination=./mock/mock_engine.go -package=mock github.com/brimdata/super/pkg/storage Engine
 
 package storage
 

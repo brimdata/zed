@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/api/client/auth0"
-	"github.com/brimdata/zed/zngbytes"
+	"github.com/brimdata/super/api"
+	"github.com/brimdata/super/api/client/auth0"
+	"github.com/brimdata/super/zngbytes"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

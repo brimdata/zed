@@ -7,10 +7,10 @@ import (
 	"io/fs"
 	"regexp"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/runtime/sam/expr/extent"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/runtime/sam/expr/extent"
 	"github.com/segmentio/ksuid"
 )
 

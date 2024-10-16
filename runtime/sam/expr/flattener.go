@@ -3,8 +3,8 @@ package expr
 import (
 	"fmt"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zcode"
 )
 
 type Flattener struct {

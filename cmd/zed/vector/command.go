@@ -3,8 +3,8 @@ package vector
 import (
 	"flag"
 
-	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/super/cmd/zed/root"
+	"github.com/brimdata/super/pkg/charm"
 )
 
 var Cmd = &charm.Spec{

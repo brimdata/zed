@@ -31,7 +31,7 @@ Once installed, run a [quick test](#quick-tests).
 ## Binary Download
 
 We offer pre-built binaries for macOS, Windows and Linux for both x86 and arm
-architectures in the Zed [Github Release page](https://github.com/brimdata/zed/releases).
+architectures in the Zed [Github Release page](https://github.com/brimdata/super/releases).
 
 Each archive includes the build for `zq` and `zed`.
 
@@ -42,7 +42,7 @@ Once installed, run a [quick test](#quick-tests).
 If you have Go installed, you can easily build `zed` from source:
 
 ```bash
-go install github.com/brimdata/zed/cmd/{zed,zq}@latest
+go install github.com/brimdata/super/cmd/{zed,zq}@latest
 ```
 
 This installs the `zed` and `zq` binaries in your `$GOPATH/bin`.

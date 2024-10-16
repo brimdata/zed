@@ -3,9 +3,9 @@ package commits
 import (
 	"context"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zson"
 	"github.com/segmentio/ksuid"
 )
 

@@ -5,8 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zbuf"
 )
 
 type batch struct {

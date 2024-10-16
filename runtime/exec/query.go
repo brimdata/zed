@@ -1,9 +1,9 @@
 package exec
 
 import (
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zio"
 )
 
 // Query runs a flowgraph as a zbuf.Puller and implements a Close() method

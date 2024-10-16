@@ -1,20 +1,20 @@
 package function
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/runtime/sam/expr/coerce"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/nano"
+	"github.com/brimdata/super/runtime/sam/expr/coerce"
 	"github.com/lestrrat-go/strftime"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#now
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#now
 type Now struct{}
 
 func (n *Now) Call(_ zed.Allocator, _ []zed.Value) zed.Value {
 	return zed.NewTime(nano.Now())
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#bucket
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#bucket
 type Bucket struct {
 	name string
 	zctx *zed.Context
@@ -47,7 +47,7 @@ func (b *Bucket) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return zed.NewTime(nano.Ts(v).Trunc(bin))
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#strftime
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#strftime
 type Strftime struct {
 	zctx      *zed.Context
 	formatter *strftime.Strftime

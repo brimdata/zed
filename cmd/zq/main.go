@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/brimdata/zed/cli/zq"
+	"github.com/brimdata/super/cli/zq"
 )
 
 func main() {

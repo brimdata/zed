@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/brimdata/zed/runtime/sam/expr/function"
+	"github.com/brimdata/super/runtime/sam/expr/function"
 )
 
 func TestBadFunction(t *testing.T) {

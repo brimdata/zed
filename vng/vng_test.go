@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/optimizer/demand"
-	"github.com/brimdata/zed/fuzz"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/compiler/optimizer/demand"
+	"github.com/brimdata/super/fuzz"
 	"github.com/stretchr/testify/require"
 )
 

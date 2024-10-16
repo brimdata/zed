@@ -10,15 +10,15 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/brimdata/zed/cli"
-	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/data"
-	"github.com/brimdata/zed/compiler/parser"
-	"github.com/brimdata/zed/compiler/semantic"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super/cli"
+	"github.com/brimdata/super/compiler"
+	"github.com/brimdata/super/compiler/ast"
+	"github.com/brimdata/super/compiler/data"
+	"github.com/brimdata/super/compiler/parser"
+	"github.com/brimdata/super/compiler/semantic"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zson"
 )
 
 type Flags struct {

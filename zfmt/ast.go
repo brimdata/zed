@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/brimdata/zed/compiler/ast"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/runtime/sam/expr/agg"
-	"github.com/brimdata/zed/runtime/sam/expr/function"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super/compiler/ast"
+	astzed "github.com/brimdata/super/compiler/ast/zed"
+	"github.com/brimdata/super/runtime/sam/expr/agg"
+	"github.com/brimdata/super/runtime/sam/expr/function"
+	"github.com/brimdata/super/zson"
 )
 
 func AST(p ast.Seq) string {

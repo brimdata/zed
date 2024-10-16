@@ -3,10 +3,10 @@ package lakemanage
 import (
 	"context"
 
-	"github.com/brimdata/zed/api"
-	lakeapi "github.com/brimdata/zed/lake/api"
-	"github.com/brimdata/zed/lake/pools"
-	"github.com/brimdata/zed/lakeparse"
+	"github.com/brimdata/super/api"
+	lakeapi "github.com/brimdata/super/lake/api"
+	"github.com/brimdata/super/lake/pools"
+	"github.com/brimdata/super/lakeparse"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"

@@ -3,9 +3,9 @@ package join
 import (
 	"context"
 
-	"github.com/brimdata/zed/runtime/sam/op"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/super/runtime/sam/op"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zio"
 )
 
 type puller struct {

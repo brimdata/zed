@@ -5,8 +5,8 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/service/auth"
+	"github.com/brimdata/super/api"
+	"github.com/brimdata/super/service/auth"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"

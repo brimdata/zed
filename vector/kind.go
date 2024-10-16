@@ -3,7 +3,7 @@ package vector
 import (
 	"fmt"
 
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 )
 
 type Kind int

@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/super/pkg/charm"
 )
 
 var Method = &charm.Spec{

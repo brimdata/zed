@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/api"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zio/zngio"
+	"github.com/brimdata/super/zson"
 )
 
 type scanner struct {

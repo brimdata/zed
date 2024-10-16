@@ -3,12 +3,12 @@ package function
 import (
 	"math"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/anymath"
-	"github.com/brimdata/zed/runtime/sam/expr/coerce"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/anymath"
+	"github.com/brimdata/super/runtime/sam/expr/coerce"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#abs.md
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#abs.md
 type Abs struct {
 	zctx *zed.Context
 }
@@ -30,7 +30,7 @@ func (a *Abs) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return a.zctx.WrapError("abs: not a number", val)
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#ceil
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#ceil
 type Ceil struct {
 	zctx *zed.Context
 }
@@ -46,7 +46,7 @@ func (c *Ceil) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return c.zctx.WrapError("ceil: not a number", val)
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#floor
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#floor
 type Floor struct {
 	zctx *zed.Context
 }
@@ -62,7 +62,7 @@ func (f *Floor) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return f.zctx.WrapError("floor: not a number", val)
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#log
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#log
 type Log struct {
 	zctx *zed.Context
 }
@@ -125,7 +125,7 @@ func (r *reducer) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return r.zctx.WrapError(r.name+": not a number", val0)
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#round
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#round
 type Round struct {
 	zctx *zed.Context
 }
@@ -141,7 +141,7 @@ func (r *Round) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return r.zctx.WrapError("round: not a number", val)
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#pow
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#pow
 type Pow struct {
 	zctx *zed.Context
 }
@@ -158,7 +158,7 @@ func (p *Pow) Call(_ zed.Allocator, args []zed.Value) zed.Value {
 	return zed.NewFloat64(math.Pow(x, y))
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#sqrt
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#sqrt
 type Sqrt struct {
 	zctx *zed.Context
 }

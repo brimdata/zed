@@ -22,16 +22,16 @@ other Go projects straight from the GitHub repo.
 
 Some of the key packages are:
 
-* [zed](https://pkg.go.dev/github.com/brimdata/zed) - core Zed values and types
-* [zson](https://pkg.go.dev/github.com/brimdata/zed/zson) - ZSON support
-* [zio](https://pkg.go.dev/github.com/brimdata/zed/zio) - I/O interfaces for Zed following the Reader/Writer patterns
-* [zio/zsonio](https://pkg.go.dev/github.com/brimdata/zed/zio/zsonio) - ZSON reader/writer
-* [zio/zngio](https://pkg.go.dev/github.com/brimdata/zed/zio/zngio) - ZNG reader/writer
-* [lake/api](https://pkg.go.dev/github.com/brimdata/zed/lake/api) - interact with a Zed lake
+* [zed](https://pkg.go.dev/github.com/brimdata/super) - core Zed values and types
+* [zson](https://pkg.go.dev/github.com/brimdata/super/zson) - ZSON support
+* [zio](https://pkg.go.dev/github.com/brimdata/super/zio) - I/O interfaces for Zed following the Reader/Writer patterns
+* [zio/zsonio](https://pkg.go.dev/github.com/brimdata/super/zio/zsonio) - ZSON reader/writer
+* [zio/zngio](https://pkg.go.dev/github.com/brimdata/super/zio/zngio) - ZNG reader/writer
+* [lake/api](https://pkg.go.dev/github.com/brimdata/super/lake/api) - interact with a Zed lake
 
 To install in your local Go project, simply run:
 ```
-go get github.com/brimdata/zed
+go get github.com/brimdata/super
 ```
 
 ## Examples
@@ -47,9 +47,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zson"
+	zed "github.com/brimdata/super"
+	"github.com/brimdata/super/zio/zsonio"
+	"github.com/brimdata/super/zson"
 )
 
 func main() {
@@ -114,11 +114,11 @@ import (
 	"log"
 	"os"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/lake/api"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zson"
+	zed "github.com/brimdata/super"
+	"github.com/brimdata/super/lake/api"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zson"
 )
 
 func main() {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/super/pkg/storage"
 	"github.com/segmentio/ksuid"
 )
 

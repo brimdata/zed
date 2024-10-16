@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/data"
-	"github.com/brimdata/zed/lakeparse"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/exec"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/super/compiler/ast"
+	"github.com/brimdata/super/compiler/data"
+	"github.com/brimdata/super/lakeparse"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/runtime/exec"
+	"github.com/brimdata/super/zio"
 )
 
 func NewCompiler() runtime.Compiler {

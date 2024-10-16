@@ -1,7 +1,7 @@
 package head
 
 import (
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super/zbuf"
 )
 
 type Op struct {

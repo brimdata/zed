@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/zio/zeekio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/zio/zeekio"
 )
 
 type Writer struct {

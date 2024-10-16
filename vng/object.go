@@ -1,5 +1,5 @@
 // Package vng implements the reading and writing of VNG serialization objects.
-// The VNG format is described at https://github.com/brimdata/zed/blob/main/docs/formats/vng.md.
+// The VNG format is described at https://github.com/brimdata/super/blob/main/docs/formats/vng.md.
 //
 // A VNG object is created by allocating an Encoder for any top-level Zed type
 // via NewEncoder, which recursively descends into the Zed type, allocating an Encoder
@@ -28,10 +28,10 @@ import (
 	"errors"
 	"io"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zio/zngio"
+	"github.com/brimdata/super/zson"
 )
 
 type Object struct {

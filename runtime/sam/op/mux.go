@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/zbuf"
 )
 
 // Mux implements the muxing of a set of parallel paths at the output of

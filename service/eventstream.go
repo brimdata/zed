@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/anyio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zio/anyio"
 )
 
 type event struct {

@@ -5,9 +5,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/sam/op"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/runtime/sam/op"
+	"github.com/brimdata/super/zbuf"
 	"golang.org/x/sync/errgroup"
 )
 

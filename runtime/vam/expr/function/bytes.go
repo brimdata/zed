@@ -4,11 +4,11 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/vector"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#base64
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#base64
 type Base64 struct {
 	zctx *zed.Context
 }
@@ -55,7 +55,7 @@ func (b *Base64) Call(args ...vector.Any) vector.Any {
 	}
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#hex
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#hex
 type Hex struct {
 	zctx *zed.Context
 }

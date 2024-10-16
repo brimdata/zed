@@ -3,7 +3,7 @@ package expr
 import (
 	"slices"
 
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 )
 
 const maxStackDepth = 10_000

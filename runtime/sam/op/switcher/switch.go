@@ -1,11 +1,11 @@
 package switcher
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/runtime/sam/op"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/runtime/sam/op"
+	"github.com/brimdata/super/zbuf"
 )
 
 type Selector struct {

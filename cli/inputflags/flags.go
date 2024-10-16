@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/cli/auto"
-	"github.com/brimdata/zed/compiler/optimizer/demand"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/cli/auto"
+	"github.com/brimdata/super/compiler/optimizer/demand"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zio/anyio"
+	"github.com/brimdata/super/zio/zngio"
 )
 
 type Flags struct {

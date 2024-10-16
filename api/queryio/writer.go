@@ -4,12 +4,12 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zio/jsonio"
+	"github.com/brimdata/super/api"
+	"github.com/brimdata/super/pkg/nano"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zio/anyio"
+	"github.com/brimdata/super/zio/jsonio"
 )
 
 type controlWriter interface {

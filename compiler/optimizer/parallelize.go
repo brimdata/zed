@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/order"
+	"github.com/brimdata/super/compiler/ast/dag"
+	"github.com/brimdata/super/order"
 )
 
 // XXX Remove this and use native order.Direction in group-by.  See Issue #4505.

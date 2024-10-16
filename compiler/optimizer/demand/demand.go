@@ -1,6 +1,6 @@
 package demand
 
-import "github.com/brimdata/zed/pkg/field"
+import "github.com/brimdata/super/pkg/field"
 
 type Demand interface {
 	isDemand()

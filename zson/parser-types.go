@@ -3,8 +3,8 @@ package zson
 import (
 	"errors"
 
-	"github.com/brimdata/zed"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
+	"github.com/brimdata/super"
+	astzed "github.com/brimdata/super/compiler/ast/zed"
 )
 
 func (p *Parser) parseType() (astzed.Type, error) {

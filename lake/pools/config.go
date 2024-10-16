@@ -1,14 +1,14 @@
 package pools
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/lake/journal"
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/lake/data"
+	"github.com/brimdata/super/lake/journal"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/pkg/field"
+	"github.com/brimdata/super/pkg/nano"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/zson"
 	"github.com/segmentio/ksuid"
 )
 

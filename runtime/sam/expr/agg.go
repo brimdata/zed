@@ -1,8 +1,8 @@
 package expr
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr/agg"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime/sam/expr/agg"
 )
 
 type Aggregator struct {

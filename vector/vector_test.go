@@ -6,9 +6,9 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/fuzz"
-	"github.com/brimdata/zed/vng"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/fuzz"
+	"github.com/brimdata/super/vng"
 )
 
 func FuzzQuery(f *testing.F) {

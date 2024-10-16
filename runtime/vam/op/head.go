@@ -1,7 +1,7 @@
 package op
 
 import (
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super/vector"
 )
 
 type Head struct {

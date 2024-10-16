@@ -3,13 +3,13 @@ package compiler
 import (
 	"errors"
 
-	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/data"
-	"github.com/brimdata/zed/lakeparse"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/exec"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/super/compiler/ast"
+	"github.com/brimdata/super/compiler/data"
+	"github.com/brimdata/super/lakeparse"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/runtime/exec"
+	"github.com/brimdata/super/zio"
 )
 
 type fsCompiler struct {

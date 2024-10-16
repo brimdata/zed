@@ -24,7 +24,7 @@ Linux 24.04. At the time this article was written, the following versions
 were used for the referenced software:
 
 * [Fluentd v1.17.0](https://github.com/fluent/fluentd/releases/tag/v1.17.0)
-* [Zed v1.17.0](https://github.com/brimdata/zed/releases/tag/v1.17.0)
+* [Zed v1.17.0](https://github.com/brimdata/super/releases/tag/v1.17.0)
 * [Zeek v6.2.1](https://github.com/zeek/zeek/releases/tag/v6.2.1)
 
 ### Zeek
@@ -59,13 +59,13 @@ After making these changes, Zeek was started by running
 
 ### Zed
 
-A binary [release package](https://github.com/brimdata/zed/releases) of Zed
+A binary [release package](https://github.com/brimdata/super/releases) of Zed
 executables compatible with our instance was downloaded and unpacked to a
 directory in our `$PATH`, then the [lake service](https://zed.brimdata.io/docs/commands/zed#serve)
 was started with a specified storage path.
 
 ```
-wget https://github.com/brimdata/zed/releases/download/v1.17.0/zed-v1.17.0.linux-amd64.tar.gz
+wget https://github.com/brimdata/super/releases/download/v1.17.0/zed-v1.17.0.linux-amd64.tar.gz
 tar xzvf zed-v1.17.0.linux-amd64.tar.gz
 sudo mv zed zq /usr/local/bin
 zed -lake $HOME/lake serve -manage 5m
@@ -369,7 +369,7 @@ storage that contain the granular commits that have already been rolled into
 larger objects by compaction.
 
 :::tip Note
-As described in issue [zed/4934](https://github.com/brimdata/zed/issues/4934),
+As described in issue [super/4934](https://github.com/brimdata/super/issues/4934),
 even after running `zed vacuum`, some files related to commit history are
 currently still left behind below the lake storage path. The issue describes
 manual steps that can be taken to remove these files safely, if desired.
@@ -410,4 +410,4 @@ article can be improved.
 If you're having difficulty, interested in loading or shaping other data
 sources, or just have feedback, please join our
 [public Slack](https://www.brimdata.io/join-slack/) and speak up or
-[open an issue](https://github.com/brimdata/zed/issues/new/choose). Thanks!
+[open an issue](https://github.com/brimdata/super/issues/new/choose). Thanks!

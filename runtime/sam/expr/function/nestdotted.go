@@ -1,11 +1,11 @@
 package function
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/field"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#nest_dotted.md
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#nest_dotted.md
 type NestDotted struct {
 	zctx        *zed.Context
 	builders    map[int]*zed.RecordBuilder

@@ -10,8 +10,8 @@ package dag
 import (
 	"slices"
 
-	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/field"
+	"github.com/brimdata/super/order"
+	"github.com/brimdata/super/pkg/field"
 	"github.com/segmentio/ksuid"
 )
 

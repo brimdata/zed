@@ -3,10 +3,10 @@ package vcache
 import (
 	"context"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/vector"
-	"github.com/brimdata/zed/vng"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/vector"
+	"github.com/brimdata/super/vng"
 )
 
 // Object is the interface to load a given VNG object from storage into

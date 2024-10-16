@@ -6,13 +6,13 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli/commitflags"
-	"github.com/brimdata/zed/cli/lakeflags"
-	"github.com/brimdata/zed/cli/poolflags"
-	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/lake/api"
-	"github.com/brimdata/zed/lakeparse"
-	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/super/cli/commitflags"
+	"github.com/brimdata/super/cli/lakeflags"
+	"github.com/brimdata/super/cli/poolflags"
+	"github.com/brimdata/super/cmd/zed/root"
+	"github.com/brimdata/super/lake/api"
+	"github.com/brimdata/super/lakeparse"
+	"github.com/brimdata/super/pkg/charm"
 	"github.com/segmentio/ksuid"
 )
 

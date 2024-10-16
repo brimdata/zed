@@ -5,8 +5,8 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zcode"
 )
 
 type builder struct {

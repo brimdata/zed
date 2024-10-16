@@ -11,7 +11,7 @@
 * Add docs for the [`top` operator](docs/language/operators/top.md) (#5276)
 * Add [`fluentd` integration docs](docs/integrations/fluentd.md) (#5190, #5195)
 * Add a [`strftime` function](docs/language/functions/strftime.md) to format `time` values into strings (#5197, #5204)
-* Add a `DATESTAMP_ISO8601` [pattern](https://raw.githubusercontent.com/brimdata/zed/main/pkg/grok/base.go) for use with the [`grok` function](docs/language/functions/grok.md) (#5232)
+* Add a `DATESTAMP_ISO8601` [pattern](https://raw.githubusercontent.com/brimdata/super/main/pkg/grok/base.go) for use with the [`grok` function](docs/language/functions/grok.md) (#5232)
 * Fix an issue where CSV files without a final newline could not be read (#5185)
 * Fix an issue where comparisons against union values produced incorrect results (#5210)
 * Fix an issue where concurrent Zed lake operations could cause a service crash (#5279)
@@ -515,7 +515,7 @@ questions.
 
 ## v0.28.0
 **NOTE** - Beginning with this release, a subset of the source code in the
-[github.com/brimdata/zed](https://github.com/brimdata/zed) GitHub repository is
+[github.com/brimdata/super](https://github.com/brimdata/super) GitHub repository is
 covered by a source-available style license, the
 [Polyform Perimeter License (PPL)](https://polyformproject.org/licenses/perimeter/1.0.0/).
 We've moved the PPL-covered code under a `ppl/` directory in the repository.

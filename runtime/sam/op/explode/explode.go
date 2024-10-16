@@ -1,10 +1,10 @@
 package explode
 
 import (
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zcode"
 )
 
 // A an explode Proc is a proc that, given an input record and a

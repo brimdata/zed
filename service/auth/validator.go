@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/brimdata/zed/pkg/fs"
-	"github.com/brimdata/zed/service/srverr"
+	"github.com/brimdata/super/pkg/fs"
+	"github.com/brimdata/super/service/srverr"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/golang-jwt/jwt/v4/request"
 )

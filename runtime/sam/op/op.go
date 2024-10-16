@@ -1,7 +1,7 @@
 package op
 
 import (
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/super/zbuf"
 )
 
 const BatchLen = 100

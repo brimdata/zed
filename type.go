@@ -17,7 +17,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super/zcode"
 )
 
 var (

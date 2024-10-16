@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/nano"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zio/zngio"
+	"github.com/brimdata/super/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/x448/float16"
@@ -456,7 +456,7 @@ func TestInterfaceZNGMarshal(t *testing.T) {
 	m.Decorate(zson.StyleFull)
 	zv, err = m.Marshal(rolls)
 	require.NoError(t, err)
-	assert.Equal(t, `"github.com/brimdata/zed/zson_test.Rolls"=[int64]`, zson.String(zv.Type()))
+	assert.Equal(t, `"github.com/brimdata/super/zson_test.Rolls"=[int64]`, zson.String(zv.Type()))
 
 	plain := []int32{1, 2, 3}
 	zv, err = m.Marshal(plain)

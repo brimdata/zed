@@ -4,10 +4,10 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli/commitflags"
-	"github.com/brimdata/zed/cli/poolflags"
-	"github.com/brimdata/zed/lakeparse"
-	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/super/cli/commitflags"
+	"github.com/brimdata/super/cli/poolflags"
+	"github.com/brimdata/super/lakeparse"
+	"github.com/brimdata/super/pkg/charm"
 )
 
 var del = &charm.Spec{

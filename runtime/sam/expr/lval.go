@@ -3,9 +3,9 @@ package expr
 import (
 	"errors"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/field"
+	"github.com/brimdata/super/zson"
 )
 
 type Lval struct {

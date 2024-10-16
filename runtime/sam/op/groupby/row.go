@@ -3,10 +3,10 @@ package groupby
 import (
 	"fmt"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/runtime/sam/expr/agg"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/runtime/sam/expr/agg"
+	"github.com/brimdata/super/zson"
 )
 
 type valRow []agg.Function

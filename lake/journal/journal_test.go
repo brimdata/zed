@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/super/pkg/storage"
 	"github.com/stretchr/testify/require"
 )
 

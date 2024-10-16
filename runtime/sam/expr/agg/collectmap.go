@@ -3,8 +3,8 @@ package agg
 import (
 	"slices"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zcode"
 )
 
 type CollectMap struct {

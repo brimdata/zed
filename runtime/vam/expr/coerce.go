@@ -3,10 +3,10 @@ package expr
 import (
 	"fmt"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/byteconv"
-	"github.com/brimdata/zed/runtime/sam/expr/coerce"
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/byteconv"
+	"github.com/brimdata/super/runtime/sam/expr/coerce"
+	"github.com/brimdata/super/vector"
 )
 
 // coerceVals checks if a and b are type compatible for comparison

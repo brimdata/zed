@@ -5,8 +5,8 @@ import (
 	"io"
 	"slices"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zcode"
 	"github.com/pierrec/lz4/v4"
 )
 

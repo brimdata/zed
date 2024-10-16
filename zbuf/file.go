@@ -3,7 +3,7 @@ package zbuf
 import (
 	"io"
 
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/super/zio"
 )
 
 type File struct {

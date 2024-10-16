@@ -1,6 +1,6 @@
 package dag
 
-import "github.com/brimdata/zed/order"
+import "github.com/brimdata/super/order"
 
 type (
 	Expr interface {

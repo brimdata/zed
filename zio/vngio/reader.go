@@ -4,10 +4,10 @@ import (
 	"errors"
 	"io"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/optimizer/demand"
-	"github.com/brimdata/zed/vng"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/compiler/optimizer/demand"
+	"github.com/brimdata/super/vng"
+	"github.com/brimdata/super/zio"
 )
 
 func NewReader(zctx *zed.Context, r io.Reader, demandOut demand.Demand) (zio.Reader, error) {

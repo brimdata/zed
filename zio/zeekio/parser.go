@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 )
 
 type header struct {

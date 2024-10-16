@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zio"
 )
 
 type ArrayWriter struct {

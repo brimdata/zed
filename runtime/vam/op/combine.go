@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/brimdata/zed/vector"
+	"github.com/brimdata/super/vector"
 	"golang.org/x/sync/errgroup"
 )
 

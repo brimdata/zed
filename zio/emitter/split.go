@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/anyio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zio/anyio"
 )
 
 type Split struct {

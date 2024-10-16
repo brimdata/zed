@@ -1,13 +1,13 @@
 package lakeio
 
 import (
-	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/commits"
-	"github.com/brimdata/zed/lake/data"
-	"github.com/brimdata/zed/lake/pools"
-	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/runtime/sam/op/meta"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super/lake"
+	"github.com/brimdata/super/lake/commits"
+	"github.com/brimdata/super/lake/data"
+	"github.com/brimdata/super/lake/pools"
+	"github.com/brimdata/super/pkg/field"
+	"github.com/brimdata/super/runtime/sam/op/meta"
+	"github.com/brimdata/super/zson"
 )
 
 var unmarshaler *zson.UnmarshalZNGContext

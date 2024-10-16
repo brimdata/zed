@@ -7,11 +7,11 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/vector"
-	"github.com/brimdata/zed/vng"
-	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/vector"
+	"github.com/brimdata/super/vng"
+	"github.com/brimdata/super/zcode"
+	"github.com/brimdata/super/zson"
 	"golang.org/x/sync/errgroup"
 )
 

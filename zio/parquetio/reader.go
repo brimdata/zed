@@ -9,8 +9,8 @@ import (
 	"github.com/apache/arrow/go/v14/parquet"
 	"github.com/apache/arrow/go/v14/parquet/file"
 	"github.com/apache/arrow/go/v14/parquet/pqarrow"
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio/arrowio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/zio/arrowio"
 )
 
 func NewReader(zctx *zed.Context, r io.Reader) (*arrowio.Reader, error) {

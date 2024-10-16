@@ -5,11 +5,11 @@ import (
 	"io"
 	"os"
 
-	"github.com/brimdata/zed/pkg/bufwriter"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/pkg/terminal"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/anyio"
+	"github.com/brimdata/super/pkg/bufwriter"
+	"github.com/brimdata/super/pkg/storage"
+	"github.com/brimdata/super/pkg/terminal"
+	"github.com/brimdata/super/zio"
+	"github.com/brimdata/super/zio/anyio"
 )
 
 func NewFileFromPath(ctx context.Context, engine storage.Engine, path string, unbuffered bool, opts anyio.WriterOpts) (zio.WriteCloser, error) {

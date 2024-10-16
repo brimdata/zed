@@ -3,13 +3,13 @@ package function
 import (
 	"fmt"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/field"
-	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/pkg/field"
+	"github.com/brimdata/super/zcode"
+	"github.com/brimdata/super/zson"
 )
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#unflatten
+// https://github.com/brimdata/super/blob/main/docs/language/functions.md#unflatten
 type Unflatten struct {
 	zctx *zed.Context
 

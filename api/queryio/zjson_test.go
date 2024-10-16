@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/api/queryio"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/api"
+	"github.com/brimdata/super/api/queryio"
+	"github.com/brimdata/super/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

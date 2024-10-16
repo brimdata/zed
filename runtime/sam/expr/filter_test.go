@@ -5,12 +5,12 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/runtime"
-	"github.com/brimdata/zed/runtime/sam/expr"
-	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/compiler"
+	"github.com/brimdata/super/runtime"
+	"github.com/brimdata/super/runtime/sam/expr"
+	"github.com/brimdata/super/zcode"
+	"github.com/brimdata/super/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -197,8 +197,8 @@ func TestFilters(t *testing.T) {
 		{`a == "S"`, false},
 		{`a == "s"`, false},
 		{`\u017F`, true},
-		{`S`, false}, // Should be true; see https://github.com/brimdata/zed/issues/1207.
-		{`s`, false}, // Should be true; see https://github.com/brimdata/zed/issues/1207.
+		{`S`, false}, // Should be true; see https://github.com/brimdata/super/issues/1207.
+		{`s`, false}, // Should be true; see https://github.com/brimdata/super/issues/1207.
 	})
 
 	// Test U+212A KELVIN SIGN.

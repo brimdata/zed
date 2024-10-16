@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/brimdata/zed/cmd/zed/dev/compile"
-	"github.com/brimdata/zed/cmd/zed/root"
+	"github.com/brimdata/super/cmd/zed/dev/compile"
+	"github.com/brimdata/super/cmd/zed/root"
 )
 
 func main() {

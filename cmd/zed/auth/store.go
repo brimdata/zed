@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/api/client/auth0"
-	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/super/api/client/auth0"
+	"github.com/brimdata/super/pkg/charm"
 )
 
 var Store = &charm.Spec{

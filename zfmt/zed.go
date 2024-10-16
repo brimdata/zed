@@ -1,8 +1,8 @@
 package zfmt
 
 import (
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/zson"
+	astzed "github.com/brimdata/super/compiler/ast/zed"
+	"github.com/brimdata/super/zson"
 )
 
 type canonZed struct {

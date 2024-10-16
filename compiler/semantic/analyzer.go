@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/data"
-	"github.com/brimdata/zed/compiler/parser"
-	"github.com/brimdata/zed/lakeparse"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/compiler/ast"
+	"github.com/brimdata/super/compiler/ast/dag"
+	"github.com/brimdata/super/compiler/data"
+	"github.com/brimdata/super/compiler/parser"
+	"github.com/brimdata/super/lakeparse"
 )
 
 // Analyze performs a semantic analysis of the AST, translating it from AST

@@ -4,12 +4,12 @@ import (
 	"context"
 	"io"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/parser"
-	"github.com/brimdata/zed/lakeparse"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/compiler/ast"
+	"github.com/brimdata/super/compiler/parser"
+	"github.com/brimdata/super/lakeparse"
+	"github.com/brimdata/super/zbuf"
+	"github.com/brimdata/super/zio"
 	"github.com/segmentio/ksuid"
 )
 

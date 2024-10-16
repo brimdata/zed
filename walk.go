@@ -3,7 +3,7 @@ package zed
 import (
 	"errors"
 
-	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/super/zcode"
 )
 
 // A Visitor is called for each value in a record encountered by

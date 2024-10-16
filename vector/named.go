@@ -1,7 +1,7 @@
 package vector
 
 import (
-	"github.com/brimdata/zed"
+	"github.com/brimdata/super"
 )
 
 type Named struct {

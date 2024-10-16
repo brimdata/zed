@@ -4,10 +4,10 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimdata/zed/cli/auto"
-	"github.com/brimdata/zed/runtime/sam/expr/agg"
-	"github.com/brimdata/zed/runtime/sam/op/fuse"
-	"github.com/brimdata/zed/runtime/sam/op/sort"
+	"github.com/brimdata/super/cli/auto"
+	"github.com/brimdata/super/runtime/sam/expr/agg"
+	"github.com/brimdata/super/runtime/sam/op/fuse"
+	"github.com/brimdata/super/runtime/sam/op/sort"
 	"github.com/pbnjay/memory"
 )
 

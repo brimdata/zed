@@ -5,7 +5,7 @@ builds:
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -X github.com/brimdata/zed/cli.version={{ .Tag }}
+      - -s -X github.com/brimdata/super/cli.version={{ .Tag }}
     goarch:
       - amd64
       - arm64
@@ -19,7 +19,7 @@ builds:
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -X github.com/brimdata/zed/cli.version={{ .Tag }}
+      - -s -X github.com/brimdata/super/cli.version={{ .Tag }}
     goarch:
       - amd64
       - arm64
@@ -46,7 +46,7 @@ brews:
     commit_author:
       name: brim-bot
       email: bot@brimdata.io
-    homepage: https://github.com/brimdata/zed
+    homepage: https://github.com/brimdata/super
     description: |
       A command-line tool for creating, configuring, ingesting into, querying,
       and orchestrating Zed data lakes.
@@ -59,7 +59,7 @@ brews:
     commit_author:
       name: brim-bot
       email: bot@brimdata.io
-    homepage: https://github.com/brimdata/zed
+    homepage: https://github.com/brimdata/super
     description: |
       A command-line tool for processing data in diverse input formats,
       providing search, analytics, and extensive transormations using the Zed

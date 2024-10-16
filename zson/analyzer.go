@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed"
-	astzed "github.com/brimdata/zed/compiler/ast/zed"
+	"github.com/brimdata/super"
+	astzed "github.com/brimdata/super/compiler/ast/zed"
 )
 
 type Value interface {

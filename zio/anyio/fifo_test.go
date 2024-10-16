@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/compiler/optimizer/demand"
-	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/super"
+	"github.com/brimdata/super/compiler/optimizer/demand"
+	"github.com/brimdata/super/pkg/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
