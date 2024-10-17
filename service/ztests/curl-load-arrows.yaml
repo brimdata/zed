@@ -1,7 +1,7 @@
 script: |
   source service.sh
   super db create -q test
-  zq -f arrows in.zson |
+  super query -f arrows in.zson |
     curl -H Content-Type:application/vnd.apache.arrow.stream --data-binary @- \
     --fail $SUPER_LAKE/pool/test/branch/main | super query -z -c commit:=0 -
   echo //

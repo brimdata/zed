@@ -5,9 +5,9 @@ script: |
   export SUPER_LAKE=test
   super db init -q
   super db create -q -use -orderby ts:asc -S 800B test
-  seq 0 50 | zq '{ts:this,x:1}' - | super db load -q -
-  seq 100 150 | zq '{ts:this,x:1}' - | super db load -q -
-  seq 200 250 | zq '{ts:this,x:1}' - | super db load -q -
+  seq 0 50 | super query -c '{ts:this,x:1}' - | super db load -q -
+  seq 100 150 | super query -c '{ts:this,x:1}' - | super db load -q -
+  seq 200 250 | super query -c '{ts:this,x:1}' - | super db load -q -
   super db manage -q
   super db query -z 'from test@main:objects | drop id'
 

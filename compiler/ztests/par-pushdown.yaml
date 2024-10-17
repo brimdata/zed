@@ -2,7 +2,7 @@ script: |
   export ZED_LAKE=test
   super db init -q
   super db create -q -orderby ts test
-  super dev compile -P 3 "from test | x==1" | zq -z 'over this | kind=="Scatter" | over paths | yield this[0].filter.kind' -
+  super dev compile -P 3 "from test | x==1" | super query -z -c 'over this | kind=="Scatter" | over paths | yield this[0].filter.kind' -
 
 outputs:
   - name: stdout

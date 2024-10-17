@@ -1,4 +1,4 @@
-script: zq - | zq -z -
+script: super query - | super query -z -
 
 inputs:
   - name: stdin

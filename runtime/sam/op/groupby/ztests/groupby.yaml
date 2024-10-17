@@ -1,24 +1,24 @@
 script: |
   echo === forward-sorted ===
-  zq -z "count() by ts | sort this" in.zson
+  super query -z -c "count() by ts | sort this" in.zson
   echo === forward-sorted-with-null ===
-  zq -z "count() by ts | sort this" in-with-null.zson
+  super query -z -c "count() by ts | sort this" in-with-null.zson
   echo === forward-sorted-every ===
-  zq -z "count() by every(1s)| sort this" in.zson
+  super query -z -c "count() by every(1s)| sort this" in.zson
   echo === forward-sorted-every-null ===
-  zq -z "count() by every(1s) | sort this" in-with-null.zson
+  super query -z -c "count() by every(1s) | sort this" in-with-null.zson
   echo === forward-sorted-record-key ===
-  zq -z "count() by foo | sort this" in-record-key.zson
+  super query -z -c "count() by foo | sort this" in-record-key.zson
   echo === forward-sorted-nested-key ===
-  zq -z "count() by foo.a | sort this" in-record-key.zson
+  super query -z -c "count() by foo.a | sort this" in-record-key.zson
   echo === forward-sorted-record-key-null ===
-  zq -z "count() by foo | sort this" in-record-key-null.zson
+  super query -z -c "count() by foo | sort this" in-record-key-null.zson
   echo === forward-sorted-nested-key-null ===
-  zq -z "count() by foo | sort this" in-record-key-null.zson
+  super query -z -c "count() by foo | sort this" in-record-key-null.zson
   echo === reverse-sorted ===
-  zq -z "count() by ts | sort this" in-rev.zson
+  super query -z -c "count() by ts | sort this" in-rev.zson
   echo === reverse-sorted-null ===
-  zq -z "count() by every(1s)  | sort this" in-rev.zson
+  super query -z -c "count() by every(1s)  | sort this" in-rev.zson
 
 inputs:
   - name: in.zson

@@ -4,13 +4,13 @@ script: |
   super db create -seekstride 2KB -orderby ts:asc -q asc
   super db create -seekstride 2KB -orderby ts:desc -q desc
   super db use -q asc
-  zq "tail 900" babble.zson | super db load -q -
-  zq "head 250" babble.zson | super db load -q -
+  super query -c "tail 900" babble.zson | super db load -q -
+  super query -c "head 250" babble.zson | super db load -q -
   super db query -z -s "from asc | count:=count()"
   echo === | tee /dev/stderr
   super db use -q desc
-  zq "tail 900" babble.zson | super db load -q -
-  zq "head 250" babble.zson | super db load -q -
+  super query -c "tail 900" babble.zson | super db load -q -
+  super query -c "head 250" babble.zson | super db load -q -
   super db query -z -s "from desc | count:=count()"
 
 inputs:

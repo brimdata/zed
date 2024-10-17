@@ -1,6 +1,6 @@
 script: |
-  zq -z "union(x)" in.zson > union.zson
-  zq -z "collect(x)" in.zson > collect.zson
+  super query -z -c "union(x)" in.zson > union.zson
+  super query -z -c "collect(x)" in.zson > collect.zson
 
 inputs:
   - name: in.zson

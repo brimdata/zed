@@ -6,7 +6,7 @@ script: |
     echo // === $file ===
     query="$(cat $file | jq -Rsa .)"
     curl -H "Accept: application/json" -d "{\"query\":$query,\"head\":{\"pool\":\"test1\"}}" $SUPER_LAKE/query/describe |
-      zq -J 'sources := (over sources | id := "XXX")' -
+      super query -J -c 'sources := (over sources | id := "XXX")' -
   done
 
 

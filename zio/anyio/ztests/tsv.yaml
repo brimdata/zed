@@ -1,7 +1,7 @@
 # This test purposely has two null values to test the issue found in
 # brimdata/super#4911.
 script: |
-  zq - | zq -f tsv -
+  super query - | super query -f tsv -
 
 inputs:
   - name: stdin

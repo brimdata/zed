@@ -3,14 +3,14 @@ script: |
   super db init -q
   echo '// Test create vectors on compaction.'
   super db create -use -q test1
-  seq 1 10 | zq '{ts:this}' - | super db load -q -
-  seq 1 10 | zq '{ts:this}' - | super db load -q -
-  seq 1 10 | zq '{ts:this}' - | super db load -q -
+  seq 1 10 | super query -c '{ts:this}' - | super db load -q -
+  seq 1 10 | super query -c '{ts:this}' - | super db load -q -
+  seq 1 10 | super query -c '{ts:this}' - | super db load -q -
   super db manage -log.level=warn -q -vectors
   super db query -z 'from test1@main:vectors | drop id'
   echo '// Test create vector on single object.'
   super db create -use -q test2
-  seq 1 10 | zq '{ts:this}' - | super db load -q -
+  seq 1 10 | super query -c '{ts:this}' - | super db load -q -
   super db manage -log.level=warn -q -vectors
   super db query -z 'from test2@main:vectors | drop id'
 

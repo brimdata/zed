@@ -1,8 +1,8 @@
 script: |
   ! yes ' ' | head -c $((11 * 1024 * 1024)) > huge.zson
   echo 0 >> huge.zson
-  zq -z huge.zson
-  ! cat huge.zson | zq -z -
+  super query -z huge.zson
+  ! cat huge.zson | super query -z -
 
 outputs:
   - name: stdout

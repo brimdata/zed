@@ -1,7 +1,7 @@
 script: |
-  zq -z -o out.zson long.zson
-  zq -z -o out.zson short.zson
-  zq -z out.zson
+ super query - | super query -z -o out.zson long.zson
+ super query - | super query -z -o out.zson short.zson
+ super query -z out.zson
 
 inputs:
   - name: short.zson

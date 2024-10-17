@@ -1,6 +1,6 @@
 script: |
-  zq -f vng -o t.vng in.zson
-  ! cat t.vng | zq -i vng -
+  super query -f vng -o t.vng in.zson
+  ! cat t.vng | super query -i vng -
 
 inputs:
   - name: in.zson

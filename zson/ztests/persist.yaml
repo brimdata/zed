@@ -1,7 +1,7 @@
 script: |
-  zq -z -persist 'b.*' in.zson
+  super query - | super query -z -persist 'b.*' in.zson
   echo ===
-  zq -z -persist '(foo|^bar)' in.zson
+  super query - | super query -z -persist '(foo|^bar)' in.zson
 
 inputs:
   - name: in.zson

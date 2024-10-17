@@ -1,5 +1,5 @@
 script: |
-  ! zq -f parquet -o /dev/null -
+  ! super query -f parquet -o /dev/null -
 
 inputs:
   - name: stdin

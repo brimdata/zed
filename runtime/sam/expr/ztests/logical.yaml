@@ -1,50 +1,50 @@
 script: |
   echo === TRUE AND ===
-  zq -z "yield t AND t" in.zson
-  zq -z "yield t AND f" in.zson
-  zq -z "yield t AND n" in.zson
-  zq -z "yield missing(t AND m)" in.zson
+  super query -z -c "yield t AND t" in.zson
+  super query -z -c "yield t AND f" in.zson
+  super query -z -c "yield t AND n" in.zson
+  super query -z -c "yield missing(t AND m)" in.zson
   echo === FALSE AND ===
-  zq -z "yield f AND t" in.zson
-  zq -z "yield f AND f" in.zson
-  zq -z "yield f AND n" in.zson
-  zq -z "yield f AND m" in.zson
+  super query -z -c "yield f AND t" in.zson
+  super query -z -c "yield f AND f" in.zson
+  super query -z -c "yield f AND n" in.zson
+  super query -z -c "yield f AND m" in.zson
   echo === NULL AND ===
-  zq -z "yield n AND t" in.zson
-  zq -z "yield n AND f" in.zson
-  zq -z "yield n AND n" in.zson
-  zq -z "yield n AND m" in.zson
+  super query -z -c "yield n AND t" in.zson
+  super query -z -c "yield n AND f" in.zson
+  super query -z -c "yield n AND n" in.zson
+  super query -z -c "yield n AND m" in.zson
   echo === MISSING AND ===
-  zq -z "yield missing(m AND t)" in.zson
-  zq -z "yield missing(m AND f)" in.zson
-  zq -z "yield missing(m AND n)" in.zson
-  zq -z "yield missing(m AND m)" in.zson
+  super query -z -c "yield missing(m AND t)" in.zson
+  super query -z -c "yield missing(m AND f)" in.zson
+  super query -z -c "yield missing(m AND n)" in.zson
+  super query -z -c "yield missing(m AND m)" in.zson
   echo === TRUE OR ===
-  zq -z "yield t OR t" in.zson
-  zq -z "yield t OR f" in.zson
-  zq -z "yield t OR n" in.zson
-  zq -z "yield t OR m" in.zson
+  super query -z -c "yield t OR t" in.zson
+  super query -z -c "yield t OR f" in.zson
+  super query -z -c "yield t OR n" in.zson
+  super query -z -c "yield t OR m" in.zson
   echo === FALSE OR ===
-  zq -z "yield f OR t" in.zson
-  zq -z "yield f OR f" in.zson
-  zq -z "yield f OR n" in.zson
-  zq -z "yield missing(f OR m)" in.zson
+  super query -z -c "yield f OR t" in.zson
+  super query -z -c "yield f OR f" in.zson
+  super query -z -c "yield f OR n" in.zson
+  super query -z -c "yield missing(f OR m)" in.zson
   echo === NULL OR ===
-  zq -z "yield n OR t" in.zson
-  zq -z "yield n OR f" in.zson
-  zq -z "yield n OR n" in.zson
-  zq -z "yield missing(n OR m)" in.zson
+  super query -z -c "yield n OR t" in.zson
+  super query -z -c "yield n OR f" in.zson
+  super query -z -c "yield n OR n" in.zson
+  super query -z -c "yield missing(n OR m)" in.zson
   echo === MISSING OR ===
-  zq -z "yield m OR t" in.zson
-  zq -z "yield m OR f" in.zson
-  zq -z "yield m OR n" in.zson
-  zq -z "yield missing(m OR m)" in.zson
+  super query -z -c "yield m OR t" in.zson
+  super query -z -c "yield m OR f" in.zson
+  super query -z -c "yield m OR n" in.zson
+  super query -z -c "yield missing(m OR m)" in.zson
   echo === NOT
-  zq -z "yield !t" in.zson
-  zq -z "yield !f" in.zson
-  zq -z "yield missing(!m)" in.zson
-  zq -z "yield !n" in.zson
-  zq -z "yield !!f" in.zson
+  super query -z -c "yield !t" in.zson
+  super query -z -c "yield !f" in.zson
+  super query -z -c "yield missing(!m)" in.zson
+  super query -z -c "yield !n" in.zson
+  super query -z -c "yield !!f" in.zson
 
 inputs:
   - name: in.zson
