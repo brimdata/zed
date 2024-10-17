@@ -155,7 +155,7 @@ from fruit
 sPopulating the pools, then executing the query:
 
 ```mdtest-command
-export SUPER_LAKE=lake
+export SUPER_DB_LAKE=lake
 super db init -q
 super db create -q -orderby flavor:asc fruit
 super db create -q -orderby likes:asc people

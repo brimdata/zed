@@ -19,7 +19,7 @@
 # operations.
 
 script: |
-  export SUPER_LAKE=test
+  export SUPER_DB_LAKE=test
   super db init -q
   super db create -q -orderby name fruit
   super db load -q -use fruit fruit.zson

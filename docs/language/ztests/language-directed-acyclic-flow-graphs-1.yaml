@@ -20,7 +20,7 @@
 # (https://github.com/brimdata/super/issues/2906).
 
 script: |
-  export SUPER_LAKE=test
+  export SUPER_DB_LAKE=test
   super db init -q
   super db create -q PoolOne
   super db load -q -use PoolOne fruit.zson

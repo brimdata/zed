@@ -3,7 +3,7 @@ script: |
   super db create -q test
   super query -f arrows in.zson |
     curl -H Content-Type:application/vnd.apache.arrow.stream --data-binary @- \
-    --fail $SUPER_LAKE/pool/test/branch/main | super query -z -c commit:=0 -
+    --fail $SUPER_DB_LAKE/pool/test/branch/main | super query -z -c commit:=0 -
   echo //
   super db query -z 'from test'
 

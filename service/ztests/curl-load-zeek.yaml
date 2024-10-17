@@ -3,7 +3,7 @@ script: |
   super db create -q test
   super query -f zeek in.zeek |
     curl -H Content-Type:application/x-zeek --data-binary @- \
-    --fail $SUPER_LAKE/pool/test/branch/main | super query -z -c commit:=0 -
+    --fail $SUPER_DB_LAKE/pool/test/branch/main | super query -z -c commit:=0 -
   echo //
   super db query -z 'from test'
 

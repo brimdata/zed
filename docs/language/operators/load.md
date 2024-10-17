@@ -33,7 +33,7 @@ Examples below assume the existence of the SuperDB data lake created and populat
 by the following commands:
 
 ```mdtest-command
-export SUPER_LAKE=example
+export SUPER_DB_LAKE=example
 super db -q init
 super db -q create -orderby flip:asc coinflips
 super db branch -q -use coinflips onlytails

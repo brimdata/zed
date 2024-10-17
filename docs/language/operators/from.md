@@ -77,7 +77,7 @@ Examples below below assume the existence of the SuperDB lake created and popula
 by the following commands:
 
 ```mdtest-command
-export SUPER_LAKE=example
+export SUPER_DB_LAKE=example
 super db -q init
 super db -q create -orderby flip:desc coinflips
 echo '{flip:1,result:"heads"} {flip:2,result:"tails"}' |

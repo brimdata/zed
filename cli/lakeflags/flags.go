@@ -37,10 +37,10 @@ func (l *Flags) SetFlags(fs *flag.FlagSet) {
 		dir = filepath.Join(dir, ".zed")
 	}
 	fs.StringVar(&l.ConfigDir, "configdir", dir, "configuration and credentials directory")
-	if s, ok := os.LookupEnv("SUPER_LAKE"); ok {
+	if s, ok := os.LookupEnv("SUPER_DB_LAKE"); ok {
 		l.Lake, l.lakeSpecified = s, true
 	}
-	fs.Func("lake", fmt.Sprintf("lake location (env SUPER_LAKE) (default %s)", l.Lake), func(s string) error {
+	fs.Func("lake", fmt.Sprintf("lake location (env SUPER_DB_LAKE) (default %s)", l.Lake), func(s string) error {
 		l.Lake, l.lakeSpecified = s, true
 		return nil
 	})
@@ -90,7 +90,7 @@ func (l *Flags) URI() (*storage.URI, error) {
 		lk = getDefaultDataDir()
 	}
 	if lk == "" {
-		return nil, errors.New("lake location must be set (either with the -lake flag or SUPER_LAKE environment variable)")
+		return nil, errors.New("lake location must be set (either with the -lake flag or SUPER_DB_LAKE environment variable)")
 	}
 	u, err := storage.ParseURI(lk)
 	if err != nil {

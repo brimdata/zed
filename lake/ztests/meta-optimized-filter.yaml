@@ -1,5 +1,5 @@
 script: |
-  export SUPER_LAKE=test
+  export SUPER_DB_LAKE=test
   super db init -q
   super db create -use -q test
   seq 20 | super query -c 'yield {ts: this}' - | super db load -q -

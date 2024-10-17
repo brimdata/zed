@@ -5,7 +5,7 @@ script: |
   for file in multifrom.pipe agg.pipe agg-no-keys.pipe two-channels.pipe agg-sort.pipe scope.pipe auto-combined-channels.pipe; do
     echo // === $file ===
     query="$(cat $file | jq -Rsa .)"
-    curl -H "Accept: application/json" -d "{\"query\":$query,\"head\":{\"pool\":\"test1\"}}" $SUPER_LAKE/query/describe |
+    curl -H "Accept: application/json" -d "{\"query\":$query,\"head\":{\"pool\":\"test1\"}}" $SUPER_DB_LAKE/query/describe |
       super query -J -c 'sources := (over sources | id := "XXX")' -
   done
 

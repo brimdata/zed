@@ -5,5 +5,5 @@ script: |
 outputs:
   - name: stderr
     data: |
-      lake location must be set (either with the -lake flag or SUPER_LAKE environment variable)
-      lake location must be set (either with the -lake flag or SUPER_LAKE environment variable)
+      lake location must be set (either with the -lake flag or SUPER_DB_LAKE environment variable)
+      lake location must be set (either with the -lake flag or SUPER_DB_LAKE environment variable)

@@ -28,5 +28,5 @@ awaitfile $portdir/lake
 
 trap "rm -rf $portdir; kill $lakepid;" EXIT
 
-export SUPER_LAKE=http://localhost:$(cat $portdir/lake)
+export SUPER_DB_LAKE=http://localhost:$(cat $portdir/lake)
 export LAKE_PATH=$lakeroot
