@@ -133,7 +133,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/brimdata/super"
+	zed "github.com/brimdata/super"
 	"github.com/brimdata/super/cli/inputflags"
 	"github.com/brimdata/super/cli/outputflags"
 	"github.com/brimdata/super/compiler"
@@ -485,12 +485,14 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []string) (string, string, error) {
 	var errbuf, outbuf bytes.Buffer
 	if path != "" {
-		zq, err := lookupzq(path)
+		super, err := lookupSuper(path)
 		if err != nil {
 			return "", "", err
 		}
 		flags := append(outputFlags, inputFlags...)
-		cmd := exec.Command(zq, append(flags, zedProgram, "-")...)
+		args := append([]string{"query"}, flags...)
+		args = append(args, []string{"-c", zedProgram, "-"}...)
+		cmd := exec.Command(super, args...)
 		cmd.Stdin = strings.NewReader(input)
 		cmd.Stdout = &outbuf
 		cmd.Stderr = &errbuf
@@ -546,13 +548,13 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 	return outbuf.String(), errbuf.String(), err
 }
 
-func lookupzq(path string) (string, error) {
-	var zq string
+func lookupSuper(path string) (string, error) {
+	var super string
 	var err error
 	for _, dir := range filepath.SplitList(path) {
-		zq, err = exec.LookPath(filepath.Join(dir, "zq"))
+		super, err = exec.LookPath(filepath.Join(dir, "super"))
 		if err == nil {
-			return zq, nil
+			return super, nil
 		}
 	}
 	return "", err
