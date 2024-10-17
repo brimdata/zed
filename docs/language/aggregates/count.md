@@ -15,7 +15,7 @@ The _count_ aggregate function computes the number of values in its input.
 
 Count of values in a simple sequence:
 ```mdtest-command
-echo '1 2 3' | zq -z 'count()' -
+echo '1 2 3' | super query -z -c 'count()' -
 ```
 =>
 ```mdtest-output
@@ -24,7 +24,7 @@ echo '1 2 3' | zq -z 'count()' -
 
 Continuous count of simple sequence:
 ```mdtest-command
-echo '1 2 3' | zq -z 'yield count()' -
+echo '1 2 3' | super query -z -c 'yield count()' -
 ```
 =>
 ```mdtest-output
@@ -35,7 +35,7 @@ echo '1 2 3' | zq -z 'yield count()' -
 
 Mixed types are handled:
 ```mdtest-command
-echo '1 "foo" 10.0.0.1' | zq -z 'yield count()' -
+echo '1 "foo" 10.0.0.1' | super query -z -c 'yield count()' -
 ```
 =>
 ```mdtest-output
@@ -46,7 +46,7 @@ echo '1 "foo" 10.0.0.1' | zq -z 'yield count()' -
 
 Count of values in buckets grouped by key:
 ```mdtest-command
-echo '{a:1,k:1} {a:2,k:1} {a:3,k:2}' | zq -z 'count() by k | sort' -
+echo '{a:1,k:1} {a:2,k:1} {a:3,k:2}' | super query -z -c 'count() by k | sort' -
 ```
 =>
 ```mdtest-output
@@ -56,7 +56,7 @@ echo '{a:1,k:1} {a:2,k:1} {a:3,k:2}' | zq -z 'count() by k | sort' -
 
 Note that the number of input values are counted, unlike the [`len` function](../functions/len.md) which counts the number of elements in a given value:
 ```mdtest-command
-echo '[1,2,3]' | zq -z 'count()' -
+echo '[1,2,3]' | super query -z -c 'count()' -
 ```
 =>
 ```mdtest-output

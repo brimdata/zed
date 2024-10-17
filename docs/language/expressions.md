@@ -21,7 +21,7 @@ precedence over addition and subtraction.  `%` is the modulo operator.
 
 For example,
 ```mdtest-command
-zq -z 'yield 2*3+1, 11%5, 1/0, "foo"+"bar"'
+super query -z -c 'yield 2*3+1, 11%5, 1/0, "foo"+"bar"'
 ```
 produces
 ```mdtest-output
@@ -46,7 +46,7 @@ is `error("missing")`, then the result is `error("missing")`.
 
 For example,
 ```mdtest-command
-zq -z 'yield 1 > 2, 1 < 2, "b" > "a", 1 > "a", 1 > x'
+super query -z -c 'yield 1 > 2, 1 < 2, "b" > "a", 1 > "a", 1 > x'
 
 ```
 produces
@@ -71,7 +71,7 @@ recursively traversed to determine if the item is present anywhere within them.
 
 For example,
 ```mdtest-command
-echo '{a:[1,2]}{b:{c:3}}{d:{e:1}}' | zq -z '1 in this' -
+echo '{a:[1,2]}{b:{c:3}}{d:{e:1}}' | super query -z -c '1 in this' -
 ```
 produces
 ```mdtest-output
@@ -81,7 +81,7 @@ produces
 You can also use this operator with a static array:
 ```mdtest-command
 echo '{accounts:[{id:1},{id:2},{id:3}]}' |
-  zq -z 'over accounts | where id in [1,2]' -
+  super query -z -c 'over accounts | where id in [1,2]' -
 ```
 produces
 ```mdtest-output
@@ -187,7 +187,7 @@ becomes the result.
 
 For example,
 ```mdtest-command
-echo '{s:"foo",v:1}{s:"bar",v:2}' | zq -z 'yield (s=="foo") ? v : -v' -
+echo '{s:"foo",v:1}{s:"bar",v:2}' | super query -z -c 'yield (s=="foo") ? v : -v' -
 ```
 produces
 ```mdtest-output
@@ -201,7 +201,7 @@ Conditional expressions can be chained, providing behavior equivalent to
 For example,
 ```mdtest-command
 echo '{s:"foo",v:1}{s:"bar",v:2}{s:"baz",v:3}' |
-  zq -z 'yield (s=="foo") ? v : (s=="bar") ? -v : v*v' -
+  super query -z -c 'yield (s=="foo") ? v : (s=="bar") ? -v : v*v' -
 ```
 produces
 ```mdtest-output
@@ -217,7 +217,7 @@ will be evaluated.
 For example,
 ```mdtest-command
 echo '"foo" "bar" "foo"' |
-  zq -z 'yield this=="foo" ? {foocount:count()} : {barcount:count()}' -
+  super query -z -c 'yield this=="foo" ? {foocount:count()} : {barcount:count()}' -
 ```
 produces
 ```mdtest-output
@@ -233,7 +233,7 @@ value and utilize call-by value semantics with positional and unnamed arguments.
 
 For example,
 ```mdtest-command
-zq -z 'yield pow(2,3), lower("ABC")+upper("def"), typeof(1)'
+super query -z -c 'yield pow(2,3), lower("ABC")+upper("def"), typeof(1)'
 ```
 produces
 ```mdtest-output
@@ -260,7 +260,7 @@ optimizer from parallelizing a query.
 That said, aggregate function calls can be quite useful in a number of contexts.
 For example, a unique ID can be assigned to the input quite easily:
 ```mdtest-command
-echo '"foo" "bar" "baz"' | zq -z 'yield {id:count(),value:this}' -
+echo '"foo" "bar" "baz"' | super query -z -c 'yield {id:count(),value:this}' -
 ```
 produces
 ```mdtest-output
@@ -270,7 +270,7 @@ produces
 ```
 In contrast, calling aggregate functions within the [`summarize` operator](operators/summarize.md)
 ```mdtest-command
-echo '"foo" "bar" "baz"' | zq -z 'summarize count(),union(this)' -
+echo '"foo" "bar" "baz"' | super query -z -c 'summarize count(),union(this)' -
 ```
 produces just one output value
 ```mdtest-output
@@ -301,7 +301,7 @@ a string, it is implicitly cast to a string.
 For example,
 ```mdtest-command
 echo '{numerator:22.0, denominator:7.0}' |
-  zq -z 'yield f"pi is approximately {numerator / denominator}"' -
+  super query -z -c 'yield f"pi is approximately {numerator / denominator}"' -
 ```
 produces
 ```mdtest-output
@@ -320,7 +320,7 @@ F-strings may be nested, where a child `<expr>` may contain f-strings.
 For example,
 ```mdtest-command
 echo '{foo:"hello", bar:"world", HELLOWORLD:"hi!"}' |
-  zq -z 'yield f"oh {this[upper(f"{foo + bar}")]}"' -
+  super query -z -c 'yield f"oh {this[upper(f"{foo + bar}")]}"' -
 ```
 produces
 ```mdtest-output
@@ -332,7 +332,7 @@ i.e., `\{`.
 
 For example,
 ```mdtest-command
-echo '"brackets"' | zq -z 'yield f"{this} look like: \{ }"' -
+echo '"brackets"' | super query -z -c 'yield f"{this} look like: \{ }"' -
 ```
 produces
 ```mdtest-output
@@ -367,7 +367,7 @@ field's value.
 For example,
 ```mdtest-command
 echo '{x:1,y:2,r:{a:1,b:2}}' |
-  zq -z 'yield {a:0},{x}, {...r}, {a:0,...r,b:3}' -
+  super query -z -c 'yield {a:0},{x}, {...r}, {a:0,...r,b:3}' -
 ```
 produces
 ```mdtest-output
@@ -399,7 +399,7 @@ type of the array is an array of type `union` of the types that appear.
 
 For example,
 ```mdtest-command
-zq -z 'yield [1,2,3],["hello","world"]'
+super query -z -c 'yield [1,2,3],["hello","world"]'
 ```
 produces
 ```mdtest-output
@@ -409,7 +409,7 @@ produces
 
 Arrays can be concatenated using the spread operator,
 ```mdtest-command
-echo '{a:[1,2],b:[3,4]}' | zq -z 'yield [...a,...b,5]' -
+echo '{a:[1,2],b:[3,4]}' | super query -z -c 'yield [...a,...b,5]' -
 ```
 produces
 ```mdtest-output
@@ -441,7 +441,7 @@ they appear in the set literal.
 
 For example,
 ```mdtest-command
-zq -z 'yield |[3,1,2]|,|["hello","world","hello"]|'
+super query -z -c 'yield |[3,1,2]|,|["hello","world","hello"]|'
 ```
 produces
 ```mdtest-output
@@ -451,7 +451,7 @@ produces
 
 Arrays and sets can be concatenated using the spread operator,
 ```mdtest-command
-echo '{a:[1,2],b:|[2,3]|}' | zq -z 'yield |[...a,...b,4]|' -
+echo '{a:[1,2],b:|[2,3]|}' | super query -z -c 'yield |[...a,...b,4]|' -
 ```
 produces
 ```mdtest-output
@@ -472,7 +472,7 @@ a union of the types that appear in each respective category.
 
 For example,
 ```mdtest-command
-zq -z 'yield |{"foo":1,"bar"+"baz":2+3}|'
+super query -z -c 'yield |{"foo":1,"bar"+"baz":2+3}|'
 ```
 produces
 ```mdtest-output
@@ -487,7 +487,7 @@ that appears in the union type may be cast to that union type.
 Since 1 is an `int64` and "foo" is a `string`, they both can be
 values of type `(int64,string)`, e.g.,
 ```mdtest-command
-echo '1 "foo"' | zq -z 'yield cast(this,<(int64,string)>)' -
+echo '1 "foo"' | super query -z -c 'yield cast(this,<(int64,string)>)' -
 ```
 produces
 ```mdtest-output
@@ -497,7 +497,7 @@ produces
 The value underlying a union-tagged value is accessed with the
 [`under` function](functions/under.md):
 ```mdtest-command
-echo '1((int64,string))' | zq -z 'yield under(this)' -
+echo '1((int64,string))' | super query -z -c 'yield under(this)' -
 ```
 produces
 ```mdtest-output
@@ -509,7 +509,7 @@ of different types.  For example, the type of the value `[1,"foo"]` in JavaScrip
 is simply a generic JavaScript "object".  But in Zed, the type of this
 value is an array of union of string and integer, e.g.,
 ```mdtest-command
-echo '[1,"foo"]' | zq -z 'typeof(this)' -
+echo '[1,"foo"]' | super query -z -c 'typeof(this)' -
 ```
 produces
 ```mdtest-output
@@ -532,7 +532,7 @@ to the indicated type, then the cast's result is an error value.
 
 For example,
 ```mdtest-command
-echo '1 200 "123" "200"' | zq -z 'yield int8(this)' -
+echo '1 200 "123" "200"' | super query -z -c 'yield int8(this)' -
 ```
 produces
 ```mdtest-output
@@ -547,7 +547,7 @@ of type `time` can be created from a diverse set of date/time input strings
 based on the [Go Date Parser library](https://github.com/araddon/dateparse).
 
 ```mdtest-command
-echo '"May 8, 2009 5:57:51 PM" "oct 7, 1970"' | zq -z 'yield time(this)' -
+echo '"May 8, 2009 5:57:51 PM" "oct 7, 1970"' | super query -z -c 'yield time(this)' -
 ```
 produces
 ```mdtest-output
@@ -563,7 +563,7 @@ cast(<expr>, <type-value>)
 ```
 For example
 ```mdtest-command
-echo '80 8080' | zq -z 'type port = uint16 yield <port>(this)' -
+echo '80 8080' | super query -z -c 'type port = uint16 yield <port>(this)' -
 ```
 produces
 ```mdtest-output
@@ -575,7 +575,7 @@ Casts may be used with complex types as well.  As long as the target type can
 accommodate the value, the case will be recursively applied to the components
 of a nested value.  For example,
 ```mdtest-command
-echo '["10.0.0.1","10.0.0.2"]' | zq -z 'cast(this,<[ip]>)' -
+echo '["10.0.0.1","10.0.0.2"]' | super query -z -c 'cast(this,<[ip]>)' -
 ```
 produces
 ```mdtest-output
@@ -584,7 +584,7 @@ produces
 and
 ```mdtest-command
 echo '{ts:"1/1/2022",r:{x:"1",y:"2"}} {ts:"1/2/2022",r:{x:3,y:4}}' |
-  zq -z 'cast(this,<{ts:time,r:{x:float64,y:float64}}>)' -
+  super query -z -c 'cast(this,<{ts:time,r:{x:float64,y:float64}}>)' -
 ```
 produces
 ```mdtest-output

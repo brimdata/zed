@@ -21,7 +21,7 @@ JSON, and shaping and sorting the resulting records.
 ```sh
 curl -O http://2016.padjo.org/files/data/starterpack/cde-schools/cdeschools.sqlite
 
-sqlite3 -json cdeschools.sqlite "select * from schools;" | zq -z '
+sqlite3 -json cdeschools.sqlite "select * from schools;" | super query -z -c '
   type school = {
     School:string,
     District:string,
@@ -40,7 +40,7 @@ sqlite3 -json cdeschools.sqlite "select * from schools;" | zq -z '
   this := crop(shape(school), school) | sort School
 ' - > schools.zson
 
-sqlite3 -json cdeschools.sqlite "select * from satscores;" | zq -z '
+sqlite3 -json cdeschools.sqlite "select * from satscores;" | super query -z -c '
   type testscore = {
     AvgScrMath: uint16,
     AvgScrRead: uint16,

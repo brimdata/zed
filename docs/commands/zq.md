@@ -79,7 +79,7 @@ a single input value of `null`.  This provides a convenient means to run in a
 "calculator mode" where input is produced by the yield and can be operated upon
 by the Zed query, e.g.,
 ```mdtest-command
-zq -z '1+1'
+super query -z -c '1+1'
 ```
 emits
 ```mdtest-output
@@ -135,7 +135,7 @@ and this content is in `sample.json`
 ```
 then the command
 ```mdtest-command
-zq -z sample.csv sample.json
+super query -z sample.csv sample.json
 ```
 would produce this output in the default ZSON format
 ```mdtest-output
@@ -230,7 +230,7 @@ for `-f json -pretty 4`.
 
 For example,
 ```mdtest-command
-echo '{a:{b:1,c:[1,2]},d:"foo"}' | zq -Z -
+echo '{a:{b:1,c:[1,2]},d:"foo"}' | super query -Z -
 ```
 produces
 ```mdtest-output
@@ -247,7 +247,7 @@ produces
 ```
 and
 ```mdtest-command
-echo '{a:{b:1,c:[1,2]},d:"foo"}' | zq -f zson -pretty 2 -
+echo '{a:{b:1,c:[1,2]},d:"foo"}' | super query -f zson -pretty 2 -
 ```
 produces
 ```mdtest-output
@@ -278,9 +278,9 @@ or register schemas or "protos" with the downstream entities.
 
 In particular, ZNG data can simply be concatenated together, e.g.,
 ```mdtest-command
-zq -f zng 'yield 1,[1,2,3]' > a.zng
-zq -f zng 'yield {s:"hello"},{s:"world"}' > b.zng
-cat a.zng b.zng | zq -z -
+super query -f zng -c 'yield 1,[1,2,3]' > a.zng
+super query -f zng -c 'yield {s:"hello"},{s:"world"}' > b.zng
+cat a.zng b.zng | super query -z -
 ```
 produces
 ```mdtest-output
@@ -291,7 +291,7 @@ produces
 ```
 And while this ZSON output is human readable, the ZNG files are binary, e.g.,
 ```mdtest-command
-zq -f zng 'yield 1,[1,2,3]' > a.zng
+super query -f zng -c 'yield 1,[1,2,3]' > a.zng
 hexdump -C a.zng
 ```
 produces
@@ -315,7 +315,7 @@ format like Arrow and Parquet.
 
 For example, this seemingly simple conversion:
 ```mdtest-command fails
-echo '{x:1}{s:"hello"}' | zq -o out.parquet -f parquet -
+echo '{x:1}{s:"hello"}' | super query -o out.parquet -f parquet -
 ```
 causes this error
 ```mdtest-output
@@ -327,8 +327,8 @@ parquetio: encountered multiple types (consider 'fuse'): {x:int64} and {s:string
 As suggested by the error above, the Zed [`fuse` operator](../language/operators/fuse.md) can merge different record
 types into a blended type, e.g., here we create the file and read it back:
 ```mdtest-command
-echo '{x:1}{s:"hello"}' | zq -o out.parquet -f parquet fuse -
-zq -z out.parquet
+echo '{x:1}{s:"hello"}' | super query -o out.parquet -f parquet -c fuse -
+super query -z out.parquet
 ```
 but the data was necessarily changed (by inserting nulls):
 ```mdtest-output
@@ -352,8 +352,8 @@ where `<n>` is a unique integer for each distinct output file.
 For example, the example above would produce two output files,
 which can then be read separately to reproduce the original data, e.g.,
 ```mdtest-command
-echo '{x:1}{s:"hello"}' | zq -o out -split . -f parquet -
-zq -z out-*.parquet
+echo '{x:1}{s:"hello"}' | super query -o out -split . -f parquet -
+super query -z out-*.parquet
 ```
 produces the original data
 ```mdtest-output
@@ -379,7 +379,7 @@ are printed as tab-separated field values without their corresponding field
 names. For example:
 
 ```mdtest-command
-echo '"hi" {hello:"world",good:"bye"} [1,2,3]' | zq -f text -
+echo '"hi" {hello:"world",good:"bye"} [1,2,3]' | super query -f text -
 ```
 produces
 ```mdtest-output
@@ -392,7 +392,7 @@ The `table` format includes header lines showing the field names in records.
 For example:
 
 ```mdtest-command
-echo '{word:"one",digit:1} {word:"two",digit:2}' | zq -f table -
+echo '{word:"one",digit:1} {word:"two",digit:2}' | super query -f table -
 ```
 produces
 ```mdtest-output
@@ -407,7 +407,7 @@ For example:
 
 ```mdtest-command
 echo '{word:"one",digit: 1} {word:"hello",style:"greeting"}' |
-  zq -f table -
+  super query -f table -
 ```
 produces
 ```mdtest-output
@@ -423,7 +423,7 @@ be described with a single header line. Doing this to our last example, we find
 
 ```mdtest-command
 echo '{word:"one",digit:1} {word:"hello",style:"greeting"}' |
-  zq -f table 'fuse' -
+  super query -f table -c 'fuse' -
 ```
 now produces
 ```mdtest-output
@@ -465,7 +465,7 @@ Using `zq -f lake`, this can be rendered in the same pretty-printed form as it
 would have originally appeared in the output of `zed ls`, e.g.,
 
 ```mdtest-command
-zq -f lake pools.zson
+super query -f lake pools.zson
 ```
 produces
 ```mdtest-output
@@ -482,7 +482,7 @@ This can be especially handy when you are learning the language and
 
 For example, this query
 ```mdtest-command
-zq -C 'has(foo)'
+super query -C -c 'has(foo)'
 ```
 is an implied [`where` operator](../language/operators/where.md), which matches values
 that have a field `foo`, i.e.,
@@ -491,7 +491,7 @@ where has(foo)
 ```
 while this query
 ```mdtest-command
-zq -C 'a:=x+1'
+super query -C -c 'a:=x+1'
 ```
 is an implied [`put` operator](../language/operators/put.md), which creates a new field `a`
 with the value `x+1`, i.e.,
@@ -520,7 +520,7 @@ or trying to debug a halted program with a vague error message.
 
 For example, this query
 ```mdtest-command
-echo '1 2 0 3' |  zq -z '10.0/this' -
+echo '1 2 0 3' |  super query -z -c '10.0/this' -
 ```
 produces
 ```mdtest-output
@@ -531,7 +531,7 @@ error("divide by zero")
 ```
 and
 ```mdtest-command
-echo '1 2 0 3' |  zq '10.0/this' - | zq -z 'is_error(this)' -
+echo '1 2 0 3' |  super query -c '10.0/this' - | super query -z -c 'is_error(this)' -
 ```
 produces just
 ```mdtest-output
@@ -553,7 +553,7 @@ have many examples, but here are a few more simple `zq` use cases.
 
 _Hello, world_
 ```mdtest-command
-echo '"hello, world"' | zq -z 'yield this' -
+echo '"hello, world"' | super query -z -c 'yield this' -
 ```
 produces this ZSON output
 ```mdtest-output
@@ -562,7 +562,7 @@ produces this ZSON output
 
 _Some values of available [data types](../language/data-types.md)_
 ```mdtest-command
-echo '1 1.5 [1,"foo"] |["apple","banana"]|' | zq -z 'yield this' -
+echo '1 1.5 [1,"foo"] |["apple","banana"]|' | super query -z -c 'yield this' -
 ```
 produces
 ```mdtest-output
@@ -573,7 +573,7 @@ produces
 ```
 _The types of various data_
 ```mdtest-command
-echo '1 1.5 [1,"foo"] |["apple","banana"]|' | zq -z 'yield typeof(this)' -
+echo '1 1.5 [1,"foo"] |["apple","banana"]|' | super query -z -c 'yield typeof(this)' -
 ```
 produces
 ```mdtest-output
@@ -585,7 +585,7 @@ produces
 _A simple [aggregation](../language/aggregates/README.md)_
 ```mdtest-command
 echo '{key:"foo",val:1}{key:"bar",val:2}{key:"foo",val:3}' |
-  zq -z 'sum(val) by key | sort key' -
+  super query -z -c 'sum(val) by key | sort key' -
 ```
 produces
 ```mdtest-output
@@ -594,7 +594,7 @@ produces
 ```
 _Convert CSV to Zed and [cast](../language/functions/cast.md) a to an integer from default float_
 ```mdtest-command
-printf "a,b\n1,foo\n2,bar\n" | zq -z 'a:=int64(a)' -
+printf "a,b\n1,foo\n2,bar\n" | super query -z -c 'a:=int64(a)' -
 ```
 produces
 ```mdtest-output
@@ -603,7 +603,7 @@ produces
 ```
 _Convert JSON to Zed and cast to an integer from default float_
 ```mdtest-command
-echo '{"a":1,"b":"foo"}{"a":2,"b":"bar"}' | zq -z 'a:=int64(a)' -
+echo '{"a":1,"b":"foo"}{"a":2,"b":"bar"}' | super query -z -c 'a:=int64(a)' -
 ```
 produces
 ```mdtest-output
@@ -612,8 +612,8 @@ produces
 ```
 _Make a schema-rigid Parquet file using fuse and turn it back into Zed_
 ```mdtest-command
-echo '{a:1}{a:2}{b:3}' | zq -f parquet -o tmp.parquet fuse -
-zq -z tmp.parquet
+echo '{a:1}{a:2}{b:3}' | super query -f parquet -o tmp.parquet -c fuse -
+super query -z tmp.parquet
 ```
 produces
 ```mdtest-output
@@ -691,7 +691,7 @@ where we used a semi-structured Zeek "conn" log from the `zeek-default` director
 It is easy to convert the Zeek logs to a local ZNG file using
 `zq`'s built-in [`get` operator](../language/operators/get.md):
 ```
-zq -o conn.zng 'get https://raw.githubusercontent.com/brimdata/zed-sample-data/main/zeek-default/conn.log.gz'
+super query -o conn.zng -c 'get https://raw.githubusercontent.com/brimdata/zed-sample-data/main/zeek-default/conn.log.gz'
 ```
 This creates a new file `conn.zng` from the Zeek log file fetched from GitHub.
 
@@ -701,7 +701,7 @@ There's no need to specify flags for this.
 
 Next, a JSON file can be converted from ZNG using:
 ```
-zq -f json conn.zng > conn.json
+super query -f json conn.zng > conn.json
 ```
 Note here that we lose information in this conversion because the rich data types
 of Zed (that were [translated from the Zeek format](../integrations/zeek/data-type-compatibility.md)) are lost.
@@ -750,15 +750,15 @@ The command lines for the `count` test were:
 ```
 jq -s length conn.json
 sqlite3 conn.db 'select count(*) from conn'
-zq 'count()' conn.zng
-zq 'count()' conn.json
+super query -c 'count()' conn.zng
+super query -c 'count()' conn.json
 ```
 The command lines for the `search` test were:
 ```
 jq 'select(.id.orig_h=="10.47.23.5")' conn.json
 sqlite3 conn.db 'select * from conn where json_extract(id, "$.orig_h")=="10.47.23.5"'
-zq 'id.orig_h==10.47.23.5' conn.zng
-zq 'id.orig_h==10.47.23.5' conn.json
+super query -c 'id.orig_h==10.47.23.5' conn.zng
+super query -c 'id.orig_h==10.47.23.5' conn.json
 ```
 Here, we look for an IP address (10.47.23.5) in a specific
 field `id.orig_h` in the semi-structured data.  Note when using ZNG,
@@ -770,8 +770,8 @@ The command lines for the `agg` test were:
 ```
 jq -n -f agg.jq conn.json
 sqlite3 conn.db 'select sum(orig_bytes),json_extract(id, "$.orig_h") as orig_h from conn group by orig_h'
-zq "sum(orig_bytes) by id.orig_h" conn.zng
-zq "sum(orig_bytes) by id.orig_h" conn.json
+super query -c "sum(orig_bytes) by id.orig_h" conn.zng
+super query -c "sum(orig_bytes) by id.orig_h" conn.json
 ```
 where the `agg.jq` script is:
 ```

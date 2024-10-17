@@ -15,7 +15,7 @@ The _avg_ aggregate function computes the mathematical average value of its inpu
 
 Average value of simple sequence:
 ```mdtest-command
-echo '1 2 3 4' | zq -z 'avg(this)' -
+echo '1 2 3 4' | super query -z -c 'avg(this)' -
 ```
 =>
 ```mdtest-output
@@ -24,7 +24,7 @@ echo '1 2 3 4' | zq -z 'avg(this)' -
 
 Continuous average of simple sequence:
 ```mdtest-command
-echo '1 2 3 4' | zq -z 'yield avg(this)' -
+echo '1 2 3 4' | super query -z -c 'yield avg(this)' -
 ```
 =>
 ```mdtest-output
@@ -36,7 +36,7 @@ echo '1 2 3 4' | zq -z 'yield avg(this)' -
 
 Unrecognized types are ignored:
 ```mdtest-command
-echo '1 2 3 4 "foo"' | zq -z 'avg(this)' -
+echo '1 2 3 4 "foo"' | super query -z -c 'avg(this)' -
 ```
 =>
 ```mdtest-output
@@ -46,7 +46,7 @@ echo '1 2 3 4 "foo"' | zq -z 'avg(this)' -
 Average of values bucketed by key:
 ```mdtest-command
 echo '{a:1,k:1} {a:2,k:1} {a:3,k:2} {a:4,k:2}' |
-  zq -z 'avg(a) by k | sort' -
+  super query -z -c 'avg(a) by k | sort' -
 ```
 =>
 ```mdtest-output

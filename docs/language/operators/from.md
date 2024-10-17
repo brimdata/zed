@@ -112,7 +112,7 @@ The following file `hello.zson` is also used.
 _Source structured data from a local file_
 
 ```mdtest-command
-zq -z 'file hello.zson | yield greeting'
+super query -z -c 'file hello.zson | yield greeting'
 ```
 =>
 ```mdtest-output
@@ -121,7 +121,7 @@ zq -z 'file hello.zson | yield greeting'
 
 _Source data from a local file, but in line format_
 ```mdtest-command
-zq -z 'file hello.zson format line'
+super query -z -c 'file hello.zson format line'
 ```
 =>
 ```mdtest-output
@@ -130,7 +130,7 @@ zq -z 'file hello.zson format line'
 
 _Source structured data from a URI_
 ```
-zq -z 'get https://raw.githubusercontent.com/brimdata/zui-insiders/main/package.json
+super query -z -c 'get https://raw.githubusercontent.com/brimdata/zui-insiders/main/package.json
        | yield productName'
 ```
 =>

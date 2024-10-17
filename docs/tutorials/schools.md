@@ -31,7 +31,7 @@ with Zed.  Zed's [sample operator](../language/operators/sample.md) is just the 
 `sample` will select one representative value from each "shape" of data present
 in the input, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -Z 'sample | sort this' schools.zson testscores.zson webaddrs.zson
+super query -Z -c 'sample | sort this' schools.zson testscores.zson webaddrs.zson
 ```
 displays
 ```mdtest-output
@@ -73,7 +73,7 @@ which does not utilize a terminal for standard output.
 
 You can also quickly see a list of the leaf-value data types with this query:
 ```mdtest-command dir=testdata/edu
-zq -Z '
+super query -Z -c '
   sample
   | over this
   | by typeof(value)
@@ -108,7 +108,7 @@ and they will usually do the right thing.
 
 With keyword search, you can just type a keyword that you want to look for, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z Ygnacio schools.zson
+super query -z -c Ygnacio schools.zson
 ```
 which gives the one matching record:
 ```mdtest-output
@@ -120,7 +120,7 @@ As with keyword search, you can simply concantenate keywords to require both
 of them to match (i.e., a "logical AND" of the two search predicates), e.g.
 we can whittle down the two records above by adding the keyword _Delano_
 ```mdtest-command dir=testdata/edu
-zq -z 'Ygnacio Delano' schools.zson
+super query -z -c 'Ygnacio Delano' schools.zson
 ```
 and we get just the one record that matches:
 ```mdtest-output
@@ -131,7 +131,7 @@ which lets you search specific fields instead of the entire input value, e.g.,
 we can search for the string "bar" in the `City` field and list all the unique
 cities that match with a [group-by](#52-grouping):
 ```mdtest-command dir=testdata/edu
-zq -f text 'grep("bar", City) | by City | yield City | sort' schools.zson
+super query -f text -c 'grep("bar", City) | by City | yield City | sort' schools.zson
 ```
 produces
 ```mdtest-output
@@ -163,7 +163,7 @@ used.
 For example, the following search finds records that contain school names
 that have some additional text between `ACE` and `Academy`:
 ```mdtest-command dir=testdata/edu
-zq -z 'ACE*Academy' schools.zson
+super query -z -c 'ACE*Academy' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -185,7 +185,7 @@ regexp.
 For example, since there are many high schools in our sample data, to find
 only records containing strings that _begin_ with the word `High`:
 ```mdtest-command dir=testdata/edu
-zq -z '/^High /' schools.zson
+super query -z -c '/^High /' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -212,7 +212,7 @@ the number `596` matches records that contain numeric fields of this precise val
 (such as from the test scores) and also records that contain string fields
 (such as the ZIP code and phone number fields in the school data), e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z '596' testscores.zson schools.zson
+super query -z -c '596' testscores.zson schools.zson
 ```
 finds these records
 ```mdtest-output head
@@ -231,18 +231,18 @@ Let's say we've noticed that a couple of the school names in our sample data
 include the string `Defunct=`. An attempt to enter this as a [keyword](#31-keyword-search)
 search causes a parse error, e.g.,
 ```mdtest-command dir=testdata/edu fails
-zq -z 'Defunct=' *.zson
+super query -z -c 'Defunct=' *.zson
 ```
 produces
 ```mdtest-output
-zq: error parsing Zed at line 1, column 8:
+super query: error parsing SuperPipe at line 1, column 8:
 Defunct=
    === ^ ===
 ```
 However, wrapping in quotes to performa a string-literal search
 gives the desired result:
 ```mdtest-command dir=testdata/edu
-zq -z '"Defunct="' schools.zson
+super query -z -c '"Defunct="' schools.zson
 ```
 produces
 ```mdtest-output
@@ -255,7 +255,7 @@ say we're looking for information on the Union Hill Elementary district.
 Entered without quotes, we end up matching far more records than we intended
 since each space character between words is treated as a [Boolean `and`](#541-and), e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'Union Hill Elementary' schools.zson
+super query -z -c 'Union Hill Elementary' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -268,7 +268,7 @@ produces
 However, wrapping the entire search term in quotes allows us to search for the
 complete string, including the spaces, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z '"Union Hill Elementary"' schools.zson
+super query -z -c '"Union Hill Elementary"' schools.zson
 ```
 produces
 ```mdtest-output
@@ -291,7 +291,7 @@ certain value in a particular named field. For example, the following search
 will only match records containing the field called `District` where it is set
 to the precise string value `Winton`:
 ```mdtest-command dir=testdata/edu
-zq -z 'District=="Winton"' schools.zson
+super query -z -c 'District=="Winton"' schools.zson
 ```
 produces
 ```mdtest-output
@@ -310,7 +310,7 @@ look like keywords in the context of an expression.
 For example, to see the records in which the school and district name are the
 same:
 ```mdtest-command dir=testdata/edu
-zq -z 'District==School' schools.zson
+super query -z -c 'District==School' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -329,7 +329,7 @@ For instance, the "Zip" field in the schools data is a `string` rather than
 a number because of the extended ZIP+4 format that includes a hyphen and four
 additional digits and hence could not be represented in a numeric type, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'cut Zip' schools.zson
+super query -z -c 'cut Zip' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -350,7 +350,7 @@ to achieve the intent of your searches.  For example, the dash suffix
 of the ZIP codes could be dropped, the string converted to an integer, then
 integer comparisons performed, i.e.,
 ```mdtest-command dir=testdata/edu
-zq -z 'cut Zip | int64(Zip[0:5])==94607' schools.zson
+super query -z -c 'cut Zip | int64(Zip[0:5])==94607' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -368,7 +368,7 @@ For example, let's say we know there are several school names that start with
 as a _substring_ of the district names in our sample data, the following example
 produces no output, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'District=="Luther"' schools.zson
+super query -z -c 'District=="Luther"' schools.zson
 ```
 produces an empty output
 ```mdtest-output
@@ -378,7 +378,7 @@ To perform string searches inside of nested values, we can utilize the
 [grep function](../language/functions/grep.md) with
 a [glob](#32-globs), e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'grep(Luther*, District)' schools.zson
+super query -z -c 'grep(Luther*, District)' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -388,7 +388,7 @@ produces
 
 [Regular expressions](#33-regular-expressions) can also be used with `grep`, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'grep(/^Sunset (Ranch|Ridge) Elementary/, School)' schools.zson
+super query -z -c 'grep(/^Sunset (Ranch|Ridge) Elementary/, School)' schools.zson
 ```
 produces
 ```mdtest-output
@@ -408,7 +408,7 @@ create a [`set`](../formats/zson.md#243-set-value)-typed
 field called `Schools` that contains all unique school names per district. From
 these we'll find each set that contains a school named `Lincoln Elementary`, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -Z '
+super query -Z -c '
   Schools:=union(School) by District
   | "Lincoln Elementary" in Schools
   | sort this
@@ -450,7 +450,7 @@ In addition to testing for equality via `==` and testing containment via
 For example, the following search finds the schools that reported the highest
 math test scores,
 ```mdtest-command dir=testdata/edu
-zq -z 'AvgScrMath > 690' testscores.zson
+super query -z -c 'AvgScrMath > 690' testscores.zson
 ```
 produces
 ```mdtest-output
@@ -462,7 +462,7 @@ produces
 The same approach can be used to compare characters in `string`-type values,
 such as this search that finds school names at the end of the alphabet, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'School > "Z"' schools.zson
+super query -z -c 'School > "Z"' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -484,7 +484,7 @@ Let's say we're earching for information about academies
 that are flagged as being in a `Pending` status.  We can simply concatenate
 the predicate for "Pending" and the keyword search for `academy`, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'StatusType=="Pending" academy' schools.zson
+super query -z -c 'StatusType=="Pending" academy' schools.zson
 ```
 produces
 ```mdtest-output
@@ -506,7 +506,7 @@ Let'a revisit two of our previous example searches that each only
 returned a couple records, searching now with `or` to see them all at once,
 e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z '"Defunct=" or ACE*Academy' schools.zson
+super query -z -c '"Defunct=" or ACE*Academy' schools.zson
 ```
 produces
 ```mdtest-output
@@ -522,7 +522,7 @@ it in your search.
 For example, to find schools in the `Dixon Unified` district _other than_
 elementary schools, we invert the logic of a search term:
 ```mdtest-command dir=testdata/edu
-zq -z 'not elementary District=="Dixon Unified"' schools.zson
+super query -z -c 'not elementary District=="Dixon Unified"' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -550,7 +550,7 @@ left-to-right evaluation.
 For example, we've noticed there are some test score records that have `null`
 values for all three test scores:
 ```mdtest-command dir=testdata/edu
-zq -z 'AvgScrMath==null AvgScrRead==null AvgScrWrite==null' testscores.zson
+super query -z -c 'AvgScrMath==null AvgScrRead==null AvgScrWrite==null' testscores.zson
 ```
 produces
 ```mdtest-output head
@@ -560,7 +560,7 @@ produces
 ```
 We can easily filter these out by negating the search for these records, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z '
+super query -z -c '
   not (AvgScrMath==null AvgScrRead==null AvgScrWrite==null)
 ' testscores.zson
 ```
@@ -573,7 +573,7 @@ produces
 ```
 Parentheses can also be nested, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z '
+super query -z -c '
   grep(*High*, sname)
     and (not (AvgScrMath==null AvgScrRead==null AvgScrWrite==null)
       and dname=="San Francisco Unified")
@@ -610,7 +610,7 @@ the specified named fields.
 
 This example returns only the name and opening date from our school records:
 ```mdtest-command dir=testdata/edu
-zq -Z 'cut School,OpenDate' schools.zson
+super query -Z -c 'cut School,OpenDate' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -631,7 +631,7 @@ school data that includes fields for both `School` and `Website`, values from
 our web address data that have the `Website` and `addr` fields, and the
 missing value from the test score data since it has none of these fields:
 ```mdtest-command dir=testdata/edu
-zq -z 'yosemiteuhsd | cut School,Website,addr' *.zson
+super query -z -c 'yosemiteuhsd | cut School,Website,addr' *.zson
 ```
 produces
 ```mdtest-output
@@ -641,7 +641,7 @@ produces
 Here, we return only the `sname` and `dname` fields of the test scores while also
 renaming the fields:
 ```mdtest-command dir=testdata/edu
-zq -z 'cut School:=sname,District:=dname' testscores.zson
+super query -z -c 'cut School:=sname,District:=dname' testscores.zson
 ```
 produces
 ```mdtest-output head
@@ -657,7 +657,7 @@ fields dropped from the output.
 
 This example return all the fields _other than_ the score values in our test score data:
 ```mdtest-command dir=testdata/edu
-zq -z 'drop AvgScrMath,AvgScrRead,AvgScrWrite' testscores.zson
+super query -z -c 'drop AvgScrMath,AvgScrRead,AvgScrWrite' testscores.zson
 ```
 produces
 ```mdtest-output head
@@ -679,7 +679,7 @@ Let's say you'd started with table-formatted output of all records in our data
 that reference the town of Geyserville, e.g.,
 
 ```mdtest-command dir=testdata/edu
-zq -f table 'Geyserville' *.zson
+super query -f table -c 'Geyserville' *.zson
 ```
 produces
 ```mdtest-output
@@ -703,7 +703,7 @@ accurately conveys the heterogeneous nature of the data, but changing schemas
 mid-stream is not allowed in formats such as CSV or other downstream tooling
 such as SQL. Indeed, `zq` halts its output in this case, e.g.,
 ```mdtest-command dir=testdata/edu fails
-zq -f csv 'Geyserville' *.zson
+super query -f csv -c 'Geyserville' *.zson
 ```
 produces
 ```mdtest-output
@@ -722,7 +722,7 @@ is assembled in a first pass through the data stream, which enables the
 presentation of the results under a single, wider header row with no further
 interruptions between the subsequent data rows, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -f csv 'Geyserville | fuse' *.zson
+super query -f csv -c 'Geyserville | fuse' *.zson
 ```
 produces
 ```mdtest-output
@@ -761,7 +761,7 @@ For example,
 to add a field to our test score records representing the computed average of the math,
 reading, and writing scores for each school that reported them, we could say:
 ```mdtest-command dir=testdata/edu
-zq -Z '
+super query -Z -c '
   AvgScrMath!=null
   | put AvgAll:=(AvgScrMath+AvgScrRead+AvgScrWrite)/3.0
 ' testscores.zson
@@ -782,7 +782,7 @@ which produces
 We can also use `put` to create derived tables and display them in tabular
 form using `-f table`, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -f table '
+super query -f table -c '
   AvgScrMath != null
   | put combined_scores:=AvgScrMath+AvgScrRead+AvgScrWrite
   | cut sname,combined_scores,AvgScrMath,AvgScrRead,AvgScrWrite
@@ -802,7 +802,7 @@ As noted above the `put` keyword is entirely optional. Here we omit
 it and create a new field to hold the lowercase representation of
 the school `District` field:
 ```mdtest-command dir=testdata/edu
-zq -Z 'cut District | lower_district:=lower(District)' schools.zson
+super query -Z -c 'cut District | lower_district:=lower(District)' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -824,7 +824,7 @@ The rename steps are applied left-to-right.
 Here is a simple example that renames some fields in our test score data
 to match the field names from our school data:
 ```mdtest-command dir=testdata/edu
-zq -Z 'rename School:=sname,District:=dname,City:=cname' testscores.zson
+super query -Z -c 'rename School:=sname,District:=dname,City:=cname' testscores.zson
 ```
 produces
 ```mdtest-output head
@@ -851,7 +851,7 @@ For example, consider this sample input data `nested.zson`:
 ```
 The field `inner` can be renamed within that nested record, e.g.,
 ```mdtest-command
-zq -Z 'rename outer.renamed:=outer.inner' nested.zson
+super query -Z -c 'rename outer.renamed:=outer.inner' nested.zson
 ```
 produces
 ```mdtest-output
@@ -863,7 +863,7 @@ produces
 ```
 However, an attempt to rename it to a top-level field will fail, e.g.,
 ```mdtest-command fails
-zq -Z 'rename toplevel:=outer.inner' nested.zson
+super query -Z -c 'rename toplevel:=outer.inner' nested.zson
 ```
 produces this compile-time error message and the query is not run:
 ```mdtest-output
@@ -874,7 +874,7 @@ rename toplevel:=outer.inner
 This goal could instead be achieved by combining [`put`](#44-put) and [`drop`](#42-drop),
 e.g.,
 ```mdtest-command
-zq -Z 'put toplevel:=outer.inner | drop outer.inner' nested.zson
+super query -Z -c 'put toplevel:=outer.inner | drop outer.inner' nested.zson
 ```
 produces
 ```mdtest-output
@@ -897,7 +897,7 @@ As with SQL, multiple aggregate functions may be invoked at the same time.
 For example, to simultaneously calculate the minimum, maximum, and average of
 the math test scores:
 ```mdtest-command dir=testdata/edu
-zq -f table '
+super query -f table -c '
   min(AvgScrMath),max(AvgScrMath),avg(AvgScrMath)
 ' testscores.zson
 ```
@@ -920,7 +920,7 @@ As just shown, by default the result returned is placed in a field with the
 same name as the aggregate function. You may instead use `:=` to specify an
 explicit name for the generated field, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -f table '
+super query -f table -c '
   lowest:=min(AvgScrMath),highest:=max(AvgScrMath),typical:=avg(AvgScrMath)
 ' testscores.zson
 ```
@@ -947,7 +947,7 @@ For example,
 this query calculates average math test scores for the cities of Los Angeles
 and San Francisco:
 ```mdtest-command dir=testdata/edu
-zq -Z '
+super query -Z -c '
   LA_Math:=avg(AvgScrMath) where cname=="Los Angeles",
   SF_Math:=avg(AvgScrMath) where cname=="San Francisco"
 ' testscores.zson
@@ -974,7 +974,7 @@ of all of its input.
 Many of the school records in our sample data include websites, but many do
 not. The following query shows the cities in which all schools have a website. e.g.,
 ```mdtest-command dir=testdata/edu
-zq -Z '
+super query -Z -c '
   all_schools_have_website:=and(Website!=null) by City
   | sort City
 ' schools.zson
@@ -1003,7 +1003,7 @@ an undefined manner.
 
 This query gives the name of one of the schools in our sample data:
 ```mdtest-command dir=testdata/edu
-zq -z 'any(School)' schools.zson
+super query -z -c 'any(School)' schools.zson
 ```
 For small inputs that fit in memory, this will typically be the first such
 field in the stream, but in general you should not rely upon this.  In this
@@ -1018,7 +1018,7 @@ The `avg` function computes an arithmetic mean over all of all of its input.
 
 This query calculates the average of the math test scores:
 ```mdtest-command dir=testdata/edu
-zq -f table 'avg:=avg(AvgScrMath)' testscores.zson
+super query -f table -c 'avg:=avg(AvgScrMath)' testscores.zson
 ```
 and produces
 ```mdtest-output
@@ -1034,7 +1034,7 @@ For schools in Fresno county that include websites, the following query
 constructs an ordered list per city of their websites along with a parallel
 list of which school each website represents:
 ```mdtest-command dir=testdata/edu
-zq -Z '
+super query -Z -c '
   County=="Fresno" Website!=null
   | Websites:=collect(Website),Schools:=collect(School) by City
   | sort City
@@ -1075,9 +1075,9 @@ The `count` function produces a count of all of its input values.
 
 This query counts the number of records in each of our example data sources:
 ```mdtest-command dir=testdata/edu
-zq -z 'count()' schools.zson
-zq -z 'count()' testscores.zson
-zq -z 'count()' webaddrs.zson
+super query -z -c 'count()' schools.zson
+super query -z -c 'count()' testscores.zson
+super query -z -c 'count()' webaddrs.zson
 ```
 and produces
 ```mdtest-output
@@ -1089,7 +1089,7 @@ The `Website` field is known to be in our school and website address data
 sources, but not in the test score data. To confirm this, we can count across
 all data sources and specify the named field, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'count(Website)' *.zson
+super query -z -c 'count(Website)' *.zson
 ```
 produces
 ```mdtest-output
@@ -1109,7 +1109,7 @@ from the [HyperLogLog repository](https://github.com/axiomhq/hyperloglog).
 This query generates an approcimate count the number of unique school names
 in our sample data set:
 ```mdtest-command dir=testdata/edu
-zq -z 'dcount(School)' schools.zson
+super query -z -c 'dcount(School)' schools.zson
 ```
 and produces
 ```mdtest-output
@@ -1117,7 +1117,7 @@ and produces
 ```
 To see the precise value, which may take longer to execute, this query
 ```mdtest-command dir=testdata/edu
-zq -z 'count() by School | count()' schools.zson
+super query -z -c 'count() by School | count()' schools.zson
 ```
 produces
 ```mdtest-output
@@ -1131,7 +1131,7 @@ The `max` function computes the maximum numeric value over all of its input.
 
 To see the highest reported math test score, this query:
 ```mdtest-command dir=testdata/edu
-zq -f table 'max:=max(AvgScrMath)' testscores.zson
+super query -f table -c 'max:=max(AvgScrMath)' testscores.zson
 ```
 produces
 ```mdtest-output
@@ -1145,7 +1145,7 @@ The `min` function computes the minimum numeric value over all of its input.
 
 To see the lowest reported math test score, this query
 ```mdtest-command dir=testdata/edu
-zq -f table 'min:=min(AvgScrMath)' testscores.zson
+super query -f table -c 'min:=min(AvgScrMath)' testscores.zson
 ```
 produces
 ```mdtest-output
@@ -1162,7 +1162,7 @@ Many of the school records in our sample data include websites, but many do
 not. The following query shows the cities for which at least one school has
 a listed website:
 ```mdtest-command dir=testdata/edu
-zq -Z '
+super query -Z -c '
   has_at_least_one_school_website:=or(Website!=null) by City
   | sort City
 ' schools.zson
@@ -1199,7 +1199,7 @@ The `sum` function computes the minimum numeric value over all of its input.
 This query calculates the total of all the math, reading, and writing test scores
 across all schools:
 ```mdtest-command dir=testdata/edu
-zq -Z '
+super query -Z -c '
   AllMath:=sum(AvgScrMath),
   AllRead:=sum(AvgScrRead),
   AllWrite:=sum(AvgScrWrite)
@@ -1222,7 +1222,7 @@ For schools in Fresno county that include websites, the following query
 constructs a set per city of all the unique websites for the schools in that
 city:
 ```mdtest-command dir=testdata/edu
-zq -Z '
+super query -Z -c '
   County=="Fresno" Website!=null
   | Websites:=union(Website) by City
   | sort City
@@ -1269,7 +1269,7 @@ For example, to see the different categories of status for the schools
 in our example data, this query:
 
 ```mdtest-command dir=testdata/edu
-zq -z 'by StatusType | sort' schools.zson
+super query -z -c 'by StatusType | sort' schools.zson
 ```
 produces
 ```mdtest-output
@@ -1282,7 +1282,7 @@ If you work a lot at the UNIX/Linux shell, you might have sought to accomplish
 the same via a familiar idiom: `sort | uniq`.  This works in Zed, but the `by`
 shorthand is preferable, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'cut StatusType | sort | uniq' schools.zson
+super query -z -c 'cut StatusType | sort | uniq' schools.zson
 ```
 produces
 ```mdtest-output
@@ -1296,7 +1296,7 @@ When specifying multiple comma-separated field names, a group is formed for each
 unique combination of values found in those fields.  To see the average reading
 test scores and school count for each county/district pairing, this query:
 ```mdtest-command dir=testdata/edu
-zq -f table '
+super query -f table -c '
   avg(AvgScrRead),count() by cname,dname
   | sort count desc
 ' testscores.zson
@@ -1317,7 +1317,7 @@ appear in the form of a field assignment `field:=expr`
 To see a count of how many school names of a particular character length
 appear in our example data, this query:
 ```mdtest-command dir=testdata/edu
-zq -f table 'count() by Name_Length:=len(School) | sort -r' schools.zson
+super query -f table -c 'count() by Name_Length:=len(School) | sort -r' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -1337,7 +1337,7 @@ For instance, if we'd made an typographical error in our
 prior example when attempting to reference the `dname` field,
 the misspelled field would appear as embedded missing errors, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -Z '
+super query -Z -c '
   avg(AvgScrRead),count() by cname,dnmae
   | sort count desc
 ' testscores.zson
@@ -1369,7 +1369,7 @@ sequences of values.
 
 This query sorts our test score records by average reading score:
 ```mdtest-command dir=testdata/edu
-zq -z 'sort AvgScrRead' testscores.zson
+super query -z -c 'sort AvgScrRead' testscores.zson
 ```
 and produces
 ```mdtest-output head
@@ -1384,7 +1384,7 @@ Now we'll sort the test score records first by average reading score and then
 by average math score. Note how this changed the order of the bottom two
 records in the result, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'sort AvgScrRead,AvgScrMath' testscores.zson
+super query -z -c 'sort AvgScrRead,AvgScrMath' testscores.zson
 ```
 produces
 ```mdtest-output head
@@ -1402,7 +1402,7 @@ field name as an explicit argument, the `sort` operator did what we wanted
 because it found a field of the `uint64` [data type](../language/data-types.md),
 e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'count() by County | sort -r' schools.zson
+super query -z -c 'count() by County | sort -r' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -1416,7 +1416,7 @@ records. Since we know some of the records don't include a website, we'll
 deliberately put the null values at the front of the list so we can see how
 many there are, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'count() by Website | sort -nulls first Website' schools.zson
+super query -z -c 'count() by Website | sort -nulls first Website' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -1442,7 +1442,7 @@ of its input to its output.
 
 For example, this query selects the first school record:
 ```mdtest-command dir=testdata/edu
-zq -Z 'head' schools.zson
+super query -Z -c 'head' schools.zson
 ```
 and produces
 ```mdtest-output
@@ -1464,7 +1464,7 @@ and produces
 ```
 To see the first five school records in Los Angeles county, this query
 ```mdtest-command dir=testdata/edu
-zq -z 'County=="Los Angeles" | head 5' schools.zson
+super query -z -c 'County=="Los Angeles" | head 5' schools.zson
 ```
 produces
 ```mdtest-output
@@ -1481,7 +1481,7 @@ of its input to its output.
 
 For example, this query selects the last school record:
 ```mdtest-command dir=testdata/edu
-zq -Z 'tail' schools.zson
+super query -Z -c 'tail' schools.zson
 ```
 and produces
 ```mdtest-output
@@ -1503,7 +1503,7 @@ and produces
 ```
 To see the last five school records in Los Angeles county, this query
 ```mdtest-command dir=testdata/edu
-zq -z 'County=="Los Angeles" | tail 5' schools.zson
+super query -z -c 'County=="Los Angeles" | tail 5' schools.zson
 ```
 produces
 ```mdtest-output
@@ -1522,7 +1522,7 @@ input to the output.
 Let's say you'd been looking at the contents of just the `District` and
 `County` fields in the order they appear in the school data, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -z 'cut District,County' schools.zson
+super query -z -c 'cut District,County' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -1541,7 +1541,7 @@ produces
 To eliminate the adjacent lines that share the same field/value pairs,
 this query
 ```mdtest-command dir=testdata/edu
-zq -z 'cut District,County | uniq' schools.zson
+super query -z -c 'cut District,County | uniq' schools.zson
 ```
 produces
 ```mdtest-output head
@@ -1565,7 +1565,7 @@ as arguments to yield.
 This example produce two simpler records for every school record listing
 the average math score with the school name and the county name:
 ```mdtest-command dir=testdata/edu
-zq -Z '
+super query -Z -c '
   AvgScrMath!=null
   | yield {school:sname,avg:AvgScrMath}, {county:cname,zvg:AvgScrMath}
 ' testscores.zson
@@ -1592,7 +1592,7 @@ which produces
 ```
 In earlier example, we used `put` to create a table using this query:
 ```mdtest-command dir=testdata/edu
-zq -f table '
+super query -f table -c '
   AvgScrMath != null
   | put combined_scores:=AvgScrMath+AvgScrRead+AvgScrWrite
   | cut sname,combined_scores,AvgScrMath,AvgScrRead,AvgScrWrite
@@ -1612,7 +1612,7 @@ Academia Avance Charter     1148            386        380        382
 The same result can be achieved by yielding a record literal,
 sometimes with a more intuitive  structure, e.g.,
 ```mdtest-command dir=testdata/edu
-zq -f table '
+super query -f table -c '
 AvgScrMath != null
 | yield {
           sname,
