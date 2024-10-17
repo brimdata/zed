@@ -4,10 +4,10 @@
 script: |
   while read -r line; do
     super dev compile -s -C $line
-  done < inputs.pipe
+  done < inputs.spq
 
 inputs:
-  - name: inputs.pipe
+  - name: inputs.spq
     data: |
       yield (10+2)/8
       where (y==2 or x==4) and z==5

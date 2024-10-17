@@ -23,7 +23,7 @@ script: |
   super db init -q
   super db create -q -orderby name fruit
   super db load -q -use fruit fruit.zson
-  super db query -z -I switch.pipe
+  super db query -z -I switch.spq
 
 inputs:
   - name: fruit.zson
@@ -31,7 +31,7 @@ inputs:
       {name:"apple",color:"red",price:1.5}
       {name:"banana",color:"yellow",price:2.1}
       {name:"blueberry",color:"blue",price:0.1}
-  - name: switch.pipe
+  - name: switch.spq
     data: |
       from fruit | switch color (
         case "red" => put price:=price+0.5 | put bigcolor:=upper(color) | put tag:="expensive"

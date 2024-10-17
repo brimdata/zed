@@ -2,7 +2,7 @@ script: |
   source service.sh
   super db create -q test1
   super db create -q test2
-  for file in multifrom.pipe agg.pipe agg-no-keys.pipe two-channels.pipe agg-sort.pipe scope.pipe auto-combined-channels.pipe; do
+  for file in multifrom.spq agg.spq agg-no-keys.spq two-channels.spq agg-sort.spq scope.spq auto-combined-channels.spq; do
     echo // === $file ===
     query="$(cat $file | jq -Rsa .)"
     curl -H "Accept: application/json" -d "{\"query\":$query,\"head\":{\"pool\":\"test1\"}}" $SUPER_DB_LAKE/query/describe |
@@ -12,39 +12,39 @@ script: |
 
 inputs:
   - name: service.sh
-  - name: multifrom.pipe
+  - name: multifrom.spq
     data: |
       from (
         pool test1
         pool test2
       ) | put foo := "bar"
-  - name: agg.pipe
+  - name: agg.spq
     data: |
       count() by key1:=v1, key2
-  - name: agg-no-keys.pipe
+  - name: agg-no-keys.spq
     data: |
       sum(this)
-  - name: two-channels.pipe
+  - name: two-channels.spq
     data: |
       fork (
       => from test1 | sum(y) by key1 | output main
       => from test2 | put x := "foo" | output secondary
       )
-  - name: agg-sort.pipe
+  - name: agg-sort.spq
     data: |
       sum(this) by foo | sort x
-  - name: scope.pipe
+  - name: scope.spq
     data: |
       type port = uint16
       from test1 | fork (=> output main => yield "bar" | output secondary)
-  - name: auto-combined-channels.pipe
+  - name: auto-combined-channels.spq
     data: |
       from test1 | fork (=> pass => pass)
 
 outputs:
   - name: stdout
     data: |
-      // === multifrom.pipe ===
+      // === multifrom.spq ===
       {
           "sources": [
               {
@@ -75,7 +75,7 @@ outputs:
               }
           ]
       }
-      // === agg.pipe ===
+      // === agg.spq ===
       {
           "sources": {
               "kind": "Pool",
@@ -98,7 +98,7 @@ outputs:
               }
           ]
       }
-      // === agg-no-keys.pipe ===
+      // === agg-no-keys.spq ===
       {
           "sources": {
               "kind": "Pool",
@@ -114,7 +114,7 @@ outputs:
               }
           ]
       }
-      // === two-channels.pipe ===
+      // === two-channels.spq ===
       {
           "sources": [
               {
@@ -154,7 +154,7 @@ outputs:
               }
           ]
       }
-      // === agg-sort.pipe ===
+      // === agg-sort.spq ===
       {
           "sources": {
               "kind": "Pool",
@@ -181,7 +181,7 @@ outputs:
               }
           ]
       }
-      // === scope.pipe ===
+      // === scope.spq ===
       {
           "sources": {
               "kind": "Pool",
@@ -209,7 +209,7 @@ outputs:
               }
           ]
       }
-      // === auto-combined-channels.pipe ===
+      // === auto-combined-channels.spq ===
       {
           "sources": {
               "kind": "Pool",

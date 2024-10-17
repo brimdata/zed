@@ -1,10 +1,10 @@
 script: |
-  super dev compile -C -I test.pipe
+  super dev compile -C -I test.spq
   echo "==="
-  super dev compile -s -C -I test.pipe
+  super dev compile -s -C -I test.spq
 
 inputs:
-  - name: test.pipe
+  - name: test.spq
     data: |
       func fib(n): (n <= 1 ? n : fib(n-1) + fib(n-2))
       const foo = "bar"

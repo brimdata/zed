@@ -5,10 +5,10 @@ script: |
   super db create -q -orderby likes:asc people
   super db load -q -use fruit fruit.zson
   super db load -q -use people people.zson
-  super db query -z -I test.pipe
+  super db query -z -I test.spq
 
 inputs:
-  - name: test.pipe
+  - name: test.spq
     data: |
       op test(lpool, rpool, lkey, rkey, ldest, rsrc): (
         from lpool

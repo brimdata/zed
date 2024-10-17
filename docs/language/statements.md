@@ -105,8 +105,8 @@ to any contained scopes.
 The `this` value of a user-defined operator's sequence is provided by the
 calling sequence.
 
-For instance the program in `myop.pipe`
-```mdtest-input myop.pipe
+For instance the program in `myop.spq`
+```mdtest-input myop.spq
 op myop(): (
   yield this
 )
@@ -114,7 +114,7 @@ myop()
 ```
 run via
 ```mdtest-command
-echo {x:1} | super query -z -I myop.pipe -
+echo {x:1} | super query -z -I myop.spq -
 ```
 produces
 ```mdtest-output
@@ -132,8 +132,8 @@ other expression will result in a compile-time error.
 Because both constant values and path references evaluate in
 [expression](expressions.md) contexts, a `<param>` may often be used inside of
 a user-defined operator without regard to the argument's origin. For instance,
-with the program `params.pipe`
-```mdtest-input params.pipe
+with the program `params.spq`
+```mdtest-input params.spq
 op AddMessage(field_for_message, msg): (
   field_for_message:=msg
 )
@@ -141,10 +141,10 @@ op AddMessage(field_for_message, msg): (
 the `msg` parameter may be used flexibly
 ```mdtest-command
 echo '{greeting: "hi"}' |
-  super query -z -I params.pipe -c 'AddMessage(message, "hello")' -
+  super query -z -I params.spq -c 'AddMessage(message, "hello")' -
 
 echo '{greeting: "hi"}' |
-  super query -z -I params.pipe -c 'AddMessage(message, greeting)' -
+  super query -z -I params.spq -c 'AddMessage(message, greeting)' -
 ```
 to produce the respective outputs
 ```mdtest-output
@@ -158,19 +158,19 @@ explicitly mentioned "field" in the name of our first parameter's name may help
 us avoid making mistakes when passing arguments, such as
 ```mdtest-command fails
 echo '{greeting: "hi"}' |
-  super query -z -I params.pipe -c 'AddMessage("message", "hello")' -
+  super query -z -I params.spq -c 'AddMessage("message", "hello")' -
 ```
 which produces
 ```mdtest-output
-illegal left-hand side of assignment in params.pipe at line 2, column 3:
+illegal left-hand side of assignment in params.spq at line 2, column 3:
   field_for_message:=msg
   ~~~~~~~~~~~~~~~~~~~~~~
 ```
 
 A constant value must be used to pass a parameter that will be referenced as
 the data source of a [`from` operator](operators/from.md). For example, we
-quote the pool name in our program `count-pool.pipe`
-```mdtest-input count-pool.pipe
+quote the pool name in our program `count-pool.spq`
+```mdtest-input count-pool.spq
 op CountPool(pool_name): (
   from pool_name | count()
 )
@@ -183,7 +183,7 @@ so that when we prepare and query the pool via
 super db -q -lake test init
 super db -q -lake test create -use example
 echo '{greeting: "hello"}' | super db -q -lake test load -
-super db -lake test query -z -I count-pool.pipe
+super db -lake test query -z -I count-pool.spq
 ```
 
 it produces the output
@@ -194,8 +194,8 @@ it produces the output
 ### Nested Calls
 
 User-defined operators can make calls to other user-defined operators that
-are declared within the same scope or in a parent's scope. To illustrate, a program in `nested.pipe`
-```mdtest-input nested.pipe
+are declared within the same scope or in a parent's scope. To illustrate, a program in `nested.spq`
+```mdtest-input nested.spq
 op add1(x): (
   x := x + 1
 )
@@ -210,7 +210,7 @@ add4(a.b)
 ```
 run via
 ```mdtest-command
-echo '{a:{b:1}}' | super query -z -I nested.pipe -
+echo '{a:{b:1}}' | super query -z -I nested.spq -
 ```
 produces
 ```mdtest-output

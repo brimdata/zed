@@ -24,7 +24,7 @@ script: |
   super db init -q
   super db create -q PoolOne
   super db load -q -use PoolOne fruit.zson
-  super db query -z -I split.pipe
+  super db query -z -I split.spq
 
 inputs:
   - name: fruit.zson
@@ -33,7 +33,7 @@ inputs:
       {ts:2018-03-24T17:16:55Z,name:"banana",color:"yellow"}
       {ts:2018-03-24T17:21:23Z,name:"avocado",color:"green"}
       {ts:2018-03-24T17:23:29Z,name:"strawberry",color:"red"}
-  - name: split.pipe
+  - name: split.spq
     data: |
       from PoolOne | fork (
         => allfruit:=collect(name),allcolor:=collect(color) by every(5m) | put numfruit:=len(allfruit) | put numcolor:=len(allcolor)

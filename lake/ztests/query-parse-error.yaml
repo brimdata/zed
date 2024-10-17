@@ -2,31 +2,31 @@ script: |
   export SUPER_DB_LAKE=test
   super db init -q
   echo =1= >&2
-  ! super db query -z "$(cat bad-single-line.pipe)"
+  ! super db query -z "$(cat bad-single-line.spq)"
   echo =2= >&2
-  ! super db query -z "$(cat bad-multiple-lines.pipe)"
+  ! super db query -z "$(cat bad-multiple-lines.spq)"
   echo =3= >&2
-  ! super db query -z -I good.pipe "$(cat bad-single-line.pipe)"
+  ! super db query -z -I good.spq "$(cat bad-single-line.spq)"
   echo =4= >&2
-  ! super db query -z -I good.pipe "$(cat bad-multiple-lines.pipe)"
+  ! super db query -z -I good.spq "$(cat bad-multiple-lines.spq)"
   echo =5= >&2
-  ! super db query -z -I bad-single-line.pipe
+  ! super db query -z -I bad-single-line.spq
   echo =6= >&2
-  ! super db query -z -I bad-multiple-lines.pipe
+  ! super db query -z -I bad-multiple-lines.spq
   echo =7= >&2
-  ! super db query -z -I good.pipe -I bad-single-line.pipe
+  ! super db query -z -I good.spq -I bad-single-line.spq
   echo =8= >&2
-  ! super db query -z -I good.pipe -I bad-multiple-lines.pipe
+  ! super db query -z -I good.spq -I bad-multiple-lines.spq
 
 inputs:
-  - name: bad-single-line.pipe
+  - name: bad-single-line.spq
     data: |
       from test \ count()
-  - name: bad-multiple-lines.pipe
+  - name: bad-multiple-lines.spq
     data: |
       from
       test \ count()
-  - name: good.pipe
+  - name: good.spq
     data: |
       type mystring=string
 
@@ -50,18 +50,18 @@ outputs:
       test \ count()
        === ^ ===
       =5=
-      error parsing SuperPipe in bad-single-line.pipe at line 1, column 11:
+      error parsing SuperPipe in bad-single-line.spq at line 1, column 11:
       from test \ count()
             === ^ ===
       =6=
-      error parsing SuperPipe in bad-multiple-lines.pipe at line 2, column 6:
+      error parsing SuperPipe in bad-multiple-lines.spq at line 2, column 6:
       test \ count()
        === ^ ===
       =7=
-      error parsing SuperPipe in bad-single-line.pipe at line 1, column 11:
+      error parsing SuperPipe in bad-single-line.spq at line 1, column 11:
       from test \ count()
             === ^ ===
       =8=
-      error parsing SuperPipe in bad-multiple-lines.pipe at line 2, column 6:
+      error parsing SuperPipe in bad-multiple-lines.spq at line 2, column 6:
       test \ count()
        === ^ ===

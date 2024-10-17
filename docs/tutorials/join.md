@@ -43,8 +43,8 @@ the joined results.
 Because we're performing an inner join (the default), the
 explicit `inner` is not strictly necessary, but including it clarifies our intention.
 
-The SuperPipe query `inner-join.pipe`:
-```mdtest-input inner-join.pipe
+The SuperPipe query `inner-join.spq`:
+```mdtest-input inner-join.spq
 file fruit.json
 | inner join (
   file people.json
@@ -53,7 +53,7 @@ file fruit.json
 
 Executing the query:
 ```mdtest-command
-super query -z -I inner-join.pipe
+super query -z -I inner-join.spq
 ```
 produces
 ```mdtest-output
@@ -78,8 +78,8 @@ As another variation, we'll also copy over the age of the matching person. By
 referencing only the field name rather than using `:=` for assignment, the
 original field name `age` is maintained in the results.
 
-The query `left-join.pipe`:
-```mdtest-input left-join.pipe
+The query `left-join.spq`:
+```mdtest-input left-join.spq
 file fruit.json
 | left join (
   file people.json
@@ -89,7 +89,7 @@ file fruit.json
 Executing the query:
 
 ```mdtest-command
-super query -z -I left-join.pipe
+super query -z -I left-join.spq
 ```
 produces
 ```mdtest-output
@@ -111,8 +111,8 @@ In SQL, a right join is called a _right outer join_.
 Next we'll change the join type from `left` to `right`. Notice that this causes
 the `note` field from the right-hand input to appear in the joined results.
 
-The query `right-join.pipe`:
-```mdtest-input right-join.pipe
+The query `right-join.spq`:
+```mdtest-input right-join.spq
 file fruit.json
 | right join (
   file people.json
@@ -120,7 +120,7 @@ file fruit.json
 ```
 Executing the query:
 ```mdtest-command
-super query -z -I right-join.pipe
+super query -z -I right-join.spq
 ```
 produces
 ```mdtest-output
@@ -143,9 +143,9 @@ data lake, we would instead specify the sources as data pools using the
 Here we'll load our input data to pools in a temporary data lake, then execute
 our inner join using `super db query`.
 
-The query `inner-join-pools.pipe`:
+The query `inner-join-pools.spq`:
 
-```mdtest-input inner-join-pools.pipe
+```mdtest-input inner-join-pools.spq
 from fruit
 | inner join (
   from people
@@ -161,7 +161,7 @@ super db create -q -orderby flavor:asc fruit
 super db create -q -orderby likes:asc people
 super db load -q -use fruit fruit.json
 super db load -q -use people people.json
-super db query -z -I inner-join-pools.pipe
+super db query -z -I inner-join-pools.spq
 ```
 produces
 ```mdtest-output
@@ -184,8 +184,8 @@ which left and right inputs are specified by the two branches of a preceding
 Here we'll use the alternate syntax to perform the same inner join shown earlier
 in the [Inner Join section](#inner-join).
 
-The query `inner-join-alternate.pipe`:
-```mdtest-input inner-join-alternate.pipe
+The query `inner-join-alternate.spq`:
+```mdtest-input inner-join-alternate.spq
 from (
   file fruit.json
   file people.json
@@ -194,7 +194,7 @@ from (
 
 Executing the query:
 ```mdtest-command
-super query -z -I inner-join-alternate.pipe
+super query -z -I inner-join-alternate.spq
 ```
 produces
 ```mdtest-output
@@ -217,9 +217,9 @@ records in the stream that will be treated as the left and right sides.  Then
 we'll use the [alternate syntax for `join`](#alternate-syntax) to read those two
 inputs.
 
-The query `inner-join-streamed.pipe`:
+The query `inner-join-streamed.spq`:
 
-```mdtest-input inner-join-streamed.pipe
+```mdtest-input inner-join-streamed.spq
 switch (
   case has(color) => pass
   case has(age) => pass
@@ -228,7 +228,7 @@ switch (
 
 Executing the query:
 ```mdtest-command
-cat fruit.json people.json | super query -z -I inner-join-streamed.pipe -
+cat fruit.json people.json | super query -z -I inner-join-streamed.spq -
 ```
 produces
 ```mdtest-output
@@ -259,13 +259,13 @@ indicate, they separately offer both ripe and unripe fruit.
 
 Let's assume we're interested in seeing the available quantities of only the
 ripe fruit in our `fruit.json`
-records. In the query `multi-value-join.pipe`, we create the keys as
+records. In the query `multi-value-join.spq`, we create the keys as
 embedded records inside each input record, using the same field names and data
 types in each. We'll leave the created `fruitkey` records intact to show what
 they look like, but since it represents redundant data, in practice we'd
 typically [`drop`](../language/operators/drop.md) it after the `join` in our pipeline.
 
-```mdtest-input multi-value-join.pipe
+```mdtest-input multi-value-join.spq
 file fruit.json | put fruitkey:={name,color}
 | inner join (
   file inventory.json | put invkey:={name,color}
@@ -274,7 +274,7 @@ file fruit.json | put fruitkey:={name,color}
 
 Executing the query:
 ```mdtest-command
-super query -z -I multi-value-join.pipe
+super query -z -I multi-value-join.spq
 ```
 produces
 ```mdtest-output
@@ -298,11 +298,11 @@ To illustrate this, we'll introduce some new input data in `prices.json`.
 {"name":"figs","price": 1.60}
 ```
 
-In our query `three-way-join.pipe` we'll extend the pipeline we used
+In our query `three-way-join.spq` we'll extend the pipeline we used
 previously for our inner join by piping its output to an additional join
 against the price list.
 
-```mdtest-input three-way-join.pipe
+```mdtest-input three-way-join.spq
 file fruit.json
 | inner join (
   file people.json
@@ -315,7 +315,7 @@ file fruit.json
 Executing the query:
 
 ```mdtest-command
-super query -z -I three-way-join.pipe
+super query -z -I three-way-join.spq
 ```
 
 produces
@@ -341,9 +341,9 @@ One way to work around this limitation is to specify `this` in the field list
 to copy the contents of the _entire_ opposite record into an embedded record
 in the result.
 
-The query `embed-opposite.pipe`:
+The query `embed-opposite.spq`:
 
-```mdtest-input embed-opposite.pipe
+```mdtest-input embed-opposite.spq
 file fruit.json
 | inner join (
   file people.json
@@ -353,7 +353,7 @@ file fruit.json
 Executing the query:
 
 ```mdtest-command
-super query -z -I embed-opposite.pipe
+super query -z -I embed-opposite.spq
 ```
 produces
 ```mdtest-output
@@ -370,10 +370,10 @@ records can easily be merged with the
 [spread operator](../language/expressions.md#record-expressions). Additional
 processing may be necessary to handle conflicting field names, such as
 in the example just shown where the `name` field is used differently in the
-left and right inputs. We'll demonstrate this by augmenting `embed-opposite.pipe`
-to produce `merge-opposite.pipe`.
+left and right inputs. We'll demonstrate this by augmenting `embed-opposite.spq`
+to produce `merge-opposite.spq`.
 
-```mdtest-input merge-opposite.pipe
+```mdtest-input merge-opposite.spq
 file fruit.json
 | inner join (
   file people.json
@@ -386,7 +386,7 @@ file fruit.json
 Executing the query:
 
 ```mdtest-command
-super query -z -I merge-opposite.pipe
+super query -z -I merge-opposite.spq
 ```
 
 produces
