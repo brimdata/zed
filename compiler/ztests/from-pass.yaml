@@ -1,4 +1,4 @@
-script: zq -z -I join.zed left.zson
+script: super query -z -I join.zed left.zson
 
 inputs:
   - name: join.zed

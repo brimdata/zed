@@ -1,12 +1,12 @@
 skip: "issue #2651"
 
 script: |
-  source services.sh s3://bucket/zedlake
-  zed -host $LAKE_HOST new p1
-  zed -host $LAKE_HOST new p2
-  zed -host $LAKE_HOST new p3
+  source services.sh s3://bucket/lake
+  super db -host $LAKE_HOST new p1
+  super db -host $LAKE_HOST new p2
+  super db -host $LAKE_HOST new p3
   echo ===
-  zed -host $LAKE_HOST ls
+  super db -host $LAKE_HOST ls
 
 inputs:
   - name: services.sh

@@ -23,7 +23,7 @@ it is good practice to include the optional keyword.
 
 _A simple keyword search for "world"_
 ```mdtest-command
-echo '"hello, world" "say hello" "goodbye, world"' | zq -z 'search world' -
+echo '"hello, world" "say hello" "goodbye, world"' | super query -z -c 'search world' -
 ```
 =>
 ```mdtest-output
@@ -32,7 +32,7 @@ echo '"hello, world" "say hello" "goodbye, world"' | zq -z 'search world' -
 ```
 Search can utilize _arithmetic comparisons_
 ```mdtest-command
-echo '1 2 3' | zq -z 'search this >= 2' -
+echo '1 2 3' | super query -z -c 'search this >= 2' -
 ```
 =>
 ```mdtest-output
@@ -41,7 +41,7 @@ echo '1 2 3' | zq -z 'search this >= 2' -
 ```
 _The "search" keyword may be dropped_
 ```mdtest-command
-echo '1 2 3' | zq -z '2 or 3' -
+echo '1 2 3' | super query -z -c '2 or 3' -
 ```
 =>
 ```mdtest-output
@@ -50,7 +50,7 @@ echo '1 2 3' | zq -z '2 or 3' -
 ```
 _A search with Boolean logic_
 ```mdtest-command
-echo '1 2 3' | zq -z 'search this >= 2 AND this <= 2' -
+echo '1 2 3' | super query -z -c 'search this >= 2 AND this <= 2' -
 ```
 =>
 ```mdtest-output
@@ -58,7 +58,7 @@ echo '1 2 3' | zq -z 'search this >= 2 AND this <= 2' -
 ```
 _The AND operator may be omitted through predicate concatenation_
 ```mdtest-command
-echo '1 2 3' | zq -z 'search this >= 2 this <= 2' -
+echo '1 2 3' | super query -z -c 'search this >= 2 this <= 2' -
 ```
 =>
 ```mdtest-output
@@ -66,7 +66,7 @@ echo '1 2 3' | zq -z 'search this >= 2 this <= 2' -
 ```
 _Concatenation for keyword search_
 ```mdtest-command
-echo '"foo" "foo bar" "foo bar baz" "baz"' | zq -z 'foo bar' -
+echo '"foo" "foo bar" "foo bar baz" "baz"' | super query -z -c 'foo bar' -
 ```
 =>
 ```mdtest-output
@@ -75,7 +75,7 @@ echo '"foo" "foo bar" "foo bar baz" "baz"' | zq -z 'foo bar' -
 ```
 _Search expressions match fields names too_
 ```mdtest-command
-echo '{foo:1} {bar:2} {foo:3}' | zq -z foo -
+echo '{foo:1} {bar:2} {foo:3}' | super query -z -c foo -
 ```
 =>
 ```mdtest-output
@@ -84,7 +84,7 @@ echo '{foo:1} {bar:2} {foo:3}' | zq -z foo -
 ```
 _Boolean functions may be called_
 ```mdtest-command
-echo '1 "foo" 10.0.0.1' | zq -z 'search is(<int64>)' -
+echo '1 "foo" 10.0.0.1' | super query -z -c 'search is(<int64>)' -
 ```
 =>
 ```mdtest-output
@@ -92,7 +92,7 @@ echo '1 "foo" 10.0.0.1' | zq -z 'search is(<int64>)' -
 ```
 _Boolean functions with Boolean logic_
 ```mdtest-command
-echo '1 "foo" 10.0.0.1' | zq -z 'search is(<int64>) or is(<ip>)' -
+echo '1 "foo" 10.0.0.1' | super query -z -c 'search is(<int64>) or is(<ip>)' -
 ```
 =>
 ```mdtest-output

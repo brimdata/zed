@@ -1,32 +1,32 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
+  export SUPER_DB_LAKE=test
+  super db init -q
   echo =1= >&2
-  ! zed query -z "$(cat bad-single-line.zed)"
+  ! super db query -z "$(cat bad-single-line.spq)"
   echo =2= >&2
-  ! zed query -z "$(cat bad-multiple-lines.zed)"
+  ! super db query -z "$(cat bad-multiple-lines.spq)"
   echo =3= >&2
-  ! zed query -z -I good.zed "$(cat bad-single-line.zed)"
+  ! super db query -z -I good.spq "$(cat bad-single-line.spq)"
   echo =4= >&2
-  ! zed query -z -I good.zed "$(cat bad-multiple-lines.zed)"
+  ! super db query -z -I good.spq "$(cat bad-multiple-lines.spq)"
   echo =5= >&2
-  ! zed query -z -I bad-single-line.zed
+  ! super db query -z -I bad-single-line.spq
   echo =6= >&2
-  ! zed query -z -I bad-multiple-lines.zed
+  ! super db query -z -I bad-multiple-lines.spq
   echo =7= >&2
-  ! zed query -z -I good.zed -I bad-single-line.zed
+  ! super db query -z -I good.spq -I bad-single-line.spq
   echo =8= >&2
-  ! zed query -z -I good.zed -I bad-multiple-lines.zed
+  ! super db query -z -I good.spq -I bad-multiple-lines.spq
 
 inputs:
-  - name: bad-single-line.zed
+  - name: bad-single-line.spq
     data: |
       from test \ count()
-  - name: bad-multiple-lines.zed
+  - name: bad-multiple-lines.spq
     data: |
       from
       test \ count()
-  - name: good.zed
+  - name: good.spq
     data: |
       type mystring=string
 
@@ -34,34 +34,34 @@ outputs:
   - name: stderr
     data: |
       =1=
-      error parsing Zed at line 1, column 11:
+      error parsing SuperPipe at line 1, column 11:
       from test \ count()
             === ^ ===
       =2=
-      error parsing Zed at line 2, column 6:
+      error parsing SuperPipe at line 2, column 6:
       test \ count()
        === ^ ===
       =3=
-      error parsing Zed at line 1, column 11:
+      error parsing SuperPipe at line 1, column 11:
       from test \ count()
             === ^ ===
       =4=
-      error parsing Zed at line 2, column 6:
+      error parsing SuperPipe at line 2, column 6:
       test \ count()
        === ^ ===
       =5=
-      error parsing Zed in bad-single-line.zed at line 1, column 11:
+      error parsing SuperPipe in bad-single-line.spq at line 1, column 11:
       from test \ count()
             === ^ ===
       =6=
-      error parsing Zed in bad-multiple-lines.zed at line 2, column 6:
+      error parsing SuperPipe in bad-multiple-lines.spq at line 2, column 6:
       test \ count()
        === ^ ===
       =7=
-      error parsing Zed in bad-single-line.zed at line 1, column 11:
+      error parsing SuperPipe in bad-single-line.spq at line 1, column 11:
       from test \ count()
             === ^ ===
       =8=
-      error parsing Zed in bad-multiple-lines.zed at line 2, column 6:
+      error parsing SuperPipe in bad-multiple-lines.spq at line 2, column 6:
       test \ count()
        === ^ ===

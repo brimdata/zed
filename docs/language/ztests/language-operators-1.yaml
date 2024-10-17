@@ -1,13 +1,13 @@
 # ============================================================================
-# NOTE: This is a test to protect an example shown in the Zed language
-# docs. If you need to make changes to the Zed below to make the tests pass
+# NOTE: This is a test to protect an example shown in the SuperPipe language
+# docs. If you need to make changes to the SuperPipe below to make the tests pass
 # again after a change, the docs likely need to be updated as well.
 #
 # See https://github.com/brimdata/super/pull/2901 for details
 # ============================================================================
 
 script: |
-  zc -C 'widget | count() by color | COLOR := upper(color)'
+  super dev compile -C 'widget | count() by color | COLOR := upper(color)'
 
 outputs:
   - name: stdout

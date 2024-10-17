@@ -1,5 +1,5 @@
 script: |
-  ! zq -i zson -
+  ! super query -i zson -
 
 inputs:
   - name: stdin

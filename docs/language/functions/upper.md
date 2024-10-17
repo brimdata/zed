@@ -16,24 +16,24 @@ to upper case and returns the result.
 ### Examples
 
 ```mdtest-command
-echo '"Zed"' | zq -z 'yield upper(this)' -
+echo '"Super JSON"' | super query -z -c 'yield upper(this)' -
 ```
 =>
 ```mdtest-output
-"ZED"
+"SUPER JSON"
 ```
 
 [Slices](../expressions.md#slices) can be used to uppercase a subset of a string as well.
 
 ```mdtest-command
-echo '"zed"' |
-  zq -z 'func upper_first_char(str): (
+echo '"super JSON"' |
+  super query -z -c 'func capitalize(str): (
            upper(str[0:1]) + str[1:]
          )
-         yield upper_first_char(this)
+         yield capitalize(this)
   ' -
 ```
 =>
 ```mdtest-output
-"Zed"
+"Super JSON"
 ```

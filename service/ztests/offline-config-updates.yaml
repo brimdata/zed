@@ -1,10 +1,10 @@
 script: |
   source service.sh
-  zed create -q -lake $LAKE_PATH test
-  zed ls
+  super db create -q -lake $LAKE_PATH test
+  super db ls
   echo ===
-  zed drop -q -lake $LAKE_PATH -f test
-  zed ls
+  super db drop -q -lake $LAKE_PATH -f test
+  super db ls
 
 inputs:
   - name: service.sh

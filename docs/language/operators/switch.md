@@ -49,7 +49,7 @@ merged with an automatically inserted [combine operator](combine.md).
 _Split input into evens and odds_
 ```mdtest-command
 echo '1 2 3 4' |
-  zq -z '
+  super query -z -c '
     switch (
       case this%2==0 => {even:this}
       case this%2==1 => {odd:this}
@@ -67,7 +67,7 @@ echo '1 2 3 4' |
 _Switch on `this` with a constant case_
 ```mdtest-command
 echo '1 2 3 4' |
-  zq -z '
+  super query -z -c '
     switch this (
       case 1 => yield "1!"
       default => yield string(this)

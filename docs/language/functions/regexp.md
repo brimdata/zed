@@ -20,7 +20,7 @@ groups) if there are any. A null value indicates no match.
 Regexp returns an array of the match and its subexpressions:
 ```mdtest-command
 echo '"seafood fool friend"' |
-  zq -z 'yield regexp(/foo(.?) (\w+) fr.*/, this)' -
+  super query -z -c 'yield regexp(/foo(.?) (\w+) fr.*/, this)' -
 ```
 =>
 ```mdtest-output
@@ -29,7 +29,7 @@ echo '"seafood fool friend"' |
 
 A null is returned if there is no match:
 ```mdtest-command
-echo '"foo"' | zq -z 'yield regexp("bar", this)' -
+echo '"foo"' | super query -z -c 'yield regexp("bar", this)' -
 ```
 =>
 ```mdtest-output

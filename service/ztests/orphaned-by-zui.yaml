@@ -1,6 +1,6 @@
 script: |
   source mockzui.sh
-  zed create test
+  super db create test
   echo ===
   kill -9 $MOCKZUI_PID 2>/dev/null
   awaitdeadservice

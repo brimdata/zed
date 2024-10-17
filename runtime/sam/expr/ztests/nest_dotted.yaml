@@ -1,7 +1,7 @@
 script: |
-  echo '{a:1,"b.a":2,"b.b":3,"b.c.a":4,c:5}' | zq -z 'yield nest_dotted()' -
-  echo '{a:1,b:{a:2,b:3,c:{a:4}},c:5}' | zq -z 'yield nest_dotted(this)' -
-  echo '{nest:{a:1,"b.a":2}}' | zq -z 'yield nest_dotted(nest)' -
+  echo '{a:1,"b.a":2,"b.b":3,"b.c.a":4,c:5}' | super query -z -c 'yield nest_dotted()' -
+  echo '{a:1,b:{a:2,b:3,c:{a:4}},c:5}' | super query -z -c 'yield nest_dotted(this)' -
+  echo '{nest:{a:1,"b.a":2}}' | super query -z -c 'yield nest_dotted(nest)' -
 
 outputs:
   - name: stdout

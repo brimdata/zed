@@ -1,12 +1,12 @@
 # ============================================================================
-# NOTE: This is a test to protect an example shown in the Zed language
-# docs. If you need to make changes to the Zed below to make the tests pass
+# NOTE: This is a test to protect an example shown in the SuperPipe language
+# docs. If you need to make changes to the SuperPipe below to make the tests pass
 # again after a change, the docs likely need to be updated as well.
 #
 # See https://github.com/brimdata/super/pull/2901 for details
 # ============================================================================
 
-# The Zed being tested below has been modified from the way it appears in
+# The SuperPipe being tested below has been modified from the way it appears in
 # docs/language/README.md:
 #
 #   from PoolOne | fork (
@@ -20,11 +20,11 @@
 # (https://github.com/brimdata/super/issues/2906).
 
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q PoolOne
-  zed load -q -use PoolOne fruit.zson
-  zed query -z -I split.zed
+  export SUPER_DB_LAKE=test
+  super db init -q
+  super db create -q PoolOne
+  super db load -q -use PoolOne fruit.zson
+  super db query -z -I split.spq
 
 inputs:
   - name: fruit.zson
@@ -33,7 +33,7 @@ inputs:
       {ts:2018-03-24T17:16:55Z,name:"banana",color:"yellow"}
       {ts:2018-03-24T17:21:23Z,name:"avocado",color:"green"}
       {ts:2018-03-24T17:23:29Z,name:"strawberry",color:"red"}
-  - name: split.zed
+  - name: split.spq
     data: |
       from PoolOne | fork (
         => allfruit:=collect(name),allcolor:=collect(color) by every(5m) | put numfruit:=len(allfruit) | put numcolor:=len(allcolor)

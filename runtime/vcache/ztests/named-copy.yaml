@@ -1,6 +1,6 @@
 script: |
-  zq -f vng -o test.vng -
-  zed dev vector copy -z test.vng
+  super query -f vng -o test.vng -
+  super dev vector copy -z test.vng
 
 inputs:
   - name: stdin

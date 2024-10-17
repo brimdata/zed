@@ -62,7 +62,7 @@ command-line tools and require no external dependendies to run.
 
 To test `zq`, simply run this command in your shell:
 ```mdtest-command
-echo '"hello, world"' | zq -z -
+echo '"hello, world"' | super query -z -
 ```
 which should produce
 ```mdtest-output

@@ -1,12 +1,12 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -use -q test
-  zed load -q in.zson
-  ! zed delete -q -where 'uid==C3UeSqaSOFRReHD68'
-  zed query -z 'count:=count()'
-  zed delete -q -where 'uid=="C3UeSqaSOFRReHD68"'
-  zed query -z 'count:=count()'
+  export SUPER_DB_LAKE=test
+  super db init -q
+  super db create -use -q test
+  super db load -q in.zson
+  ! super db delete -q -where 'uid==C3UeSqaSOFRReHD68'
+  super db query -z 'count:=count()'
+  super db delete -q -where 'uid=="C3UeSqaSOFRReHD68"'
+  super db query -z 'count:=count()'
 
 inputs:
   - name: in.zson

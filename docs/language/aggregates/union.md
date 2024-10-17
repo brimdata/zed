@@ -18,7 +18,7 @@ types encountered.
 
 Create a set of values from a simple sequence:
 ```mdtest-command
-echo '1 2 3 3' | zq -z 'union(this)' -
+echo '1 2 3 3' | super query -z -c 'union(this)' -
 ```
 =>
 ```mdtest-output
@@ -27,7 +27,7 @@ echo '1 2 3 3' | zq -z 'union(this)' -
 
 Create sets continuously from values in a simple sequence:
 ```mdtest-command
-echo '1 2 3 3' | zq -z 'yield union(this)' -
+echo '1 2 3 3' | super query -z -c 'yield union(this)' -
 ```
 =>
 ```mdtest-output
@@ -39,7 +39,7 @@ echo '1 2 3 3' | zq -z 'yield union(this)' -
 
 Mixed types create a union type for the set elements:
 ```mdtest-command
-echo '1 2 3 "foo"' | zq -z 'set:=union(this) | yield this,typeof(set)' -
+echo '1 2 3 "foo"' | super query -z -c 'set:=union(this) | yield this,typeof(set)' -
 ```
 =>
 ```mdtest-output
@@ -50,7 +50,7 @@ echo '1 2 3 "foo"' | zq -z 'set:=union(this) | yield this,typeof(set)' -
 Create sets of values bucketed by key:
 ```mdtest-command
 echo '{a:1,k:1} {a:2,k:1} {a:3,k:2} {a:4,k:2}' |
-  zq -z 'union(a) by k | sort' -
+  super query -z -c 'union(a) by k | sort' -
 ```
 =>
 ```mdtest-output

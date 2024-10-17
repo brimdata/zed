@@ -15,7 +15,7 @@ The _max_ aggregate function computes the maximum value of its input.
 
 Maximum value of simple sequence:
 ```mdtest-command
-echo '1 2 3 4' | zq -z 'max(this)' -
+echo '1 2 3 4' | super query -z -c 'max(this)' -
 ```
 =>
 ```mdtest-output
@@ -24,7 +24,7 @@ echo '1 2 3 4' | zq -z 'max(this)' -
 
 Continuous maximum of simple sequence:
 ```mdtest-command
-echo '1 2 3 4' | zq -z 'yield max(this)' -
+echo '1 2 3 4' | super query -z -c 'yield max(this)' -
 ```
 =>
 ```mdtest-output
@@ -36,7 +36,7 @@ echo '1 2 3 4' | zq -z 'yield max(this)' -
 
 Unrecognized types are ignored:
 ```mdtest-command
-echo '1 2 3 4 "foo"' | zq -z 'max(this)' -
+echo '1 2 3 4 "foo"' | super query -z -c 'max(this)' -
 ```
 =>
 ```mdtest-output
@@ -46,7 +46,7 @@ echo '1 2 3 4 "foo"' | zq -z 'max(this)' -
 Maximum value within buckets grouped by key:
 ```mdtest-command
 echo '{a:1,k:1} {a:2,k:1} {a:3,k:2} {a:4,k:2}' |
-  zq -z 'max(a) by k | sort' -
+  super query -z -c 'max(a) by k | sort' -
 ```
 =>
 ```mdtest-output

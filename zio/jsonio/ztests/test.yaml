@@ -1,4 +1,4 @@
-script: zq -i json -f zng - | zq -f json -
+script: super query -i json -f zng - | super query -f json -
 
 inputs:
   - name: stdin

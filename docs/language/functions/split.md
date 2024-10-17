@@ -18,7 +18,7 @@ spanning those separators.
 
 Split a semi-colon delimited list of fruits:
 ```mdtest-command
-echo '"apple;banana;pear;peach"' | zq -z 'yield split(this,";")' -
+echo '"apple;banana;pear;peach"' | super query -z -c 'yield split(this,";")' -
 ```
 =>
 ```mdtest-output
@@ -29,7 +29,7 @@ Split a comma-separated list of IPs and cast the array of strings to an
 array of IPs:
 ```mdtest-command
 echo '"10.0.0.1,10.0.0.2,10.0.0.3"' |
-  zq -z 'yield cast(split(this,","),<[ip]>)' -
+  super query -z -c 'yield cast(split(this,","),<[ip]>)' -
 ```
 =>
 ```mdtest-output

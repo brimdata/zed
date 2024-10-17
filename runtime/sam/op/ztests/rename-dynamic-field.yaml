@@ -1,12 +1,12 @@
 script: |
-  echo '{target:"foo",src:"bar"} {target:"fool",src:"baz"}' | zq -z 'rename this[target] := src' -
+  echo '{target:"foo",src:"bar"} {target:"fool",src:"baz"}' | super query -z -c 'rename this[target] := src' -
   echo '// ==='
-  echo '{target:"a",a:"bar"} {target:"b",b:"baz"}' | zq -z 'rename dst := this[target]' -
+  echo '{target:"a",a:"bar"} {target:"b",b:"baz"}' | super query -z -c 'rename dst := this[target]' -
   # runtime error cases
   echo '// ==='
-  echo '{foo:"a",bar:"b"}' | zq -z 'rename this[foo]["c"] := this[bar]["d"]' -
+  echo '{foo:"a",bar:"b"}' | super query -z -c 'rename this[foo]["c"] := this[bar]["d"]' -
   echo '// ==='
-  echo '{foo:"a"}' | zq -z 'rename this[foo]["c"] := this[foo]["a"]["b"]' -
+  echo '{foo:"a"}' | super query -z -c 'rename this[foo]["c"] := this[foo]["a"]["b"]' -
 
 outputs:
   - name: stdout

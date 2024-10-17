@@ -1,4 +1,4 @@
-script: zq -z -I test.zed
+script: super query -z -I test.zed
 
 inputs:
   - name: test.zed

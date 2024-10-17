@@ -1,5 +1,5 @@
 script: |
-  ! zq -i vng /dev/null
+  ! super query -i vng /dev/null
 
 outputs:
   - name: stderr

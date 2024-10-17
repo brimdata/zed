@@ -1,6 +1,6 @@
 # 13B is enough to buffer the first record in memory but not the second.
 script: |
-  zq -z -fusemem 13B fuse in.zson
+  super query -z -fusemem 13B -c fuse in.zson
 
 inputs:
   - name: in.zson

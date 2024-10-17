@@ -18,7 +18,7 @@ returned instead of the named type.
 
 ```mdtest-command
 echo  '{which:"chocolate"}(=flavor)' |
-  zq -z 'yield {typeof:typeof(this),typeunder:typeunder(this)}' -
+  super query -z -c 'yield {typeof:typeof(this),typeunder:typeunder(this)}' -
 ```
 =>
 ```mdtest-output

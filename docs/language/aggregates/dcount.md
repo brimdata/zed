@@ -16,7 +16,7 @@ of the input in a memory efficient manner.
 
 Count of values in a simple sequence:
 ```mdtest-command
-echo '1 2 2 3' | zq -z 'dcount(this)' -
+echo '1 2 2 3' | super query -z -c 'dcount(this)' -
 ```
 =>
 ```mdtest-output
@@ -25,7 +25,7 @@ echo '1 2 2 3' | zq -z 'dcount(this)' -
 
 Continuous count of simple sequence:
 ```mdtest-command
-echo '1 2 2 3' | zq -z 'yield dcount(this)' -
+echo '1 2 2 3' | super query -z -c 'yield dcount(this)' -
 ```
 =>
 ```mdtest-output
@@ -37,7 +37,7 @@ echo '1 2 2 3' | zq -z 'yield dcount(this)' -
 
 Mixed types are handled:
 ```mdtest-command
-echo '1 "foo" 10.0.0.1' | zq -z 'yield dcount(this)' -
+echo '1 "foo" 10.0.0.1' | super query -z -c 'yield dcount(this)' -
 ```
 =>
 ```mdtest-output
@@ -48,7 +48,7 @@ echo '1 "foo" 10.0.0.1' | zq -z 'yield dcount(this)' -
 
 The estimated result may become less accurate with more unique input values:
 ```mdtest-command
-seq 10000 | zq -z 'dcount(this)' -
+seq 10000 | super query -z -c 'dcount(this)' -
 ```
 =>
 ```mdtest-output
@@ -57,7 +57,7 @@ seq 10000 | zq -z 'dcount(this)' -
 
 Count of values in buckets grouped by key:
 ```mdtest-command
-echo '{a:1,k:1} {a:2,k:1} {a:3,k:2}' | zq -z 'dcount(a) by k | sort' -
+echo '{a:1,k:1} {a:2,k:1} {a:3,k:2}' | super query -z -c 'dcount(a) by k | sort' -
 ```
 =>
 ```mdtest-output

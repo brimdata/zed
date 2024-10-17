@@ -1,6 +1,6 @@
 # do a round-trip into serialized ZNG to make sure top-level nulls encoded properly
 
-script: zq - | zq -z -
+script: super query - | super query -z -
 
 inputs:
   - name: stdin

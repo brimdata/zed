@@ -32,7 +32,7 @@ To insert a literal `$` in the output, use `$$` in the template.
 Replace regular expression matches with a letter:
 
 ```mdtest-command
-echo '"-ab-axxb-"' | zq -z 'yield regexp_replace(this, /ax*b/, "T")' -
+echo '"-ab-axxb-"' | super query -z -c 'yield regexp_replace(this, /ax*b/, "T")' -
 ```
 =>
 ```mdtest-output
@@ -43,7 +43,7 @@ Replace regular expression matches using numeric references to submatches:
 
 ```mdtest-command
 echo '"option: value"' |
-  zq -z 'yield regexp_replace(this,/(\w+):\s+(\w+)$/,"$1=$2")' -
+  super query -z -c 'yield regexp_replace(this,/(\w+):\s+(\w+)$/,"$1=$2")' -
 ```
 =>
 ```mdtest-output
@@ -54,7 +54,7 @@ Replace regular expression matches using named references:
 
 ```mdtest-command
 echo '"option: value"' |
-  zq -z 'yield regexp_replace(
+  super query -z -c 'yield regexp_replace(
                  this,
                  /(?P<key>\w+):\s+(?P<value>\w+)$/,
                  "$key=$value")
@@ -69,7 +69,7 @@ Wrap a named reference in curly braces to avoid ambiguity:
 
 ```mdtest-command
 echo '"option: value"' |
-  zq -z 'yield regexp_replace(
+  super query -z -c 'yield regexp_replace(
                  this,
                 /(?P<key>\w+):\s+(?P<value>\w+)$/,
                 "$key=${value}AppendedText")

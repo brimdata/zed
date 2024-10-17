@@ -1,0 +1,17 @@
+script: |
+  super query -z -c 'file a.zson'
+  super query -z -I query.zed
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+  - name: query.zed
+    data: |
+      file a.zson
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1}
+      {a:1}

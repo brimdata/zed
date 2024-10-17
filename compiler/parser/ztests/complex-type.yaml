@@ -1,9 +1,9 @@
 script: |
-  zc -C 'yield <{a:int64}>'
-  zc -C 'yield <[int64]>'
-  zc -C 'yield <|[int64]|>'
-  zc -C 'yield <|{int64:string}|>'
-  zc -C 'yield <error({msg:string})>'
+  super dev compile -C 'yield <{a:int64}>'
+  super dev compile -C 'yield <[int64]>'
+  super dev compile -C 'yield <|[int64]|>'
+  super dev compile -C 'yield <|{int64:string}|>'
+  super dev compile -C 'yield <error({msg:string})>'
 
 outputs:
   - name: stdout

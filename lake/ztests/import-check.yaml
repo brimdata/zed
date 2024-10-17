@@ -1,8 +1,8 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q logs
-  ! zed load -q -use logs missingfield.zson
+  export SUPER_DB_LAKE=test
+  super db init -q
+  super db create -q logs
+  ! super db load -q -use logs missingfield.zson
 
 inputs:
   - name: missingfield.zson

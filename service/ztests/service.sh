@@ -22,11 +22,11 @@ mkdir -p $lakeroot
 
 portdir=$(mktemp -d)
 
-zed serve -l=localhost:0 -lake=$lakeroot -portfile=$portdir/lake -log.level=warn $LAKE_EXTRA_FLAGS &> lake.log &
+super db serve -l=localhost:0 -lake=$lakeroot -portfile=$portdir/lake -log.level=warn $LAKE_EXTRA_FLAGS &> lake.log &
 lakepid=$!
 awaitfile $portdir/lake
 
 trap "rm -rf $portdir; kill $lakepid;" EXIT
 
-export ZED_LAKE=http://localhost:$(cat $portdir/lake)
+export SUPER_DB_LAKE=http://localhost:$(cat $portdir/lake)
 export LAKE_PATH=$lakeroot

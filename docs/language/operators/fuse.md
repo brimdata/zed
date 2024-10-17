@@ -15,7 +15,7 @@ to conform to the merged type.
 
 The merged type is constructed intelligently in the sense that type
 `{a:string}` and `{b:string}` is fused into type `{a:string,b:string}`
-instead of the Zed union type `({a:string},{b:string})`.
+instead of the union type `({a:string},{b:string})`.
 
 > TBD: document the algorithm here in more detail.
 > The operator takes no paramters but we are experimenting with ways to
@@ -25,13 +25,13 @@ instead of the Zed union type `({a:string},{b:string})`.
 Because all values of the input must be read to compute the union,
 `fuse` may spill its input to disk when memory limits are exceeded.
 
-`Fuse` is not normally needed for Zed data as the Zed data model supports
+`Fuse` is not normally needed for super-structured data as the super data model supports
 heterogenous sequences of values.  However, `fuse` can be quite useful
 during data exploration when sampling or filtering data to look at
 slices of raw data that are fused together.  `Fuse` is also useful for
-transforming arbitrary Zed data to prepare it for formats that require
+transforming arbitrary super data to prepare it for formats that require
 a uniform schema like Parquet or a tabular structure like CSV.
-Unfortunately, when data leaves the Zed format using `fuse` to accomplish this,
+Unfortunately, when data leaves a super-structured format using `fuse` to accomplish this,
 the original data must be altered to fit into the rigid structure of
 these output formats.
 
@@ -39,13 +39,13 @@ A fused type over many heterogeneous values also represents a typical
 design pattern of a data warehouse where a single very-wide schema
 defines slots for all possible input values where the columns are
 sparsely populated by each row value as the missing columns are set to null.
-Zed data is super-structured, and fortunately, does not require such a structure.
+Super data is super-structured, and fortunately, does not require such a structure.
 
 ### Examples
 
 _Fuse two records_
 ```mdtest-command
-echo '{a:1}{b:2}' | zq -z fuse -
+echo '{a:1}{b:2}' | super query -z -c fuse -
 ```
 =>
 ```mdtest-output
@@ -54,7 +54,7 @@ echo '{a:1}{b:2}' | zq -z fuse -
 ```
 _Fuse records with type variation_
 ```mdtest-command
-echo '{a:1}{a:"foo"}' | zq -z fuse -
+echo '{a:1}{a:"foo"}' | super query -z -c fuse -
 ```
 =>
 ```mdtest-output
@@ -63,7 +63,7 @@ echo '{a:1}{a:"foo"}' | zq -z fuse -
 ```
 _Fuse records with complex type variation_
 ```mdtest-command
-echo '{a:[1,2]}{a:["foo","bar"],b:10.0.0.1}' | zq -z fuse -
+echo '{a:[1,2]}{a:["foo","bar"],b:10.0.0.1}' | super query -z -c fuse -
 ```
 =>
 ```mdtest-output
@@ -72,7 +72,7 @@ echo '{a:[1,2]}{a:["foo","bar"],b:10.0.0.1}' | zq -z fuse -
 ```
 _The table format clarifies what fuse does_
 ```mdtest-command
-echo '{a:1}{b:2}{a:3}' | zq -f table fuse -
+echo '{a:1}{b:2}{a:3}' | super query -f table -c fuse -
 ```
 =>
 ```mdtest-output

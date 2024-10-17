@@ -24,7 +24,7 @@ switch (
 ### Examples
 
 ```
-echo null | zq -z 'yield now()' -
+echo null | super query -z -c 'yield now()' -
 ```
 =>
 ```

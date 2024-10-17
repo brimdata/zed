@@ -16,7 +16,7 @@ result in `NaN`.
 
 The logarithm of a various numbers:
 ```mdtest-command
-echo '4 2. 1e10 -1' | zq -z 'yield sqrt(this)' -
+echo '4 2. 1e10 -1' | super query -z -c 'yield sqrt(this)' -
 ```
 =>
 ```mdtest-output

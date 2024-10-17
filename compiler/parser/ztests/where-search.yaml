@@ -1,7 +1,7 @@
 script: |
-  zq -z 'count() where grep("foo")' in.zson
+  super query -z -c 'count() where grep("foo")' in.zson
   echo ===
-  zq -z "foo | count()" in.zson
+  super query -z -c "foo | count()" in.zson
 
 inputs:
   - name: in.zson

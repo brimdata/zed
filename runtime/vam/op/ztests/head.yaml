@@ -1,8 +1,8 @@
 script: |
-  zq -o t.vng -f vng -
-  zed dev vector query -z "head" t.vng
+  super query -o t.vng -f vng -
+  super dev vector query -z "head" t.vng
   echo //
-  zed dev vector query -z "head 2" t.vng
+  super dev vector query -z "head 2" t.vng
 
 inputs:
   - name: stdin

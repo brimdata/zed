@@ -1,9 +1,9 @@
 # Test that type names are properly reset and reusable after stream boundaries.
 
 script: |
-  zq "head 1" in.zson > t1.zng
-  zq "tail 2" in.zson > t2.zng
-  cat t1.zng t2.zng | zq -z -
+  super query -c "head 1" in.zson > t1.zng
+  super query -c "tail 2" in.zson > t2.zng
+  cat t1.zng t2.zng |super query - | super query -z -
 
 inputs:
   - name: in.zson

@@ -1,0 +1,12 @@
+script: |
+  source minio.sh
+  ! super query -z s3://bucket/does/not/exist
+
+inputs:
+  - name: minio.sh
+    source: ../../../../testdata/minio.sh
+
+outputs:
+  - name: stderr
+    data: |
+      s3://bucket/does/not/exist: file does not exist

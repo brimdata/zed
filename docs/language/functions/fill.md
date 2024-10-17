@@ -30,7 +30,7 @@ and [`order`](./order.md) functions simultaneously on a record.
 
 _Fill a record_
 ```mdtest-command
-echo '{a:1}' | zq -z 'fill(this, <{a:int64,b:string}>)' -
+echo '{a:1}' | super query -z -c 'fill(this, <{a:int64,b:string}>)' -
 ```
 produces
 ```mdtest-output
@@ -39,7 +39,7 @@ produces
 
 _Fill an array of records_
 ```mdtest-command
-echo '[{a:1},{a:2}]' | zq -z 'fill(this, <[{a:int64,b:int64}]>)' -
+echo '[{a:1},{a:2}]' | super query -z -c 'fill(this, <[{a:int64,b:int64}]>)' -
 ```
 produces
 ```mdtest-output
@@ -48,7 +48,7 @@ produces
 
 _Non-records are returned unmodified_
 ```mdtest-command
-echo '10.0.0.1 1 "foo"' | zq -z 'fill(this, <{a:int64,b:int64}>)' -
+echo '10.0.0.1 1 "foo"' | super query -z -c 'fill(this, <{a:int64,b:int64}>)' -
 ```
 produces
 ```mdtest-output

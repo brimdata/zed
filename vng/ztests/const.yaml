@@ -1,6 +1,6 @@
 script: |
-  zq -f vng -o out.vng -
-  zed dev vng -z out.vng
+  super query -f vng -o out.vng -
+  super dev vng -z out.vng
 
 inputs:
   - name: stdin

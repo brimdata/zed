@@ -1,11 +1,11 @@
 script: |
   source service.sh
-  zed create -q test
-  zq -f vng in.zson |
+  super db create -q test
+  super query -f vng in.zson |
     curl -H Content-Type:application/x-vng --data-binary @- \
-    --fail $ZED_LAKE/pool/test/branch/main | zq -z commit:=0 -
+    --fail $SUPER_DB_LAKE/pool/test/branch/main | super query -z -c commit:=0 -
   echo //
-  zed query -z 'from test'
+  super db query -z 'from test'
 
 inputs:
   - name: in.zson

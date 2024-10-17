@@ -1,0 +1,7 @@
+script: |
+  super -version
+
+outputs:
+  - name: stdout
+    regexp: |
+      Version: v[0-9]+\..*

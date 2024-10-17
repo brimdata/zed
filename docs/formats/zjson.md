@@ -288,7 +288,7 @@ nesting, records, array, and union. Consider the file `input.zson`:
 This data is represented in ZJSON as follows:
 
 ```mdtest-command
-zq -f zjson input.zson | jq .
+super query -f zjson input.zson | jq .
 ```
 
 ```mdtest-output

@@ -1,10 +1,10 @@
 script: |
   export ZED_LAKE=test
-  zed init -q
-  zed create -q foo.bar
-  zed use -q foo.bar
-  echo '{a:1}' | zed load -q -
-  zed query -z "from foo.bar"
+  super db init -q
+  super db create -q foo.bar
+  super db use -q foo.bar
+  echo '{a:1}' | super db load -q -
+  super db query -z "from foo.bar"
 
 outputs:
   - name: stdout

@@ -1,6 +1,6 @@
 script: |
-  zc -C "is(<foo>) bar"
-  zc -s -C "is(<(uint16,ip)>) 80"
+  super dev compile -C "is(<foo>) bar"
+  super dev compile -s -C "is(<(uint16,ip)>) 80"
 
 outputs:
   - name: stdout

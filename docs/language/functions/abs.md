@@ -17,7 +17,7 @@ must be a numeric type.
 
 Absolute value of a various numbers:
 ```mdtest-command
-echo '1 -1 0 -1.0 -1(int8) 1(uint8) "foo"' | zq -z 'yield abs(this)' -
+echo '1 -1 0 -1.0 -1(int8) 1(uint8) "foo"' | super query -z -c 'yield abs(this)' -
 ```
 =>
 ```mdtest-output

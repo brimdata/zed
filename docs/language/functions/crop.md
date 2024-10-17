@@ -26,7 +26,7 @@ If `val` is not a record, it is returned unmodified.
 
 _Crop a record_
 ```mdtest-command
-echo '{a:1,b:2}' | zq -z 'crop(this, <{a:int64}>)' -
+echo '{a:1,b:2}' | super query -z -c 'crop(this, <{a:int64}>)' -
 ```
 produces
 ```mdtest-output
@@ -35,7 +35,7 @@ produces
 
 _Crop an array of records_
 ```mdtest-command
-echo '[{a:1,b:2},{a:3,b:4}]' | zq -z 'crop(this, <[{a:int64}]>)' -
+echo '[{a:1,b:2},{a:3,b:4}]' | super query -z -c 'crop(this, <[{a:int64}]>)' -
 ```
 produces
 ```mdtest-output
@@ -44,7 +44,7 @@ produces
 
 _Cropped primitives are returned unmodified_
 ```mdtest-command
-echo '10.0.0.1 1 "foo"' | zq -z 'crop(this, <{a:int64}>)' -
+echo '10.0.0.1 1 "foo"' | super query -z -c 'crop(this, <{a:int64}>)' -
 ```
 produces
 ```mdtest-output

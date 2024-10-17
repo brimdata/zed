@@ -1,10 +1,10 @@
 script: |
-  zc -C -s 'head 1'
+  super dev compile -C -s 'head 1'
   echo ===
-  zc -C -s 'const x=1 head x + 1'
-  ! zc -C -s 'head 1.'
-  ! zc -C -s 'head "1"'
-  ! zc -C -s 'head x'
+  super dev compile -C -s 'const x=1 head x + 1'
+  ! super dev compile -C -s 'head 1.'
+  ! super dev compile -C -s 'head "1"'
+  ! super dev compile -C -s 'head x'
 
 outputs:
   - name: stdout

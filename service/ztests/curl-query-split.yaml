@@ -2,10 +2,10 @@
 
 script: |
   source service.sh
-  zed create -q test
-  zed load -q -use test -
-  curl --stderr ignore -H "Accept: application/x-zjson" -d '{"query":"from test | fork (=>output main =>output test)"}' $ZED_LAKE/query\?ctrl=true |
-      zq -z "QueryChannelEnd | sort value.channel" -
+  super db create -q test
+  super db load -q -use test -
+  curl --stderr ignore -H "Accept: application/x-zjson" -d '{"query":"from test | fork (=>output main =>output test)"}' $SUPER_DB_LAKE/query\?ctrl=true |
+      super query -z -c "QueryChannelEnd | sort value.channel" -
 
 inputs:
   - name: service.sh

@@ -1,14 +1,14 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -use -q -orderby x:asc test
-  echo {x:1} | zed load -q -
-  r=$(echo {x:2} | zed load - | head -1 | awk '{print $1}')
-  r=$(zed revert $r | awk '{print $5}')
-  zed vacuum -dryrun
-  zed vacuum -f
-  zed revert -q $r
-  ! zed query -z '*'
+  export SUPER_DB_LAKE=test
+  super db init -q
+  super db create -use -q -orderby x:asc test
+  echo {x:1} | super db load -q -
+  r=$(echo {x:2} | super db load - | head -1 | awk '{print $1}')
+  r=$(super db revert $r | awk '{print $5}')
+  super db vacuum -dryrun
+  super db vacuum -f
+  super db revert -q $r
+  ! super db query -z '*'
 
 outputs:
   - name: stdout

@@ -1,5 +1,5 @@
 script: |
-  zq -f zjson - | zq -z -i zjson -
+  super query -f zjson - | super query -z -i zjson -
 
 inputs:
   - name: stdin

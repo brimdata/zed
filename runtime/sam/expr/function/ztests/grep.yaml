@@ -4,10 +4,10 @@
 
 script: |
   echo '{pattern:"hello",input:[{a:{hello:"world"}},{hi:"world"}]}' | 
-    zq -z 'over input with p=pattern => ( grep(p) )' -
+    super query -z -c 'over input with p=pattern => ( grep(p) )' -
   echo "// ==="
   echo '{a:{foo:"bar"}} {b:{baz:"foo"}}' |
-    zq -z 'func g(s, e): ( grep(s, e) ) where g("baz", this)' -
+    super query -z -c 'func g(s, e): ( grep(s, e) ) where g("baz", this)' -
 
 outputs:
   - name: stdout

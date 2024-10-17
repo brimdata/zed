@@ -2,9 +2,9 @@ script: |
   source service.sh
   for o in asc desc; do
     echo // $o | tee /dev/stderr
-    zed create -q -seekstride=2KB -orderby ts:$o $o
-    zed load -q -use $o babble.zson null.zson
-    zed query -z -s -use $o "ts >= 2020-04-21T23:59:26.063Z and ts <= 2020-04-21T23:59:38.069Z"
+    super db create -q -seekstride=2KB -orderby ts:$o $o
+    super db load -q -use $o babble.zson null.zson
+    super db query -z -s -use $o "ts >= 2020-04-21T23:59:26.063Z and ts <= 2020-04-21T23:59:38.069Z"
   done
 
 inputs:

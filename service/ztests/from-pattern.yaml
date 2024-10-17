@@ -1,16 +1,16 @@
 script: |
   source service.sh
   for pool in match1 match2 nope; do
-    zed create -q $pool
-    echo "\"$pool\"" | zed load -q -use $pool -
+    super db create -q $pool
+    echo "\"$pool\"" | super db load -q -use $pool -
   done
-  zed query -z 'from * | sort this'
+  super db query -z 'from * | sort this'
   echo ===
-  zed query -z 'from /.*/ | sort this'
+  super db query -z 'from /.*/ | sort this'
   echo ===
-  zed query -z 'from match* | sort this'
+  super db query -z 'from match* | sort this'
   echo ===
-  zed query -z 'from /match/ | sort this'
+  super db query -z 'from /match/ | sort this'
 
 inputs:
   - name: service.sh

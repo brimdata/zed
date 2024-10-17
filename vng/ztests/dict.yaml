@@ -1,6 +1,6 @@
 script: |
-  zq -f vng -o out.vng -
-  zed dev vng out.vng | zq -Z "over Fields | yield Values.Dict" -
+  super query -f vng -o out.vng -
+  super dev vng out.vng | super query -Z -c "over Fields | yield Values.Dict" -
 
 inputs:
   - name: stdin

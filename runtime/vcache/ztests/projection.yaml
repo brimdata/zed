@@ -1,14 +1,14 @@
 script: |
-  zq -f vng -o test.vng -
-  zed dev vector project -z test.vng x y z
+  super query -f vng -o test.vng -
+  super dev vector project -z test.vng x y z
   echo ===
-  zed dev vector project -z test.vng s
+  super dev vector project -z test.vng s
   echo ===
-  zed dev vector project -z test.vng x s
+  super dev vector project -z test.vng x s
   echo ===
-  zed dev vector project -z test.vng s x
+  super dev vector project -z test.vng s x
   echo ===
-  zed dev vector project -z test.vng y w.y
+  super dev vector project -z test.vng y w.y
 inputs:
   - name: stdin
     data: |

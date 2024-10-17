@@ -1,19 +1,19 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  ! zed use
-  ! zed use @main
-  zed create -q POOL
-  ! zed use POOL@branch
+  export SUPER_DB_LAKE=test
+  super db init -q
+  ! super db use
+  ! super db use @main
+  super db create -q POOL
+  ! super db use POOL@branch
   echo ===
-  zed use POOL
-  zed use > no-args-use.txt
+  super db use POOL
+  super db use > no-args-use.txt
   echo ===
-  zed branch -q b1
-  zed use @b1
+  super db branch -q b1
+  super db use @b1
   echo ===
-  zed branch -q b2
-  zed use POOL@b2
+  super db branch -q b2
+  super db use POOL@b2
 
 outputs:
   - name: stdout

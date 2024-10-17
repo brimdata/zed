@@ -18,7 +18,7 @@ inner type is a union of the record types present.
 ### Examples
 
 ```mdtest-command
-echo '{a:1,b:{c:"foo"}}' | zq -z 'yield flatten(this)' -
+echo '{a:1,b:{c:"foo"}}' | super query -z -c 'yield flatten(this)' -
 ```
 =>
 ```mdtest-output

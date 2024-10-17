@@ -16,7 +16,7 @@ from string argument `s` and returns the result.
 ### Examples
 
 ```mdtest-command
-echo '" = Zed = "' | zq -z 'yield trim(this)' -
+echo '" = Zed = "' | super query -z -c 'yield trim(this)' -
 ```
 =>
 ```mdtest-output

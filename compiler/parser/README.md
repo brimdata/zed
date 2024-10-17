@@ -16,7 +16,7 @@ parser (parser.go).
 
 ## Testing
 
-The [zed dev compile command](../../cmd/zc) can be used for easily testing the output of
+The `super dev compile` command can be used for easily testing the output of
 the Zed parser.
 
 ## Development

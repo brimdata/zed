@@ -1,7 +1,7 @@
 script: |
-  zc -C -s 'fork (=> output foo => pass)'
+  super dev compile -C -s 'fork (=> output foo => pass)'
   echo '// ==='
-  zc -C -s 'switch x (case "foo" => output foo case "bar" => pass)'
+  super dev compile -C -s 'switch x (case "foo" => output foo case "bar" => pass)'
 
 outputs:
   - name: stdout

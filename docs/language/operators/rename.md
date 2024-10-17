@@ -29,7 +29,7 @@ and the error is emitted.
 
 _A simple rename_
 ```mdtest-command
-echo '{a:1,b:2}' | zq -z 'rename c:=b' -
+echo '{a:1,b:2}' | super query -z -c 'rename c:=b' -
 ```
 =>
 ```mdtest-output
@@ -37,7 +37,7 @@ echo '{a:1,b:2}' | zq -z 'rename c:=b' -
 ```
 _Nested rename_
 ```mdtest-command
-echo '{a:1,r:{b:2,c:3}}' | zq -z 'rename r.a:=r.b' -
+echo '{a:1,r:{b:2,c:3}}' | super query -z -c 'rename r.a:=r.b' -
 ```
 =>
 ```mdtest-output
@@ -45,7 +45,7 @@ echo '{a:1,r:{b:2,c:3}}' | zq -z 'rename r.a:=r.b' -
 ```
 _Trying to mutate records with rename produces a compile-time error_
 ```mdtest-command fails
-echo '{a:1,r:{b:2,c:3}}' | zq -z 'rename w:=r.b' -
+echo '{a:1,r:{b:2,c:3}}' | super query -z -c 'rename w:=r.b' -
 ```
 =>
 ```mdtest-output
@@ -55,7 +55,7 @@ rename w:=r.b
 ```
 _Record literals can be used instead of rename for mutation_
 ```mdtest-command
-echo '{a:1,r:{b:2,c:3}}' | zq -z 'yield {a,r:{c:r.c},w:r.b}' -
+echo '{a:1,r:{b:2,c:3}}' | super query -z -c 'yield {a,r:{c:r.c},w:r.b}' -
 ```
 =>
 ```mdtest-output
@@ -63,7 +63,7 @@ echo '{a:1,r:{b:2,c:3}}' | zq -z 'yield {a,r:{c:r.c},w:r.b}' -
 ```
 _Alternatively, mutations can be more generic and use drop_
 ```mdtest-command
-echo '{a:1,r:{b:2,c:3}}' | zq -z 'yield {a,r,w:r.b} | drop r.b' -
+echo '{a:1,r:{b:2,c:3}}' | super query -z -c 'yield {a,r,w:r.b} | drop r.b' -
 ```
 =>
 ```mdtest-output
@@ -71,7 +71,7 @@ echo '{a:1,r:{b:2,c:3}}' | zq -z 'yield {a,r,w:r.b} | drop r.b' -
 ```
 _Duplicate fields create structured errors_
 ```mdtest-command
-echo '{b:1} {a:1,b:1} {c:1}' | zq -z 'rename a:=b' -
+echo '{b:1} {a:1,b:1} {c:1}' | super query -z -c 'rename a:=b' -
 ```
 =>
 ```mdtest-output

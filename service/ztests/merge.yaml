@@ -1,13 +1,13 @@
 script: |
   source service.sh
-  zed create -q POOL
-  zed load -q -use POOL a.zson
-  zed branch -q -use POOL child
-  zed load -q -use POOL@child b.zson
-  zed query -z "from POOL | sort this"
+  super db create -q POOL
+  super db load -q -use POOL a.zson
+  super db branch -q -use POOL child
+  super db load -q -use POOL@child b.zson
+  super db query -z "from POOL | sort this"
   echo ===
-  zed merge -q -use POOL@child main
-  zed query -z "from POOL | sort this"
+  super db merge -q -use POOL@child main
+  super db query -z "from POOL | sort this"
 
 inputs:
   - name: a.zson

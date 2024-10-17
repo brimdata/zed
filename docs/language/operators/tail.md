@@ -18,7 +18,7 @@ is not provided, the value of N defaults to `1`.
 
 _Grab last two values of arbitrary sequence_
 ```mdtest-command
-echo '1 "foo" [1,2,3]' | zq -z 'tail 2' -
+echo '1 "foo" [1,2,3]' | super query -z -c 'tail 2' -
 ```
 =>
 ```mdtest-output
@@ -28,7 +28,7 @@ echo '1 "foo" [1,2,3]' | zq -z 'tail 2' -
 
 _Grab last two values of arbitrary sequence, using a different representation of two_
 ```mdtest-command
-echo '1 "foo" [1,2,3]' | zq -z 'tail 1+1' -
+echo '1 "foo" [1,2,3]' | super query -z -c 'tail 1+1' -
 ```
 =>
 ```mdtest-output
@@ -38,7 +38,7 @@ echo '1 "foo" [1,2,3]' | zq -z 'tail 1+1' -
 
 _Grab the last record of a record sequence_
 ```mdtest-command
-echo '{a:"hello"}{b:"world"}' | zq -z tail -
+echo '{a:"hello"}{b:"world"}' | super query -z -c tail -
 ```
 =>
 ```mdtest-output

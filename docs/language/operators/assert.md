@@ -16,7 +16,7 @@ structured error if it does not.
 ### Examples
 
 ```mdtest-command
-echo {a:1} | zq -z 'assert a > 0' -
+echo {a:1} | super query -z -c 'assert a > 0' -
 ```
 =>
 ```mdtest-output
@@ -24,7 +24,7 @@ echo {a:1} | zq -z 'assert a > 0' -
 ```
 
 ```mdtest-command
-echo {a:-1} | zq -z 'assert a > 0' -
+echo {a:-1} | super query -z -c 'assert a > 0' -
 ```
 =>
 ```mdtest-output

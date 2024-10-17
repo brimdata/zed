@@ -1,5 +1,5 @@
 script: |
-  ! zq -z -I badshaper.zed -
+  ! super query -z -I badshaper.zed -
 
 inputs:
   - name: stdin

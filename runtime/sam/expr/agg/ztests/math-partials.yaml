@@ -2,10 +2,10 @@
 # with a single-row limit.  We also make sure the partials consumer can handle
 # an empty input by inncluding a record for key "a" with no value field.
 script: |
-  zq -z "avg(n) by key with -limit 1" in.zson > avg.zson
-  zq -z "count() by key with -limit 1" in.zson > count.zson
-  zq -z "min(n) by key with -limit 1" in.zson > min.zson
-  zq -z "max(n) by key with -limit 1" in.zson > max.zson
+  super query -z -c "avg(n) by key with -limit 1" in.zson > avg.zson
+  super query -z -c "count() by key with -limit 1" in.zson > count.zson
+  super query -z -c "min(n) by key with -limit 1" in.zson > min.zson
+  super query -z -c "max(n) by key with -limit 1" in.zson > max.zson
 
 inputs:
   - name: in.zson

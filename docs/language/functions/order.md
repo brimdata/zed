@@ -41,7 +41,7 @@ reorder fields without specifying types ([example](../shaping.md#order)).
 
 _Order a record_
 ```mdtest-command
-echo '{b:"foo", a:1}' | zq -z 'order(this, <{a:int64,b:string}>)' -
+echo '{b:"foo", a:1}' | super query -z -c 'order(this, <{a:int64,b:string}>)' -
 ```
 produces
 ```mdtest-output
@@ -49,7 +49,7 @@ produces
 ```
 _Order fields lexicographically_
 ```mdtest-command
-echo '{c:0, a:1, b:"foo"}' | zq -z 'order(this, <{}>)' -
+echo '{c:0, a:1, b:"foo"}' | super query -z -c 'order(this, <{}>)' -
 ```
 produces
 ```mdtest-output
@@ -60,7 +60,7 @@ TBD: fix this bug or remove example...
 
 _Order an array of records_
 ```mdtest-command-skip
-echo '[{b:1,a:1},{a:2,b:2}]' | zq -z 'order(this, <[{a:int64,b:int64}]>)' -
+echo '[{b:1,a:1},{a:2,b:2}]' | super query -z -c 'order(this, <[{a:int64,b:int64}]>)' -
 ```
 produces
 ```mdtest-output-skip
@@ -69,7 +69,7 @@ produces
 
 _Non-records are returned unmodified_
 ```mdtest-command
-echo '10.0.0.1 1 "foo"' | zq -z 'fill(this, <{a:int64,b:int64}>)' -
+echo '10.0.0.1 1 "foo"' | super query -z -c 'fill(this, <{a:int64,b:int64}>)' -
 ```
 produces
 ```mdtest-output

@@ -1,10 +1,10 @@
 script: |
-  zc -C -s 'tail 1'
+  super dev compile -C -s 'tail 1'
   echo ===
-  zc -C -s 'const x=1 tail x + 1'
-  ! zc -C -s 'tail 1.'
-  ! zc -C -s 'tail "1"'
-  ! zc -C -s 'tail x'
+  super dev compile -C -s 'const x=1 tail x + 1'
+  ! super dev compile -C -s 'tail 1.'
+  ! super dev compile -C -s 'tail "1"'
+  ! super dev compile -C -s 'tail x'
 
 outputs:
   - name: stdout

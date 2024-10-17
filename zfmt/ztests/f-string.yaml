@@ -1,5 +1,5 @@
 script: |
-  zc -C 'yield f"hello {f"world"}"'
+  super dev compile -C 'yield f"hello {f"world"}"'
 
 outputs:
   - name: stdout

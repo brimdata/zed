@@ -381,7 +381,7 @@ Start with this ZNG data (shown as human-readable [ZSON](zson.md)):
 
 To convert to VNG format:
 ```
-zq -f vng hello.zson > hello.vng
+super query -f vng hello.zson > hello.vng
 ```
 
 Segments in the VNG format would be laid out like this:

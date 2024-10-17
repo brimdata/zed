@@ -1,32 +1,32 @@
 ---
 sidebar_position: 1
-sidebar_label: zq
+sidebar_label: super query
 ---
 
-# zq Tutorial
+# super query Tutorial
 
-This tour provides new users of `zq` an overview of `zq` and
-the [Zed language](../language/README.md)
+This tour provides new users of `super query` an overview of the tool and
+the [SuperPipe language](../language/README.md)
 by walking through a number of examples on the command-line.
 This should get you started without having to read through all the gory details
-of the [Zed language](../language/README.md) or [`zq` command-line usage](../commands/zq.md).
+of the [SuperPipe language](../language/README.md) or [`super query` command-line usage](../commands/zq.md).
 
 We'll start with some simple one-liners on the command line where we feed
-some data to `zq` with `echo` and specify `-` for `zq` input to indicate
+some data to `super query` with `echo` and specify `-` for `super query` input to indicate
 that standard input should be used, e.g.,
 ```
-echo '"hello, world"' | zq -
+echo '"hello, world"' | super query -
 ```
 Then, toward the end of the tour, we'll experiment with some real-world GitHub data
 pulled from the GitHub API.
 
 If you want to follow along on the command line,
-just make sure the `zq` command [is installed](../install.md)
+just make sure the `super query` command [is installed](../install.md)
 as well as [`jq`](https://stedolan.github.io/jq/).
 
 ## But JSON
 
-While `zq` is based on a new type of [data model called Zed](../formats/zed.md),
+While `super query` is based on a new type of [data model](../formats/zed.md),
 Zed just so happens to be a superset of JSON.
 
 So if all you ever use `zq` for is manipulating JSON data,
@@ -67,7 +67,7 @@ With `zq`, the mysterious `jq` value `.` is instead called
 the almost-as-mysterious value
 [`this`](../language/pipeline-model.md#the-special-value-this) and you say:
 ```mdtest-command
-echo '1 2 3' | zq -z 'this+1' -
+echo '1 2 3' | super query -z -c 'this+1' -
 ```
 which also gives
 ```mdtest-output
@@ -104,7 +104,7 @@ is produced each time, so three copies of `2` are emitted.
 In `zq` however, `2` by itself is interpreted as a search and is
 [shorthand for](../language/pipeline-model.md#implied-operators) `search 2` so the command
 ```mdtest-command
-echo '1 2 3' | zq -z 2 -
+echo '1 2 3' | super query -z -c 2 -
 ```
 produces this "search result":
 ```mdtest-output
@@ -114,7 +114,7 @@ In fact, this search syntax generalizes, and if we search over a more complex
 input:
 ```mdtest-command
 echo '1 2 [1,2,3] [4,5,6] {r:{x:1,y:2}} {r:{x:3,y:4}} "hello" "Number 2"' |
-  zq -z 2 -
+  super query -z -c 2 -
 ```
 we naturally find all the 2's whether as a value, inside a value, or inside a string:
 ```mdtest-output
@@ -126,7 +126,7 @@ we naturally find all the 2's whether as a value, inside a value, or inside a st
 You can also do keyword-text search, e.g.,
 ```mdtest-command
 echo '1 2 [1,2,3] [4,5,6] {r:{x:1,y:2}} {r:{x:3,y:4}} "hello" "Number 2"' |
-  zq -z 'hello or Number' -
+  super query -z -c 'hello or Number' -
 ```
 produces
 ```mdtest-output
@@ -139,7 +139,7 @@ That said, we can emulate the `jq` transformation stance by explicitly
 indicating that we want to [yield](../language/operators/yield.md)
 the result of the expression evaluated for each input value, e.g.,
 ```mdtest-command
-echo '1 2 3' | zq -z 'yield 2' -
+echo '1 2 3' | super query -z -c 'yield 2' -
 ```
 now gives the same answer as `jq`:
 ```mdtest-output
@@ -173,7 +173,7 @@ quotations around field names.  We can see this by taking some JSON
 as input (the JSON format is auto-detected by `zq`) and formatting
 it as pretty-printed ZSON with `-Z`:
 ```mdtest-command
-echo '{"s":"hello","val":1,"a":[1,2],"b":true}' | zq -Z -
+echo '{"s":"hello","val":1,"a":[1,2],"b":true}' | super query -Z -
 ```
 which gives
 ```mdtest-output
@@ -191,7 +191,7 @@ which gives
 Of course if you have funny characters in a field name, ZSON can handle
 it with quotes just like JSON:
 ```mdtest-command
-echo '{"funny@name":1}' | zq -z -
+echo '{"funny@name":1}' | super query -z -
 ```
 produces
 ```mdtest-output
@@ -200,7 +200,7 @@ produces
 Moreover, ZSON is fully compatible with all of JSON's corner cases like empty string
 as a field name and empty object as a value, e.g.,
 ```mdtest-command
-echo '{"":{}}' | zq -z -
+echo '{"":{}}' | super query -z -
 ```
 produces
 ```mdtest-output
@@ -281,7 +281,7 @@ while in Zed, data is nested with "records" and arrays (as well as other complex
 are rather flexible with `zq` and look a bit like JavaScript
 or `jq` syntax, e.g.,
 ```mdtest-command
-echo '1 2 3' | zq -z 'yield {kind:"counter",val:this}' -
+echo '1 2 3' | super query -z -c 'yield {kind:"counter",val:this}' -
 ```
 produces
 ```mdtest-output
@@ -292,7 +292,7 @@ produces
 Note that like the search shortcut, you can also drop the yield keyword
 here because the record literal implies the yield operator, e.g.,
 ```mdtest-command
-echo '1 2 3' | zq -z '{kind:"counter",val:this}' -
+echo '1 2 3' | super query -z -c '{kind:"counter",val:this}' -
 ```
 also produces
 ```mdtest-output
@@ -302,7 +302,7 @@ also produces
 ```
 `zq` can also use a spread operator like JavaScript, e.g.,
 ```mdtest-command
-echo '{a:{s:"foo", val:1}}{b:{s:"bar"}}' | zq -z '{...a,s:"baz"}' -
+echo '{a:{s:"foo", val:1}}{b:{s:"bar"}}' | super query -z -c '{...a,s:"baz"}' -
 ```
 produces
 ```mdtest-output
@@ -311,7 +311,7 @@ produces
 ```
 while
 ```mdtest-command
-echo '{a:{s:"foo", val:1}}{b:{s:"bar"}}' | zq -z '{d:2,...a,...b}' -
+echo '{a:{s:"foo", val:1}}{b:{s:"bar"}}' | super query -z -c '{d:2,...a,...b}' -
 ```
 produces
 ```mdtest-output
@@ -326,7 +326,7 @@ Sometimes you just want to extract or mutate certain fields of records.
 Similar to the Unix `cut` command, the Zed [cut operator](../language/operators/cut.md)
 extracts fields, e.g.,
 ```mdtest-command
-echo '{s:"foo", val:1}{s:"bar"}' | zq -z 'cut s' -
+echo '{s:"foo", val:1}{s:"bar"}' | super query -z -c 'cut s' -
 ```
 produces
 ```mdtest-output
@@ -336,7 +336,7 @@ produces
 while the [put operator](../language/operators/put.md) mutates existing fields
 or adds new fields, e.g.,
 ```mdtest-command
-echo '{s:"foo", val:1}{s:"bar"}' | zq -z 'put val:=123,pi:=3.14' -
+echo '{s:"foo", val:1}{s:"bar"}' | super query -z -c 'put val:=123,pi:=3.14' -
 ```
 produces
 ```mdtest-output
@@ -345,7 +345,7 @@ produces
 ```
 Note that `put` is also an implied operator so the command with `put` omitted
 ```mdtest-command
-echo '{s:"foo", val:1}{s:"bar"}' | zq -z 'val:=123,pi:=3.14' -
+echo '{s:"foo", val:1}{s:"bar"}' | super query -z -c 'val:=123,pi:=3.14' -
 ```
 produces the very same output:
 ```mdtest-output
@@ -358,7 +358,7 @@ This means they can just show up in the data as values.  In particular,
 a common error is `error("missing")` which occurs most often when referencing
 a field that does not exist, e.g.,
 ```mdtest-command
-echo '{s:"foo", val:1}{s:"bar"}' | zq -z 'cut val' -
+echo '{s:"foo", val:1}{s:"bar"}' | super query -z -c 'cut val' -
 ```
 produces
 ```mdtest-output
@@ -369,7 +369,7 @@ Sometimes you expect missing errors to occur sporadically and just want
 to ignore them, which can you easily do with the
 [quiet function](../language/functions/quiet.md), e.g.,
 ```mdtest-command
-echo '{s:"foo", val:1}{s:"bar"}' | zq -z 'cut quiet(val)' -
+echo '{s:"foo", val:1}{s:"bar"}' | super query -z -c 'cut quiet(val)' -
 ```
 produces
 ```mdtest-output
@@ -388,7 +388,7 @@ don't have to worry about them even when they show up.
 For example, this query is perfectly happy to operate on the union values
 that are implied by a mixed-type array:
 ```mdtest-command
-echo '[1, "foo", 2, "bar"]' | zq -z 'yield this[2],this[1]' -
+echo '[1, "foo", 2, "bar"]' | super query -z -c 'yield this[2],this[1]' -
 ```
 produces
 ```mdtest-output
@@ -398,7 +398,7 @@ produces
 but under the covers, the elements of the array have a union type of
 `int64` and `string`, which is written `(int64,string)`, e.g,.
 ```mdtest-command
-echo '[1, "foo", 2, "bar"]' | zq -z 'yield typeof(this)' -
+echo '[1, "foo", 2, "bar"]' | super query -z -c 'yield typeof(this)' -
 ```
 produces
 ```mdtest-output
@@ -423,7 +423,7 @@ In other words, Zed has
 The type of any value in `zq` can be accessed via the
 [typeof function](../language/functions/typeof.md), e.g.,
 ```mdtest-command
-echo '1 "foo" 10.0.0.1' | zq -z 'yield typeof(this)' -
+echo '1 "foo" 10.0.0.1' | super query -z -c 'yield typeof(this)' -
 ```
 produces
 ```mdtest-output
@@ -437,7 +437,7 @@ Au contraire, this is really quite powerful because we can
 use types as values to functions, e.g., as a dynamic argument to
 the [cast function](../language/functions/cast.md):
 ```mdtest-command
-echo '{a:0,b:"2"}{a:0,b:"3"}' | zq -z 'yield cast(b, typeof(a))' -
+echo '{a:0,b:"2"}{a:0,b:"3"}' | super query -z -c 'yield cast(b, typeof(a))' -
 ```
 produces
 ```mdtest-output
@@ -448,7 +448,7 @@ But more powerfully, types can be used anywhere a value can be used and
 in particular, they can be group-by keys, e.g.,
 ```mdtest-command
 echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' |
-  zq -f table "count() by shape:=typeof(this) | sort count" -
+  super query -f table -c "count() by shape:=typeof(this) | sort count" -
 ```
 produces
 ```mdtest-output
@@ -487,7 +487,7 @@ With `zq` of course, these are different super-structured types so
 the result is false, e.g.,
 ```mdtest-command
 echo '{"a":{"s":"foo"},"b":{"x":1,"y":2}}' |
-  zq -z 'yield typeof(a)==typeof(b)' -
+  super query -z -c 'yield typeof(a)==typeof(b)' -
 ```
 produces
 ```mdtest-output
@@ -501,7 +501,7 @@ This is easy to do with the [any aggregate function](../language/aggregates/any.
 e.g,
 ```mdtest-command
 echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' |
-  zq -z 'val:=any(this) by typeof(this) | sort val | yield val' -
+  super query -z -c 'val:=any(this) by typeof(this) | sort val | yield val' -
 ```
 produces
 ```mdtest-output
@@ -510,7 +510,7 @@ produces
 ```
 We like this pattern so much there is a shortcut [sample operator](../language/operators/sample.md), e.g.,
 ```mdtest-command
-echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' | zq -z 'sample this | sort this' -
+echo '{x:1,y:2}{s:"foo"}{x:3,y:4}' | super query -z -c 'sample this | sort this' -
 ```
 emits the same result:
 ```mdtest-output
@@ -549,7 +549,7 @@ you can't tell by looking at either value what the types of both `a` and `b`
 should be.  But if you merge the values into a common type, things begin to make
 sense, e.g.,
 ```mdtest-command
-echo '{a:1,b:null}{a:null,b:[2,3,4]}' | zq -z fuse -
+echo '{a:1,b:null}{a:null,b:[2,3,4]}' | super query -z -c fuse -
 ```
 produces this transformed and comprehensively-typed ZSON output:
 ```mdtest-output
@@ -561,7 +561,7 @@ Now you can see all the detail.
 This turns out to be so useful, especially with large amounts of messy input data,
 you will often find yourself fusing data then sampling it, e.g.,
 ```mdtest-command
-echo '{a:1,b:null}{a:null,b:[2,3,4]}' | zq -Z 'fuse | sample' -
+echo '{a:1,b:null}{a:null,b:[2,3,4]}' | super query -Z -c 'fuse | sample' -
 ```
 produces a comprehensively-typed sample:
 ```mdtest-output
@@ -586,7 +586,7 @@ just use `zq` as `zq` can take URLs in addition to file name arguments.
 This command will grab descriptions of first 30 PRs created in the
 public `zed` repository and place it in a file called `prs.json`:
 ```
-zq -f json \
+super query -f json \
   https://api.github.com/repos/brimdata/super/pulls\?state\=all\&sort\=desc\&per_page=30 \
   > prs.json
 ```
@@ -609,7 +609,7 @@ That's 10,592 lines.  Ugh, quite a challenge to sift through.
 
 Instead, let's start out by figuring out how many values are in the input, e.g.,
 ```mdtest-command dir=docs/tutorials
-zq -f text 'count()' prs.json
+super query -f text -c 'count()' prs.json
 ```
 produces
 ```mdtest-output
@@ -618,7 +618,7 @@ produces
 Hmm, there's just one value.  It's probably a big JSON array but let's check with
 the [kind function](../language/functions/kind.md), and as expected:
 ```mdtest-command dir=docs/tutorials
-zq -z 'kind(this)' prs.json
+super query -z -c 'kind(this)' prs.json
 ```
 produces
 ```mdtest-output
@@ -626,7 +626,7 @@ produces
 ```
 Ok got it.  But, how many items are in the array?  
 ```mdtest-command dir=docs/tutorials
-zq -z 'len(this)' prs.json
+super query -z -c 'len(this)' prs.json
 ```
 produces
 ```mdtest-output
@@ -640,7 +640,7 @@ the items from the array and do something with them.  So how about we use
 the [over operator](../language/operators/over.md)
 to traverse the array and count the array items by their "kind",
 ```mdtest-command dir=docs/tutorials
-zq -z 'over this | count() by kind(this)' prs.json
+super query -z -c 'over this | count() by kind(this)' prs.json
 ```
 produces
 ```mdtest-output
@@ -651,7 +651,7 @@ Ok, they're all records.  Good, this should be easy!
 The Zed records were all originally JSON objects.
 Maybe we can just use "sample" to have a deeper look...
 ```
-zq -Z 'over this | sample' prs.json
+super query -Z -c 'over this | sample' prs.json
 ```
 > Here we are using `-Z`, which is like `-z`, but instead of formatting each
 > ZSON value on its own line, it pretty-prints the ZSON with vertical
@@ -662,7 +662,7 @@ more than 700 lines of pretty-printed ZSON.
 
 Ok, maybe it's not so bad.  Let's check how many shapes there are with `sample`...
 ```mdtest-command dir=docs/tutorials
-zq -z 'over this | sample | count()' prs.json
+super query -z -c 'over this | sample | count()' prs.json
 ```
 produces
 ```mdtest-output
@@ -674,7 +674,7 @@ They must each be really big.  Let's check that out.
 We can use the [len function](../language/functions/len.md) on the records to
 see the size of each of the four records:
 ```mdtest-command dir=docs/tutorials
-zq -z 'over this | sample | len(this) | sort this' prs.json
+super query -z -c 'over this | sample | len(this) | sort this' prs.json
 ```
 and we get
 ```mdtest-output
@@ -685,7 +685,7 @@ and we get
 Ok, this isn't so bad... two shapes each have 36 fields but one is length zero?!
 That outlier could only be the empty record.  Let's check:
 ```mdtest-command dir=docs/tutorials
-zq -z 'over this | sample | len(this)==0' prs.json
+super query -z -c 'over this | sample | len(this)==0' prs.json
 ```
 produces
 ```mdtest-output
@@ -706,7 +706,7 @@ Who knows why they are there?  No fun. Real-world data is messy.
 
 How about we fuse the 3 shapes together and have a look at the result:
 ```
-zq -Z 'over this | fuse | sample' prs.json
+super query -Z -c 'over this | fuse | sample' prs.json
 ```
 We won't display the result here as it's still pretty big.  But you can
 give it a try.  It's 379 lines.
@@ -717,7 +717,7 @@ We can take the output from `fuse | sample` and list the fields with
 and their "kind".  Note that when we do an `over this` with records as
 input, we get a new record value for each field structured as a key/value pair:
 ```mdtest-command dir=docs/tutorials
-zq -f table '
+super query -f table -c '
   over this
   | fuse
   | sample
@@ -769,15 +769,15 @@ With this list of top-level fields, we can easily explore the different
 pieces of their structure with sample.  Let's have a look at a few of the
 record fields by giving these one-liners each a try and looking at the output:
 ```
-zq -Z 'over this | sample head' prs.json
-zq -Z 'over this | sample base' prs.json
-zq -Z 'over this | sample _links' prs.json
+super query -Z -c 'over this | sample head' prs.json
+super query -Z -c 'over this | sample base' prs.json
+super query -Z -c 'over this | sample _links' prs.json
 ```
 While these fields have some useful information, we'll decide to drop them here
 and focus on other top-level fields.  To do this, we can use the
 [drop operator](../language/operators/drop.md) to whittle down the data:
 ```
-zq -Z 'over this | fuse | drop head,base,_link | sample' prs.json
+super query -Z -c 'over this | fuse | drop head,base,_link | sample' prs.json
 ```
 Ok, this looks more reasonable and is now only 120 lines of pretty-printed ZSON.
 
@@ -785,7 +785,7 @@ One more annoying detail here about JSON: time values are stored as strings,
 in this case, in ISO format, e.g., we can pull this value out with
 this query:
 ```mdtest-command dir=docs/tutorials
-zq -z 'over this | head 1 | yield created_at' prs.json
+super query -z -c 'over this | head 1 | yield created_at' prs.json
 ```
 which produces this string:
 ```mdtest-output
@@ -794,7 +794,7 @@ which produces this string:
 Since Zed has a native `time` type and we might want to do native date comparisons
 on these time fields, we can easily translate the string to a time with a cast, e.g.,
 ```mdtest-command dir=docs/tutorials
-zq -z 'over this | head 1 | yield time(created_at)' prs.json
+super query -z -c 'over this | head 1 | yield time(created_at)' prs.json
 ```
 produces the native time value:
 ```mdtest-output
@@ -802,7 +802,7 @@ produces the native time value:
 ```
 To be sure, you can check any value's type with the `typeof` function, e.g.,
 ```mdtest-command dir=docs/tutorials
-zq -z 'over this | head 1 | yield time(created_at) | typeof(this)' prs.json
+super query -z -c 'over this | head 1 | yield time(created_at) | typeof(this)' prs.json
 ```
 produces the native time value:
 ```mdtest-output
@@ -819,12 +819,12 @@ First, let's get rid of the outer array and generate elements of an array
 as a sequence of Zed records that have been fused and let's filter out
 the empty records:
 ```
-zq 'over this | len(this) != 0 | fuse' prs.json > prs1.zng
+super query -c 'over this | len(this) != 0 | fuse' prs.json > prs1.zng
 ```
 We can check that worked with count:
 ```
-zq -z 'count()' prs1.zng
-zq -z 'sample | count()' prs1.zng
+super query -z -c 'count()' prs1.zng
+super query -z -c 'sample | count()' prs1.zng
 ```
 produces
 ```
@@ -836,13 +836,13 @@ and exactly one shape since the data was fused.
 
 Now, let's drop the fields we aren't interested in:
 ```
-zq 'drop head,base,_links' prs1.zng > prs2.zng
+super query -c 'drop head,base,_links' prs1.zng > prs2.zng
 ```
 Finally, let's clean up those dates.  To track down all the candidates,
 we can run this Zed to group field names by their type and limit the output
 to primitive types:
 ```
-zq -z '
+super query -z -c '
   over this
   | kind(value)=="primitive"
   | fields:=union(key[0]) by type:=typeof(value)
@@ -866,7 +866,7 @@ to be
 * `updated_at`.
 You can do a quick check of the theory by running...
 ```
-zq -z '{closed_at,merged_at,created_at,updated_at}' prs2.zng
+super query -z -c '{closed_at,merged_at,created_at,updated_at}' prs2.zng
 ```
 and you will get strings that are all ISO dates:
 ```
@@ -878,7 +878,7 @@ To fix those strings, we simply transform the fields in place using the
 (implied) [put operator](../language/operators/put.md) and redirect the final
 output the ZNG file `prs.zng`:
 ```
-zq '
+super query -c '
   closed_at:=time(closed_at),
   merged_at:=time(merged_at),
   created_at:=time(created_at),
@@ -887,7 +887,7 @@ zq '
 ```
 We can check the result with our type analysis:
 ```mdtest-command dir=docs/tutorials
-zq -z '
+super query -z -c '
   over this
   | kind(value)=="primitive"
   | fields:=union(key[0]) by type:=typeof(value)
@@ -928,7 +928,7 @@ over this                      // traverse the array of objects
 We can then put this in a file, called say `transform.zed`, and use the `-I`
 argument to run all the transformations in one fell swoop:
 ```
-zq -I transform.zed prs.json > prs.zng
+super query -I transform.zed prs.json > prs.zng
 ```
 
 ## Running Analytics
@@ -944,7 +944,7 @@ to put your clean data into all the right places.
 Let's start with something simple.  How about we output a "PR Report" listing
 the title of each PR along with its PR number and creation date:
 ```mdtest-command dir=docs/tutorials
-zq -f table '{DATE:created_at,NUMBER:f"PR #{number}",TITLE:title}' prs.zng
+super query -f table -c '{DATE:created_at,NUMBER:f"PR #{number}",TITLE:title}' prs.zng
 ```
 and you'll see this output...
 ```mdtest-output head
@@ -963,7 +963,7 @@ Instead of old PRs, we can get the latest list of PRs using the
 [tail operator](../language/operators/tail.md) since we know the data is sorted
 chronologically. This command retrieves the last five PRs in the dataset:
 ```mdtest-command dir=docs/tutorials
-zq -f table '
+super query -f table -c '
   tail 5
   | {DATE:created_at,"NUMBER":f"PR #{number}",TITLE:title}
 ' prs.zng
@@ -981,7 +981,7 @@ DATE                 NUMBER TITLE
 How about some aggregations?  We can count the number of PRs and sort by the
 count highest first:
 ```mdtest-command dir=docs/tutorials
-zq -z "count() by user:=user.login | sort count desc" prs.zng
+super query -z -c "count() by user:=user.login | sort count desc" prs.zng
 ```
 produces
 ```mdtest-output
@@ -995,7 +995,7 @@ How about getting a list of all of the reviewers?  To do this, we need to
 traverse the records in the `requested_reviewers` array and collect up
 the login field from each record:
 ```mdtest-command dir=docs/tutorials
-zq -z 'over requested_reviewers | collect(login)' prs.zng
+super query -z -c 'over requested_reviewers | collect(login)' prs.zng
 ```
 Oops, this gives us an array of the reviewer logins
 with repetitions since [collect](../language/aggregates/collect.md)
@@ -1010,7 +1010,7 @@ computes the set-wise union of its input and produces a Zed `set` type as its
 output.  In this case, the output is a set of strings, written `|[string]|`
 in the Zed language.  For example:
 ```mdtest-command dir=docs/tutorials
-zq -z 'over requested_reviewers | reviewers:=union(login)' prs.zng
+super query -z -c 'over requested_reviewers | reviewers:=union(login)' prs.zng
 ```
 produces
 ```mdtest-output
@@ -1030,7 +1030,7 @@ Instead of computing a set-union over all the reviewers across all PRs,
 we instead want to compute the set-union over the reviewers in each PR.
 We can do this as follows:
 ```mdtest-command dir=docs/tutorials
-zq -z 'over requested_reviewers => ( reviewers:=union(login) )' prs.zng
+super query -z -c 'over requested_reviewers => ( reviewers:=union(login) )' prs.zng
 ```
 which produces an output like this:
 ```mdtest-output head
@@ -1052,7 +1052,7 @@ bringing that value into the scope using a `with` clause appended to the
 `over` expression and yielding a
 [record literal](../language/expressions.md#record-expressions) with the desired value:
 ```mdtest-command dir=docs/tutorials
-zq -z '
+super query -z -c '
   over requested_reviewers with user=user.login => (
     reviewers:=union(login)
     | {user,reviewers}
@@ -1075,7 +1075,7 @@ which gives us
 The final step is to simply aggregate the "reviewer sets" with the `user` field
 as the group-by key:
 ```mdtest-command dir=docs/tutorials
-zq -Z '
+super query -Z -c '
   over requested_reviewers with user=user.login => (
     reviewers:=union(login)
     | {user,reviewers}
@@ -1199,7 +1199,7 @@ the average number of reviewers requested instead of the set of groups
 of reviewers.  To do this, we just average the reviewer set size
 with an aggregation:
 ```mdtest-command dir=docs/tutorials
-zq -z '
+super query -z -c '
   over requested_reviewers with user=user.login => (
     reviewers:=union(login)
     | {user,reviewers}
@@ -1220,7 +1220,7 @@ which produces
 Of course, if you'd like the query output in JSON, you can just say `-j` and
 `zq` will happily format the Zed sets as JSON arrays, e.g.,
 ```mdtest-command dir=docs/tutorials
-zq -j '
+super query -j -c '
   over requested_reviewers with user=user.login => (
     reviewers:=union(login)
     | {user,reviewers}

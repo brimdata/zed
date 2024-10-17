@@ -43,7 +43,7 @@ yield {<field>:<expr> [, <field>:<expr>...]}
 
 _A simple Unix-like cut_
 ```mdtest-command
-echo '{a:1,b:2,c:3}' | zq -z 'cut a,c' -
+echo '{a:1,b:2,c:3}' | super query -z -c 'cut a,c' -
 ```
 =>
 ```mdtest-output
@@ -51,7 +51,7 @@ echo '{a:1,b:2,c:3}' | zq -z 'cut a,c' -
 ```
 _Missing fields show up as missing errors_
 ```mdtest-command
-echo '{a:1,b:2,c:3}' | zq -z 'cut a,d' -
+echo '{a:1,b:2,c:3}' | super query -z -c 'cut a,d' -
 ```
 =>
 ```mdtest-output
@@ -59,7 +59,7 @@ echo '{a:1,b:2,c:3}' | zq -z 'cut a,d' -
 ```
 _The missing fields can be ignored with quiet_
 ```mdtest-command
-echo '{a:1,b:2,c:3}' | zq -z 'cut a:=quiet(a),d:=quiet(d)' -
+echo '{a:1,b:2,c:3}' | super query -z -c 'cut a:=quiet(a),d:=quiet(d)' -
 ```
 =>
 ```mdtest-output
@@ -67,7 +67,7 @@ echo '{a:1,b:2,c:3}' | zq -z 'cut a:=quiet(a),d:=quiet(d)' -
 ```
 _Non-record values generate missing errors for fields not present in a non-record `this`_
 ```mdtest-command
-echo '1 {a:1,b:2,c:3}' | zq -z 'cut a,b' -
+echo '1 {a:1,b:2,c:3}' | super query -z -c 'cut a,b' -
 ```
 =>
 ```mdtest-output
@@ -83,7 +83,7 @@ the output will be exported in formats such as `csv` or `parquet` (see also:
 :::
 
 ```mdtest-command
-echo '{a:1,b:null}{a:1,b:2}' | zq -z 'cut a,b:=coalesce(b, 0)' -
+echo '{a:1,b:null}{a:1,b:2}' | super query -z -c 'cut a,b:=coalesce(b, 0)' -
 ```
 =>
 ```mdtest-output

@@ -1,8 +1,8 @@
 script: |
   source service.sh
-  zed create -use -q test
-  ! zed delete -where 'me == "hi" | cut me'
-  ! zed delete -where 'cut that'
+  super db create -use -q test
+  ! super db delete -where 'me == "hi" | cut me'
+  ! super db delete -where 'cut that'
 
 inputs:
   - name: service.sh

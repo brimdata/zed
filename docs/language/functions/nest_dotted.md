@@ -17,7 +17,7 @@ converted into nested records. If no argument is supplied to `nest_dotted`,
 ### Examples
 
 ```mdtest-command
-echo '{"a.b.c":"foo"}' | zq -z 'yield nest_dotted()' -
+echo '{"a.b.c":"foo"}' | super query -z -c 'yield nest_dotted()' -
 ```
 =>
 ```mdtest-output

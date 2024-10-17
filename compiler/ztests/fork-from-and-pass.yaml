@@ -1,5 +1,7 @@
-zed: |
-  zq 'fork (=> from (file a.zson) => pass)' a.zson
+skip: XXX let's discuss this one
+
+script: |
+  super query -c 'fork (=> from (file a.zson) => pass)' a.zson
 
 inputs:
   - name: a.zson

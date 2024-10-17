@@ -1,15 +1,15 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
+  export SUPER_DB_LAKE=test
+  super db init -q
   for order in desc asc; do
     echo === $order ===
-    zed create -use -q -S 1KB -orderby ts:$order test
-    seq 1000 | zq '{ts:this-1,s:f"val{this-1}"}' - | zed load -q -
-    zed delete -q -where 'ts > 400 and ts <= 500'
-    zed query -z 'count:=count()'
-    zed delete -q -where 's == "val1" or s == "val999"'
-    zed query -z 'count:=count()'
-    zed drop -f -q test
+    super db create -use -q -S 1KB -orderby ts:$order test
+    seq 1000 | super query -c '{ts:this-1,s:f"val{this-1}"}' - | super db load -q -
+    super db delete -q -where 'ts > 400 and ts <= 500'
+    super db query -z 'count:=count()'
+    super db delete -q -where 's == "val1" or s == "val999"'
+    super db query -z 'count:=count()'
+    super db drop -f -q test
   done 
 
 outputs:

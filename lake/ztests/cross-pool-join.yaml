@@ -1,11 +1,11 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q fruit
-  zed create -q person
-  zed load -q -use fruit fruit.zson
-  zed load -q -use person person.zson
-  zed query -z -I join.zed
+  export SUPER_DB_LAKE=test
+  super db init -q
+  super db create -q fruit
+  super db create -q person
+  super db load -q -use fruit fruit.zson
+  super db load -q -use person person.zson
+  super db query -z -I join.zed
 
 inputs:
   - name: fruit.zson

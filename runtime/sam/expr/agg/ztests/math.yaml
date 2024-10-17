@@ -1,12 +1,12 @@
 script: |
-  zq -z "avg(n)" in.zson > avg.zson
-  zq -z "count()" in.zson > count.zson
-  zq -z "dcount(n)" in.zson in.zson > dcount.zson
+  super query -z -c "avg(n)" in.zson > avg.zson
+  super query -z -c "count()" in.zson > count.zson
+  super query -z -c "dcount(n)" in.zson in.zson > dcount.zson
   # "with -limit 1" exercises the partials paths.
-  zq -z "dcount(n) with -limit 1" in.zson in.zson > dcount-partials.zson
-  zq -z "any(n)" in.zson > any.zson
-  zq -z "min(n)" in.zson > min.zson
-  zq -z "max(n)" in.zson > max.zson
+  super query -z -c "dcount(n) with -limit 1" in.zson in.zson > dcount-partials.zson
+  super query -z -c "any(n)" in.zson > any.zson
+  super query -z -c "min(n)" in.zson > min.zson
+  super query -z -c "max(n)" in.zson > max.zson
 
 inputs:
   - name: in.zson

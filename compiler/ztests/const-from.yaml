@@ -1,4 +1,4 @@
-script: zq -z -I src.zed
+script: super query -z -I src.zed
 
 inputs:
   - name: src.zed

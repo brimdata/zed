@@ -18,7 +18,7 @@ non-record values are copied unmodified.
 
 _Drop of a field_
 ```mdtest-command
-echo '{a:1,b:2,c:3}' | zq -z 'drop b' -
+echo '{a:1,b:2,c:3}' | super query -z -c 'drop b' -
 ```
 =>
 ```mdtest-output
@@ -26,7 +26,7 @@ echo '{a:1,b:2,c:3}' | zq -z 'drop b' -
 ```
 _Non-record values are copied to output_
 ```mdtest-command
-echo '1 {a:1,b:2,c:3}' | zq -z 'drop a,b' -
+echo '1 {a:1,b:2,c:3}' | super query -z -c 'drop a,b' -
 ```
 =>
 ```mdtest-output

@@ -1,9 +1,9 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q -S 75B -orderby addr:asc logs
-  zed load -q -use logs in.zson
-  zed query -z 'from logs | cut addr'
+  export SUPER_DB_LAKE=test
+  super db init -q
+  super db create -q -S 75B -orderby addr:asc logs
+  super db load -q -use logs in.zson
+  super db query -z 'from logs | cut addr'
 
 inputs:
   - name: in.zson

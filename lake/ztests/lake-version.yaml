@@ -1,10 +1,10 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q test
+  export SUPER_DB_LAKE=test
+  super db init -q
+  super db create -q test
   mv test/lake.zng lake-orig.zng
-  zq -o test/lake.zng 'version:=1' lake-orig.zng
-  ! zed serve
+  super query -o test/lake.zng -c 'version:=1' lake-orig.zng
+  ! super db serve
 
 outputs:
   - name: stderr

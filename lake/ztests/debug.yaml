@@ -1,8 +1,8 @@
 script: |
-  zed init -q
-  zed create -use -q test
-  echo '{x: "foo"}' | zed load -q -
-  zed query -z 'debug f"debug: {x}"'
+  super db init -q
+  super db create -use -q test
+  echo '{x: "foo"}' | super db load -q -
+  super db query -z 'debug f"debug: {x}"'
 
 outputs:
   - name: stdout

@@ -1,15 +1,15 @@
 script: |
   source service.sh
-  zed create -q test
-  a=$(zed load -use test a.zson | head -1 | awk '{print $1}')
-  b=$(zed load -use test b.zson | head -1 | awk '{print $1}')
-  zed query -z "from test | sort this"
-  zed revert -q -use test $a
+  super db create -q test
+  a=$(super db load -use test a.zson | head -1 | awk '{print $1}')
+  b=$(super db load -use test b.zson | head -1 | awk '{print $1}')
+  super db query -z "from test | sort this"
+  super db revert -q -use test $a
   echo ===
-  zed query -z "from test | sort this"
-  zed revert -q -use test $b
+  super db query -z "from test | sort this"
+  super db revert -q -use test $b
   echo ===
-  zed query -z "from test | sort this"
+  super db query -z "from test | sort this"
 
 inputs:
   - name: a.zson

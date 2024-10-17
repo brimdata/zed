@@ -1,10 +1,10 @@
 script: |
   export ZED_LAKE=test
-  zed init -q
-  zed create -q samples
-  zed load -q -use samples schools.zson
-  zed create -q Orange
-  zed query -z 'from samples | County=="Orange" | load Orange@main author "Diane"' | sed -E 's/[0-9a-zA-Z]{42}/xxx/'
+  super db init -q
+  super db create -q samples
+  super db load -q -use samples schools.zson
+  super db create -q Orange
+  super db query -z 'from samples | County=="Orange" | load Orange@main author "Diane"' | sed -E 's/[0-9a-zA-Z]{42}/xxx/'
 
 inputs:
   - name: schools.zson

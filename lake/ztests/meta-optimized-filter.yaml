@@ -1,12 +1,12 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -use -q test
-  seq 20 | zq 'yield {ts: this}' - | zed load -q -
-  seq 21 40 | zq 'yield {ts: this}' - | zed load -q -
-  zed query -z 'from test:objects | max > 20 | cut min, max'
+  export SUPER_DB_LAKE=test
+  super db init -q
+  super db create -use -q test
+  seq 20 | super query -c 'yield {ts: this}' - | super db load -q -
+  seq 21 40 | super query -c 'yield {ts: this}' - | super db load -q -
+  super db query -z 'from test:objects | max > 20 | cut min, max'
   echo ===
-  zed query -z 'from test:partitions | max > 20 | cut min, max'
+  super db query -z 'from test:partitions | max > 20 | cut min, max'
 
 outputs:
   - name: stdout

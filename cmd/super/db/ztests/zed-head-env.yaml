@@ -1,0 +1,19 @@
+script: |
+  export SUPER_DB_LAKE=test
+  export ZED_HEAD_DIR=x
+  mkdir x
+  super db init -q
+  super db create -q -q POOL
+  super db use -q POOL
+  cat x/.zed_head
+  export ZED_HEAD_DIR=.
+  mkdir y
+  cd y
+  super db use -lake ../test -q POOL
+  cat .zed_head
+
+outputs:
+  - name: stdout
+    data: |
+      POOL@main
+      POOL@main

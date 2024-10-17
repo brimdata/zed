@@ -1,5 +1,5 @@
 script: |
-  ! zq -i zng -z -
+  ! super query -i zng -z -
 
 inputs:
   - name: stdin

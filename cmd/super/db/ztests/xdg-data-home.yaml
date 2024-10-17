@@ -1,0 +1,8 @@
+script: |
+  export XDG_DATA_HOME=path/to/lake
+  super db init
+
+outputs:
+  - name: stdout
+    regexp: |
+      lake created: file:.*path/to/lake/zed

@@ -59,7 +59,7 @@ These directives are supported:
 
 Print the year number as a string
 ```mdtest-command
-echo 2024-07-30T20:05:15.118252Z | zq -z 'strftime("%Y", this)' -
+echo 2024-07-30T20:05:15.118252Z | super query -z -c 'strftime("%Y", this)' -
 ```
 =>
 ```mdtest-output
@@ -68,7 +68,7 @@ echo 2024-07-30T20:05:15.118252Z | zq -z 'strftime("%Y", this)' -
 
 Print a date in European format with slashes
 ```mdtest-command
-echo 2024-07-30T20:05:15.118252Z | zq -z 'strftime("%d/%m/%Y", this)' -
+echo 2024-07-30T20:05:15.118252Z | super query -z -c 'strftime("%d/%m/%Y", this)' -
 ```
 =>
 ```mdtest-output
