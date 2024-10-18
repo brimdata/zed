@@ -2,8 +2,8 @@ script: |
   source service.sh
   for o in asc desc; do
     echo // $o | tee /dev/stderr
-    zed create -use -seekstride 2KB -orderby ts:$o -q $o
-    zed load -q babble.zson
+    super db create -use -seekstride 2KB -orderby ts:$o -q $o
+    super db load -q babble.zson
     source query.sh "ts >= 2020-04-21T23:59:26.063Z and ts <= 2020-04-21T23:59:38.069Z"
     source query.sh "ts == 2020-04-21T23:59:26.06326664Z"
     source query.sh "ts == 2020-04-21T23:59:26.06326664Z or foo == 'bar'"
@@ -16,7 +16,7 @@ inputs:
   - name: query.sh
     data: |
       echo // $1 | tee /dev/stderr
-      zed query -z -s "$1"
+      super db query -z -s "$1"
 
 outputs:
   - name: stdout

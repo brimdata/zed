@@ -17,7 +17,7 @@ which must be a numeric type.  The return type retains the type of the argument.
 
 The ceiling of a various numbers:
 ```mdtest-command
-echo '1.5 -1.5 1(uint8) 1.5(float32)' | zq -z 'yield ceil(this)' -
+echo '1.5 -1.5 1(uint8) 1.5(float32)' | super query -z -c 'yield ceil(this)' -
 ```
 =>
 ```mdtest-output

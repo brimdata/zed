@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/brimdata/super"
+	zed "github.com/brimdata/super"
 	"github.com/brimdata/super/api"
 	"github.com/brimdata/super/compiler"
 	"github.com/brimdata/super/compiler/parser"
@@ -106,7 +106,7 @@ func (l *local) Compact(ctx context.Context, poolID ksuid.KSUID, branchName stri
 }
 
 func (l *local) Query(ctx context.Context, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.Scanner, error) {
-	flowgraph, sset, err := parser.ParseZed(srcfiles, src)
+	flowgraph, sset, err := parser.ParseSuperPipe(srcfiles, src)
 	if err != nil {
 		return nil, err
 	}

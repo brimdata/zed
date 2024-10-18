@@ -8,9 +8,9 @@ import (
 	"github.com/brimdata/super/compiler/ast"
 )
 
-// ParseZed calls ConcatSource followed by Parse.  If Parse returns an error,
+// ParseSuperPipe calls ConcatSource followed by Parse.  If Parse returns an error,
 // ConcatSource tries to convert it to an ErrorList.
-func ParseZed(filenames []string, src string) (ast.Seq, *SourceSet, error) {
+func ParseSuperPipe(filenames []string, src string) (ast.Seq, *SourceSet, error) {
 	sset, err := ConcatSource(filenames, src)
 	if err != nil {
 		return nil, nil, err
@@ -55,7 +55,7 @@ func convertErrList(err error, sset *SourceSet) error {
 		if !ok {
 			return err
 		}
-		out.Append("error parsing Zed", pe.pos.offset, -1)
+		out.Append("error parsing SuperPipe", pe.pos.offset, -1)
 	}
 	out.SetSourceSet(sset)
 	return out

@@ -1,5 +1,5 @@
 script: |
-  zq -z -I count.zed in.zson
+  super query -z -I count.zed in.zson
 
 inputs:
   - name: count.zed

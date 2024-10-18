@@ -12,7 +12,7 @@ The `over` operator traverses complex values to create a new sequence
 of derived values (e.g., the elements of an array) and either
 (in the first form) sends the new values directly to its output or
 (in the second form) sends the values to a scoped computation as indicated
-by `<lateral>`, which may represent any Zed [subquery](../lateral-subqueries.md) operating on the
+by `<lateral>`, which may represent any SuperPipe [subquery](../lateral-subqueries.md) operating on the
 derived sequence of values as [`this`](../pipeline-model.md#the-special-value-this).
 
 Each expression `<expr>` is evaluated in left-to-right order and derived sequences are
@@ -32,7 +32,7 @@ The nested subquery depicted as `<lateral>` is called a [lateral subquery](../la
 
 _Over evaluates each expression and emits it_
 ```mdtest-command
-echo null | zq -z 'over 1,2,"foo"' -
+echo null | super query -z -c 'over 1,2,"foo"' -
 ```
 =>
 ```mdtest-output
@@ -42,7 +42,7 @@ echo null | zq -z 'over 1,2,"foo"' -
 ```
 _The over clause is evaluated once per each input value_
 ```mdtest-command
-echo "null null" | zq -z 'over 1,2' -
+echo "null null" | super query -z -c 'over 1,2' -
 ```
 =>
 ```mdtest-output
@@ -53,7 +53,7 @@ echo "null null" | zq -z 'over 1,2' -
 ```
 _Array elements are enumerated_
 ```mdtest-command
-echo null | zq -z 'over [1,2],[3,4,5]' -
+echo null | super query -z -c 'over [1,2],[3,4,5]' -
 ```
 =>
 ```mdtest-output
@@ -65,7 +65,7 @@ echo null | zq -z 'over [1,2],[3,4,5]' -
 ```
 _Over traversing an array_
 ```mdtest-command
-echo '{a:[1,2,3]}' | zq -z 'over a' -
+echo '{a:[1,2,3]}' | super query -z -c 'over a' -
 ```
 =>
 ```mdtest-output
@@ -76,7 +76,7 @@ echo '{a:[1,2,3]}' | zq -z 'over a' -
 _Filter the traversed values_
 
 ```mdtest-command
-echo '{a:[6,5,4]} {a:[3,2,1]}' | zq -z 'over a | this % 2 == 0' -
+echo '{a:[6,5,4]} {a:[3,2,1]}' | super query -z -c 'over a | this % 2 == 0' -
 ```
 =>
 ```mdtest-output
@@ -87,7 +87,7 @@ echo '{a:[6,5,4]} {a:[3,2,1]}' | zq -z 'over a | this % 2 == 0' -
 _Aggregate the traversed values_
 
 ```mdtest-command
-echo '{a:[1,2]} {a:[3,4,5]}' | zq -z 'over a | sum(this)' -
+echo '{a:[1,2]} {a:[3,4,5]}' | super query -z -c 'over a | sum(this)' -
 ```
 =>
 ```mdtest-output
@@ -95,7 +95,7 @@ echo '{a:[1,2]} {a:[3,4,5]}' | zq -z 'over a | sum(this)' -
 ```
 _Aggregate the traversed values in a lateral query_
 ```mdtest-command
-echo '{a:[1,2]} {a:[3,4,5]}' | zq -z 'over a => ( sum(this) )' -
+echo '{a:[1,2]} {a:[3,4,5]}' | super query -z -c 'over a => ( sum(this) )' -
 ```
 =>
 ```mdtest-output
@@ -105,7 +105,7 @@ echo '{a:[1,2]} {a:[3,4,5]}' | zq -z 'over a => ( sum(this) )' -
 _Access the outer values in a lateral query_
 ```mdtest-command
 echo '{a:[1,2],s:"foo"} {a:[3,4,5],s:"bar"}' |
-  zq -z 'over a with s => (sum(this) | yield {s,sum:this})' -
+  super query -z -c 'over a with s => (sum(this) | yield {s,sum:this})' -
 ```
 =>
 ```mdtest-output
@@ -115,7 +115,7 @@ echo '{a:[1,2],s:"foo"} {a:[3,4,5],s:"bar"}' |
 _Traverse a record by flattening it_
 ```mdtest-command
 echo '{s:"foo",r:{a:1,b:2}} {s:"bar",r:{a:3,b:4}} ' |
-  zq -z 'over flatten(r) with s => (yield {s,key:key[0],value})' -
+  super query -z -c 'over flatten(r) with s => (yield {s,key:key[0],value})' -
 ```
 =>
 ```mdtest-output

@@ -19,7 +19,7 @@ Quiet errors are ignored by operators `cut`, `summarize`, and `yield`.
 
 Yield processes a quiet error and thus no output:
 ```mdtest-command
-echo 'error("missing")' | zq -z 'yield quiet(this)' -
+echo 'error("missing")' | super query -z -c 'yield quiet(this)' -
 ```
 =>
 ```mdtest-output
@@ -27,7 +27,7 @@ echo 'error("missing")' | zq -z 'yield quiet(this)' -
 
 Without quiet, yield produces the missing error:
 ```mdtest-command
-echo 'error("missing")' | zq -z 'yield this' -
+echo 'error("missing")' | super query -z -c 'yield this' -
 ```
 =>
 ```mdtest-output
@@ -36,7 +36,7 @@ error("missing")
 
 The `cut` operator drops quiet errors but retains missing errors:
 ```mdtest-command
-echo '{a:1}' | zq -z 'cut b:=x+1,c:=quiet(x+1),d:=quiet(a+1)' -
+echo '{a:1}' | super query -z -c 'cut b:=x+1,c:=quiet(x+1),d:=quiet(a+1)' -
 ```
 =>
 ```mdtest-output

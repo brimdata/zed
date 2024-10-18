@@ -1,9 +1,9 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q logs
-  zed drop -f -q logs
-  ! zed log -use logs
+  export SUPER_DB_LAKE=test
+  super db init -q
+  super db create -q logs
+  super db drop -f -q logs
+  ! super db log -use logs
 
 inputs:
   - name: babble.zson

@@ -17,7 +17,7 @@ are null, `error("missing")`, or `error("quiet")`.
 ### Examples
 
 ```mdtest-command
-zq -z 'yield coalesce(null, error("missing"), error("quiet"), 1)'
+super query -z -c 'yield coalesce(null, error("missing"), error("quiet"), 1)'
 ```
 =>
 ```mdtest-output
@@ -25,7 +25,7 @@ zq -z 'yield coalesce(null, error("missing"), error("quiet"), 1)'
 ```
 
 ```mdtest-command
-zq -z 'yield coalesce(null, error("missing"), error("quiet"))'
+super query -z -c 'yield coalesce(null, error("missing"), error("quiet"))'
 ```
 =>
 ```mdtest-output

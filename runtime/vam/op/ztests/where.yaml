@@ -1,10 +1,10 @@
 script: |
-  zq -o t.vng -f vng -
-  zed dev vector query -z "where true" t.vng
+  super query -o t.vng -f vng -
+  super dev vector query -z "where true" t.vng
   echo //
-  zed dev vector query -z "where this != 2" t.vng
+  super dev vector query -z "where this != 2" t.vng
   echo //
-  zed dev vector query -z "where this" t.vng
+  super dev vector query -z "where this" t.vng
 
 inputs:
   - name: stdin

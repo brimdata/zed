@@ -21,7 +21,7 @@ is treated as the minimum or maximum value.
 ### Examples
 
 ```mdtest-command
-echo '{a: 2, b: "1"}' | zq -z 'yield compare(a, b)' -
+echo '{a: 2, b: "1"}' | super query -z -c 'yield compare(a, b)' -
 ```
 =>
 ```mdtest-output

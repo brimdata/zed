@@ -1,6 +1,6 @@
 script: |
   LAKE_EXTRA_FLAGS=-rootcontentfile=f source service.sh
-  curl $ZED_LAKE
+  curl $SUPER_DB_LAKE
 
 inputs:
   - name: f

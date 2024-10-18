@@ -1,7 +1,7 @@
 script: |
-  zq -z "grep(a*b,s)" in.zson
+  super query -z -c "grep(a*b,s)" in.zson
   echo ===
-  zq -z "s==a*b+1" in.zson
+  super query -z -c "s==a*b+1" in.zson
 
 inputs:
   - name: in.zson

@@ -1,13 +1,13 @@
 script: |
   source service.sh
-  zed create -use -q -orderby x:asc test
-  echo {x:1} | zed load -q -
-  r=$(echo {x:2} | zed load - | head -1 | awk '{print $1}')
-  r=$(zed revert $r | awk '{print $5}')
-  zed vacuum -dryrun
-  zed vacuum -f
-  zed revert -q $r
-  ! zed query -z '*'
+  super db create -use -q -orderby x:asc test
+  echo {x:1} | super db load -q -
+  r=$(echo {x:2} | super db load - | head -1 | awk '{print $1}')
+  r=$(super db revert $r | awk '{print $5}')
+  super db vacuum -dryrun
+  super db vacuum -f
+  super db revert -q $r
+  ! super db query -z '*'
 
 inputs:
   - name: service.sh

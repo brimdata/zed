@@ -1,0 +1,9 @@
+script: |
+  ! super query -z -c doesnotexist
+
+outputs:
+  - name: stdout
+    data: ""
+  - name: stderr
+    data: |
+      super query: no data source found

@@ -1,14 +1,14 @@
 script: |
   source service.sh
-  zed create -q p1
-  zed create -q p2
-  zed create -q p3
-  zed drop -f p3
+  super db create -q p1
+  super db create -q p2
+  super db create -q p3
+  super db drop -f p3
   echo === | tee /dev/stderr
-  zed ls -f zng | zq -z "cut name | sort name" -
+  super db ls -f zng | super query -z -c "cut name | sort name" -
   echo === | tee /dev/stderr
-  ! zed drop p3
-  ! zed drop -lake http://127.0.0.1:1 p3
+  ! super db drop p3
+  ! super db drop -lake http://127.0.0.1:1 p3
 
 inputs:
   - name: service.sh

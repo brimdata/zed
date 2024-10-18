@@ -1,5 +1,5 @@
 script: |
-  ! zq -z 'count() by ,x,y' -
+  ! super query -z -c 'count() by ,x,y' -
 
 inputs:
   - name: stdin
@@ -8,6 +8,6 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      zq: error parsing Zed at line 1, column 12:
+      super query: error parsing SuperPipe at line 1, column 12:
       count() by ,x,y
              === ^ ===

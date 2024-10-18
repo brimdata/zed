@@ -1,7 +1,7 @@
 script: |
-  zc -C -I test.zed
+  super dev compile -C -I test.zed
   echo ===
-  zc -s -C -I test.zed
+  super dev compile -s -C -I test.zed
 
 inputs:
   - name: test.zed

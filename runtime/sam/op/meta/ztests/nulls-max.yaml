@@ -2,16 +2,16 @@
 # ascending ordered pools.
 
 script: |
-  export ZED_LAKE=test
-  zed init -q
+  export SUPER_DB_LAKE=test
+  super db init -q
   for o in asc desc; do
     echo "// $o"
-    zed create -q -use -orderby ts:$o $o
-    echo '{ts:150} {ts:null}' | zed load -q -
-    echo '{ts:1}' | zed load -q -
-    zed query -z "from $o:objects | drop id, size"
+    super db create -q -use -orderby ts:$o $o
+    echo '{ts:150} {ts:null}' | super db load -q -
+    echo '{ts:1}' | super db load -q -
+    super db query -z "from $o:objects | drop id, size"
     echo "// ==="
-    zed query -z 'head 1'
+    super db query -z 'head 1'
   done
 
 outputs:

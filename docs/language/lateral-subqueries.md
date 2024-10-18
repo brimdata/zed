@@ -24,7 +24,7 @@ scoping.
 For example,
 ```mdtest-command
 echo '{s:"foo",a:[1,2]} {s:"bar",a:[3]}' |
-  zq -z 'over a with name=s => (yield {name,elem:this})' -
+  super query -z -c 'over a with name=s => (yield {name,elem:this})' -
 ```
 produces
 ```mdtest-output
@@ -59,7 +59,7 @@ You can also import a parent-scope field reference into the inner scope by
 simply referring to its name without assignment, e.g.,
 ```mdtest-command
 echo '{s:"foo",a:[1,2]} {s:"bar",a:[3]}' |
-  zq -z 'over a with s => (yield {s,elem:this})' -
+  super query -z -c 'over a with s => (yield {s,elem:this})' -
 ```
 produces
 ```mdtest-output
@@ -110,7 +110,7 @@ reads all values of the subsequence, sorts them, emits them, then
 repeats the process for the next subsequence.  For example,
 ```mdtest-command
 echo '[3,2,1] [4,1,7] [1,2,3]' | 
-  zq -z 'over this => (sort this | collect(this))' -
+  super query -z -c 'over this => (sort this | collect(this))' -
 ```
 produces
 ```mdtest-output
@@ -138,7 +138,7 @@ the results as inputs to the `<lateral>` pipeline.  Each time the
 lateral expression is evaluated, the lateral operators are run to completion,
 e.g.,
 ```mdtest-command
-echo '[3,2,1] [4,1,7] [1,2,3]' | zq -z 'yield (over this | sum(this))' -
+echo '[3,2,1] [4,1,7] [1,2,3]' | super query -z -c 'yield (over this | sum(this))' -
 ```
 produces
 ```mdtest-output
@@ -151,7 +151,7 @@ e.g., we can embed multiple lateral expressions inside of a record literal
 and use the spread operator to tighten up the output:
 ```mdtest-command
 echo '[3,2,1] [4,1,7] [1,2,3]' |
-  zq -z '
+  super query -z -c '
     {...(over this | sort this | sorted:=collect(this)),
      ...(over this | sum:=sum(this))}' -
 ```
@@ -166,7 +166,7 @@ at the conclusion of the lateral pipeline, they are automatically wrapped in
 an array, e.g.,
 ```mdtest-command
 echo '{x:1} {x:[2]} {x:[3,4]}' |
-  zq -z 'yield {s:(over x | yield this+1)}' -
+  super query -z -c 'yield {s:(over x | yield this+1)}' -
 ```
 produces
 ```mdtest-output
@@ -179,7 +179,7 @@ always receives consistently packaged values by explicitly wrapping the result
 of the lateral scope, e.g.,
 ```mdtest-command
 echo '{x:1} {x:[2]} {x:[3,4]}' |
-  zq -z 'yield {s:(over x | yield this+1 | collect(this))}' -
+  super query -z -c 'yield {s:(over x | yield this+1 | collect(this))}' -
 ```
 produces
 ```mdtest-output

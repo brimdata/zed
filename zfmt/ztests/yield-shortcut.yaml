@@ -1,15 +1,15 @@
 script: |
-  zc -C '{x:1,...y}'
-  zc -C '[1,2,3]'
-  zc -C '|["foo","bar"]|'
-  zc -C '|{"foo":1,"bar":2}|'
-  zc -C '<(int64,string)>(1)'
+  super dev compile -C '{x:1,...y}'
+  super dev compile -C '[1,2,3]'
+  super dev compile -C '|["foo","bar"]|'
+  super dev compile -C '|{"foo":1,"bar":2}|'
+  super dev compile -C '<(int64,string)>(1)'
   echo "==="
-  zc -s -C '{x:1,...y}'
-  zc -s -C '[1,2,3]'
-  zc -s -C '|["foo","bar"]|'
-  zc -s -C '|{"foo":1,"bar":2}|'
-  zc -s -C '<(int64,string)>(1)'
+  super dev compile -s -C '{x:1,...y}'
+  super dev compile -s -C '[1,2,3]'
+  super dev compile -s -C '|["foo","bar"]|'
+  super dev compile -s -C '|{"foo":1,"bar":2}|'
+  super dev compile -s -C '<(int64,string)>(1)'
 
 outputs:
   - name: stdout

@@ -5,17 +5,17 @@ sidebar_label: Join
 
 # Join Overview
 
-This is a brief primer on Zed's [`join` operator](../language/operators/join.md).
+This is a brief primer on the SuperPipe [`join` operator](../language/operators/join.md).
 
 Currently, `join` is limited in that only equi-join (i.e., a join predicate
 containing `=`) is supported.
 
 ## Example Data
 
-The first input data source for our usage examples is `fruit.ndjson`, which describes
+The first input data source for our usage examples is `fruit.json`, which describes
 the characteristics of some fresh produce.
 
-```mdtest-input fruit.ndjson
+```mdtest-input fruit.json
 {"name":"apple","color":"red","flavor":"tart"}
 {"name":"banana","color":"yellow","flavor":"sweet"}
 {"name":"avocado","color":"green","flavor":"savory"}
@@ -24,10 +24,10 @@ the characteristics of some fresh produce.
 {"name":"figs","color":"brown","flavor":"plain"}
 ```
 
-The other input data source is `people.ndjson`, which describes the traits
+The other input data source is `people.json`, which describes the traits
 and preferences of some potential eaters of fruit.
 
-```mdtest-input people.ndjson
+```mdtest-input people.json
 {"name":"morgan","age":61,"likes":"tart"}
 {"name":"quinn","age":14,"likes":"sweet","note":"many kids enjoy sweets"}
 {"name":"jessie","age":30,"likes":"plain"}
@@ -43,17 +43,17 @@ the joined results.
 Because we're performing an inner join (the default), the
 explicit `inner` is not strictly necessary, but including it clarifies our intention.
 
-The Zed script `inner-join.zed`:
-```mdtest-input inner-join.zed
-file fruit.ndjson
+The SuperPipe query `inner-join.spq`:
+```mdtest-input inner-join.spq
+file fruit.json
 | inner join (
-  file people.ndjson
+  file people.json
 ) on flavor=likes eater:=name
 ```
 
-Executing the Zed script:
+Executing the query:
 ```mdtest-command
-zq -z -I inner-join.zed
+super query -z -I inner-join.spq
 ```
 produces
 ```mdtest-output
@@ -78,18 +78,18 @@ As another variation, we'll also copy over the age of the matching person. By
 referencing only the field name rather than using `:=` for assignment, the
 original field name `age` is maintained in the results.
 
-The Zed script `left-join.zed`:
-```mdtest-input left-join.zed
-file fruit.ndjson
+The query `left-join.spq`:
+```mdtest-input left-join.spq
+file fruit.json
 | left join (
-  file people.ndjson
+  file people.json
 ) on flavor=likes eater:=name,age
 ```
 
-Executing the Zed script:
+Executing the query:
 
 ```mdtest-command
-zq -z -I left-join.zed
+super query -z -I left-join.spq
 ```
 produces
 ```mdtest-output
@@ -105,22 +105,22 @@ produces
 ## Right join
 
 :::tip note
-In some databases a right join is called a _right outer join_.
+In SQL, a right join is called a _right outer join_.
 :::
 
 Next we'll change the join type from `left` to `right`. Notice that this causes
 the `note` field from the right-hand input to appear in the joined results.
 
-The Zed script `right-join.zed`:
-```mdtest-input right-join.zed
-file fruit.ndjson
+The query `right-join.spq`:
+```mdtest-input right-join.spq
+file fruit.json
 | right join (
-  file people.ndjson
+  file people.json
 ) on flavor=likes fruit:=name
 ```
-Executing the Zed script:
+Executing the query:
 ```mdtest-command
-zq -z -I right-join.zed
+super query -z -I right-join.spq
 ```
 produces
 ```mdtest-output
@@ -134,34 +134,34 @@ produces
 
 ## Inputs from Pools
 
-As our prior examples all used `zq`, we used the
-[`file` operator](../language/operators/file.md) to pull our respective inputs
-from named file sources.  However, if the inputs are stored in pools in a Zed
-lake, we would instead specify those pools using the
+In the examples above, we used the
+[`file` operator](../language/operators/file.md) to read our respective inputs
+from named file sources.  However, if the inputs are stored in pools in a SuperDB
+data lake, we would instead specify the sources as data pools using the
 [`from` operator](../language/operators/from.md).
 
-Here we'll load our input data to pools in a temporary Zed lake, then execute
-our inner join using `zed query`.
+Here we'll load our input data to pools in a temporary data lake, then execute
+our inner join using `super db query`.
 
-The Zed script `inner-join-pools.zed`:
+The query `inner-join-pools.spq`:
 
-```mdtest-input inner-join-pools.zed
+```mdtest-input inner-join-pools.spq
 from fruit
 | inner join (
   from people
 ) on flavor=likes eater:=name
 ```
 
-Populating the pools, then executing the Zed script:
+Populating the pools, then executing the query:
 
 ```mdtest-command
-export ZED_LAKE=lake
-zed init -q
-zed create -q -orderby flavor:asc fruit
-zed create -q -orderby likes:asc people
-zed load -q -use fruit fruit.ndjson
-zed load -q -use people people.ndjson
-zed query -z -I inner-join-pools.zed
+export SUPER_DB_LAKE=lake
+super db init -q
+super db create -q -orderby flavor:asc fruit
+super db create -q -orderby likes:asc people
+super db load -q -use fruit fruit.json
+super db load -q -use people people.json
+super db query -z -I inner-join-pools.spq
 ```
 produces
 ```mdtest-output
@@ -184,17 +184,17 @@ which left and right inputs are specified by the two branches of a preceding
 Here we'll use the alternate syntax to perform the same inner join shown earlier
 in the [Inner Join section](#inner-join).
 
-The Zed script `inner-join-alternate.zed`:
-```mdtest-input inner-join-alternate.zed
+The query `inner-join-alternate.spq`:
+```mdtest-input inner-join-alternate.spq
 from (
-  file fruit.ndjson
-  file people.ndjson
+  file fruit.json
+  file people.json
 ) | inner join on flavor=likes eater:=name
 ```
 
-Executing the Zed script:
+Executing the query:
 ```mdtest-command
-zq -z -I inner-join-alternate.zed
+super query -z -I inner-join-alternate.spq
 ```
 produces
 ```mdtest-output
@@ -209,26 +209,26 @@ produces
 ## Self Joins
 
 In addition to the named files and pools like we've used in the prior examples,
-Zed is also intended to work on a single sequence of data that is split and
+SuperPipe also works on a single sequence of data that is split and
 joined to itself.  Here we'll combine our file sources into a stream that we'll
-pipe into `zq` via stdin.  Because `join` requires two separate inputs, here
+pipe into `super query` via stdin.  Because `join` requires two separate inputs, here
 we'll use the `has()` function inside a `switch` operator to identify the
 records in the stream that will be treated as the left and right sides.  Then
 we'll use the [alternate syntax for `join`](#alternate-syntax) to read those two
 inputs.
 
-The Zed script `inner-join-streamed.zed`:
+The query `inner-join-streamed.spq`:
 
-```mdtest-input inner-join-streamed.zed
+```mdtest-input inner-join-streamed.spq
 switch (
   case has(color) => pass
   case has(age) => pass
 ) | inner join on flavor=likes eater:=name
 ```
 
-Executing the Zed script:
+Executing the query:
 ```mdtest-command
-cat fruit.ndjson people.ndjson | zq -z -I inner-join-streamed.zed -
+cat fruit.json people.json | super query -z -I inner-join-streamed.spq -
 ```
 produces
 ```mdtest-output
@@ -242,15 +242,15 @@ produces
 
 ## Multi-value Joins
 
-The equality test in a Zed `join` accepts only one named key from each input.
+The equality test in a `join` accepts only one named key from each input.
 However, joins on multiple matching values can still be performed by making the
 values available in comparable complex types, such as embedded records.
 
-To illustrate this, we'll introduce some new input data `inventory.ndjson`
+To illustrate this, we'll introduce some new input data `inventory.json`
 that represents a vendor's available quantity of fruit for sale. As the colors
 indicate, they separately offer both ripe and unripe fruit.
 
-```mdtest-input inventory.ndjson
+```mdtest-input inventory.json
 {"name":"banana","color":"yellow","quantity":1000}
 {"name":"banana","color":"green","quantity":5000}
 {"name":"strawberry","color":"red","quantity":3000}
@@ -258,23 +258,23 @@ indicate, they separately offer both ripe and unripe fruit.
 ```
 
 Let's assume we're interested in seeing the available quantities of only the
-ripe fruit in our `fruit.ndjson`
-records. In the Zed script `multi-value-join.zed`, we create the keys as
+ripe fruit in our `fruit.json`
+records. In the query `multi-value-join.spq`, we create the keys as
 embedded records inside each input record, using the same field names and data
 types in each. We'll leave the created `fruitkey` records intact to show what
 they look like, but since it represents redundant data, in practice we'd
-typically [`drop`](../language/operators/drop.md) it after the `join` in our Zed pipeline.
+typically [`drop`](../language/operators/drop.md) it after the `join` in our pipeline.
 
-```mdtest-input multi-value-join.zed
-file fruit.ndjson | put fruitkey:={name,color}
+```mdtest-input multi-value-join.spq
+file fruit.json | put fruitkey:={name,color}
 | inner join (
-  file inventory.ndjson | put invkey:={name,color}
+  file inventory.json | put invkey:={name,color}
 ) on fruitkey=invkey quantity
 ```
 
-Executing the Zed script:
+Executing the query:
 ```mdtest-command
-zq -z -I multi-value-join.zed
+super query -z -I multi-value-join.spq
 ```
 produces
 ```mdtest-output
@@ -285,11 +285,11 @@ produces
 ## Joining More Than Two Inputs
 
 While the `join` operator takes only two inputs, more inputs can be joined by
-extending the Zed pipeline.
+extending the pipeline.
 
-To illustrate this, we'll introduce some new input data in `prices.ndjson`.
+To illustrate this, we'll introduce some new input data in `prices.json`.
 
-```mdtest-input prices.ndjson
+```mdtest-input prices.json
 {"name":"apple","price":3.15}
 {"name":"banana","price":4.01}
 {"name":"avocado","price":2.50}
@@ -298,24 +298,24 @@ To illustrate this, we'll introduce some new input data in `prices.ndjson`.
 {"name":"figs","price": 1.60}
 ```
 
-In our Zed script `three-way-join.zed` we'll extend the pipeline we used
+In our query `three-way-join.spq` we'll extend the pipeline we used
 previously for our inner join by piping its output to an additional join
 against the price list.
 
-```mdtest-input three-way-join.zed
-file fruit.ndjson
+```mdtest-input three-way-join.spq
+file fruit.json
 | inner join (
-  file people.ndjson
+  file people.json
 ) on flavor=likes eater:=name
 | inner join (
-  file prices.ndjson
+  file prices.json
 ) on name=name price:=price
 ```
 
-Executing the Zed script:
+Executing the query:
 
 ```mdtest-command
-zq -z -I three-way-join.zed
+super query -z -I three-way-join.spq
 ```
 
 produces
@@ -341,19 +341,19 @@ One way to work around this limitation is to specify `this` in the field list
 to copy the contents of the _entire_ opposite record into an embedded record
 in the result.
 
-The Zed script `embed-opposite.zed`:
+The query `embed-opposite.spq`:
 
-```mdtest-input embed-opposite.zed
-file fruit.ndjson
+```mdtest-input embed-opposite.spq
+file fruit.json
 | inner join (
-  file people.ndjson
+  file people.json
 ) on flavor=likes eaterinfo:=this
 ```
 
-Executing the Zed script:
+Executing the query:
 
 ```mdtest-command
-zq -z -I embed-opposite.zed
+super query -z -I embed-opposite.spq
 ```
 produces
 ```mdtest-output
@@ -370,23 +370,23 @@ records can easily be merged with the
 [spread operator](../language/expressions.md#record-expressions). Additional
 processing may be necessary to handle conflicting field names, such as
 in the example just shown where the `name` field is used differently in the
-left and right inputs. We'll demonstrate this by augmenting `embed-opposite.zed`
-to produce `merge-opposite.zed`.
+left and right inputs. We'll demonstrate this by augmenting `embed-opposite.spq`
+to produce `merge-opposite.spq`.
 
-```mdtest-input merge-opposite.zed
-file fruit.ndjson
+```mdtest-input merge-opposite.spq
+file fruit.json
 | inner join (
-  file people.ndjson
+  file people.json
 ) on flavor=likes eaterinfo:=this
 | rename fruit:=name
 | yield {...this,...eaterinfo}
 | drop eaterinfo
 ```
 
-Executing the Zed script:
+Executing the query:
 
 ```mdtest-command
-zq -z -I merge-opposite.zed
+super query -z -I merge-opposite.spq
 ```
 
 produces

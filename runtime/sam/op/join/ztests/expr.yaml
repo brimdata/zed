@@ -1,11 +1,11 @@
 script: |
-  zq -z 'left join (file B.zson) on s b' A.zson
+  super query -z -c 'left join (file B.zson) on s b' A.zson
   echo ===
-  zq -z 'left join (file B.zson) on s=(lower(s)) b' A.zson
+  super query -z -c 'left join (file B.zson) on s=(lower(s)) b' A.zson
   echo ===
-  zq -z 'left join (file B.zson) on (lower(s))=(lower(s)) b' A.zson
+  super query -z -c 'left join (file B.zson) on (lower(s))=(lower(s)) b' A.zson
   echo ===
-  zq -z 'left join (file B.zson) on s' A.zson
+  super query -z -c 'left join (file B.zson) on s' A.zson
 
 inputs:
   - name: A.zson

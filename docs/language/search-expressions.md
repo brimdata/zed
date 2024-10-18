@@ -32,7 +32,7 @@ and is documented in the
 
 Regular expressions may be used freely in search expressions, e.g.,
 ```mdtest-command
-echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' | zq -z '/(foo|bar)/' -
+echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' | super query -z -c '/(foo|bar)/' -
 ```
 produces
 ```mdtest-output
@@ -44,7 +44,7 @@ Regular expressions may also appear in the [`grep`](functions/grep.md),
 [`regexp`](functions/regexp.md), and [`regexp_replace`](functions/regexp_replace.md) functions:
 ```mdtest-command
 echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' |
-  zq -z 'yield {ba_start:grep(/^ba.*/, s),last_s_char:regexp(/(.)$/,s)[1]}' -
+  super query -z -c 'yield {ba_start:grep(/^ba.*/, s),last_s_char:regexp(/(.)$/,s)[1]}' -
 ```
 produces
 ```mdtest-output
@@ -73,7 +73,7 @@ followed by any of these characters, `*`, or digits `0` through `9`.
 
 For example, a prefix match is easily accomplished via `prefix*`, e.g.,
 ```mdtest-command
-echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' | zq -z 'b*' -
+echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' | super query -z -c 'b*' -
 ```
 produces
 ```mdtest-output
@@ -82,7 +82,7 @@ produces
 ```
 Likewise, a suffix match may be performed as follows:
 ```mdtest-command
-echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' | zq -z '*z' -
+echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' | super query -z -c '*z' -
 ```
 produces
 ```mdtest-output
@@ -90,7 +90,7 @@ produces
 ```
 and
 ```mdtest-command
-echo '"foo" {s:"bar"} {s:"baz"} {a:1}' | zq -z '*a*' -
+echo '"foo" {s:"bar"} {s:"baz"} {a:1}' | super query -z -c '*a*' -
 ```
 produces
 ```mdtest-output
@@ -101,7 +101,7 @@ produces
 
 Globs may also appear in the `grep` function:
 ```mdtest-command
-echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' | zq -z 'yield grep(ba*, s)' -
+echo '"foo" {s:"bar"} {s:"baz"} {foo:1}' | super query -z -c 'yield grep(ba*, s)' -
 ```
 produces
 ```mdtest-output

@@ -10,16 +10,18 @@ parse_zson(s: string) -> any
 
 ### Description
 
+XXX change this to parse_sup()
+
 The _parse_zson_ function parses the `s` argument that must be in the form
-of ZSON or JSON into a Zed value of any type.  This is analogous to JavaScript's
+of Super JSON or JSON into a value of any type.  This is analogous to JavaScript's
 `JSON.parse()` function.
 
 ### Examples
 
-_Parse ZSON text_
+_Parse Super JSON text_
 
 ```mdtest-command
-echo '{foo:"{a:\"1\",b:2}"}' | zq -z 'foo := parse_zson(foo)' -
+echo '{foo:"{a:\"1\",b:2}"}' | super query -z -c 'foo := parse_zson(foo)' -
 ```
 =>
 ```mdtest-output
@@ -29,7 +31,7 @@ echo '{foo:"{a:\"1\",b:2}"}' | zq -z 'foo := parse_zson(foo)' -
 _Parse JSON text_
 ```mdtest-command
 echo '{"foo": "{\"a\": \"1\", \"b\": 2}"}' |
-  zq -z 'foo := parse_zson(foo)' -
+  super query -z -c 'foo := parse_zson(foo)' -
 ```
 =>
 ```mdtest-output

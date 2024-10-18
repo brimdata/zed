@@ -1,7 +1,7 @@
 script: |
-  zq -z 'count()' in.zson
+  super query -z -c 'count()' in.zson
   for agg in and any collect dcount fuse min max or sum union; do
-    ! zq -z "$agg()" in.zson
+    ! super query -z -c "$agg()" in.zson
   done
 
 inputs:

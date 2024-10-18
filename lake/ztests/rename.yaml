@@ -1,16 +1,16 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q p1
-  zed create -q p2
-  zed rename p2 p3
+  export SUPER_DB_LAKE=test
+  super db init -q
+  super db create -q p1
+  super db create -q p2
+  super db rename p2 p3
   echo ===
-  zed ls | sort
+  super db ls | sort
   echo ===
-  zed drop -f p1
+  super db drop -f p1
   echo ===
-  ! zed rename p1 p4
-  ! zed rename p2 p4
+  ! super db rename p1 p4
+  ! super db rename p2 p4
 
 outputs:
   - name: stdout

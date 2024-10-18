@@ -1,16 +1,16 @@
 script: |
-  ! zc -lake='' -C -s 'from p'
+  ! super dev compile -lake='' -C -s 'from p'
   echo === >&2
   export ZED_LAKE=test
-  zed init
-  ! zc -C -s 'from test'
+  super db init
+  ! super dev compile -C -s 'from test'
   echo === >&2
-  ! zc -C -s 'from test*'
+  ! super dev compile -C -s 'from test*'
   echo === >&2
-  ! zc -C -s 'from /test/'
+  ! super dev compile -C -s 'from /test/'
   echo === >&2
-  zed create -q test
-  ! zc -C -s 'from (pool * => count())'
+  super db create -q test
+  ! super dev compile -C -s 'from (pool * => count())'
 
 outputs:
   - name: stderr

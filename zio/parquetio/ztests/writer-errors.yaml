@@ -1,9 +1,9 @@
 script: |
-  ! echo '{a:1} {b:2}' | zq -f parquet -
-  ! echo 1 | zq -f parquet -
-  ! echo {} | zq -f parquet -
-  ! echo {a:1s} | zq -f parquet -
-  ! echo '{a:1.(float16)}' | zq -f parquet -
+  ! echo '{a:1} {b:2}' | super query -f parquet -
+  ! echo 1 | super query -f parquet -
+  ! echo {} | super query -f parquet -
+  ! echo {a:1s} | super query -f parquet -
+  ! echo '{a:1.(float16)}' | super query -f parquet -
 
 outputs:
   - name: stderr

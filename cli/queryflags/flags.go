@@ -8,9 +8,7 @@ import (
 	"net/url"
 	"os"
 	"slices"
-	"strings"
 
-	"github.com/brimdata/super/cli"
 	"github.com/brimdata/super/compiler"
 	"github.com/brimdata/super/compiler/ast"
 	"github.com/brimdata/super/compiler/data"
@@ -32,36 +30,33 @@ func (f *Flags) SetFlags(fs *flag.FlagSet) {
 	fs.Var(&f.Includes, "I", "source file containing Zed query text (may be used multiple times)")
 }
 
-func (f *Flags) ParseSourcesAndInputs(paths []string) ([]string, ast.Seq, *parser.SourceSet, bool, error) {
-	var src string
-	if len(paths) != 0 && !cli.FileExists(paths[0]) && !isURLWithKnownScheme(paths[0], "http", "https", "s3") {
-		src = paths[0]
-		paths = paths[1:]
-		if len(paths) == 0 {
-			// Consider a lone argument to be a query if it compiles
-			// and appears to start with a from or yield operator.
-			// Otherwise, consider it a file.
-			query, sset, err := compiler.Parse(src, f.Includes...)
-			if err != nil {
-				return nil, nil, nil, false, singleArgError(src, err)
-			}
-			s, err := semantic.Analyze(context.Background(), query, data.NewSource(storage.NewLocalEngine(), nil), nil)
-			if err != nil {
-				if list, ok := err.(parser.ErrorList); ok {
-					list.SetSourceSet(sset)
-				}
-				return nil, nil, nil, false, err
-			}
-			if semantic.HasSource(s) {
-				return nil, query, sset, false, nil
-			}
-			if semantic.StartsWithYield(s) {
-				return nil, query, sset, true, nil
-			}
-			return nil, nil, nil, false, singleArgError(src, nil)
+func (f *Flags) ParseSourcesAndInputs(src string, paths []string) ([]string, ast.Seq, *parser.SourceSet, bool, error) {
+	if len(paths) == 0 && src != "" {
+		// Consider a lone argument to be a query if it compiles
+		// and appears to start with a from or yield operator.
+		// Otherwise, consider it a file.
+		query, sset, err := compiler.Parse(src, f.Includes...)
+		if err != nil {
+			return nil, nil, nil, false, err
 		}
+		s, err := semantic.Analyze(context.Background(), query, data.NewSource(storage.NewLocalEngine(), nil), nil)
+		if err != nil {
+			if list, ok := err.(parser.ErrorList); ok {
+				list.SetSourceSet(sset)
+			}
+			return nil, nil, nil, false, err
+		}
+		//XXX we should simplify this logic, e.g., by inserting a null source
+		// if no source is given (this is how sql "select count(*)" works with no from)
+		if semantic.HasSource(s) {
+			return nil, query, sset, false, nil
+		}
+		if semantic.StartsWithYield(s) {
+			return nil, query, sset, true, nil
+		}
+		return nil, nil, nil, false, errors.New("no data source found")
 	}
-	query, sset, err := parser.ParseZed(f.Includes, src)
+	query, sset, err := parser.ParseSuperPipe(f.Includes, src)
 	if err != nil {
 		return nil, nil, nil, false, err
 	}
@@ -84,24 +79,4 @@ func (f *Flags) PrintStats(stats zbuf.Progress) {
 		}
 		fmt.Fprintln(os.Stderr, out)
 	}
-}
-
-func singleArgError(src string, err error) error {
-	var b strings.Builder
-	b.WriteString("could not invoke zq with a single argument because:")
-	if len(src) > 20 {
-		src = src[:20] + "..."
-	}
-	fmt.Fprintf(&b, "\n - a file could not be found with the name %q", src)
-	if list := (parser.ErrorList)(nil); errors.As(err, &list) {
-		b.WriteString("\n - the argument could not be compiled as a valid Zed query:")
-		for _, line := range strings.Split(list.Error(), "\n") {
-			fmt.Fprintf(&b, "\n   %s", line)
-		}
-	} else if err == nil {
-		b.WriteString("\n - the argument is a valid Zed query but does not begin with a source (e.g., \"file input.zson\") or yield operator")
-	} else {
-		b.WriteString("\n - the argument did not parse as a valid Zed query")
-	}
-	return errors.New(b.String())
 }

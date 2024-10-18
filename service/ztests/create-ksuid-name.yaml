@@ -1,9 +1,9 @@
 # Test that a pool can be given a ksuid name and everything still works.
 script: |
   source service.sh
-  zed create 2WwyVrZdEITo5WkKu1YsJC4dMjU
-  zed use 2WwyVrZdEITo5WkKu1YsJC4dMjU
-  zed query 'from 2WwyVrZdEITo5WkKu1YsJC4dMjU'
+  super db create 2WwyVrZdEITo5WkKu1YsJC4dMjU
+  super db use 2WwyVrZdEITo5WkKu1YsJC4dMjU
+  super db query 'from 2WwyVrZdEITo5WkKu1YsJC4dMjU'
 
 inputs:
   - name: service.sh

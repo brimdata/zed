@@ -2,7 +2,7 @@
 # schemas, ensuring that they properly share a ZNG type context.
 
 script: |
-  zq conn.parquet dns.parquet | zq -z -
+  super query conn.parquet dns.parquet | super query - | super query -z -
 
 inputs:
   - name: conn.parquet

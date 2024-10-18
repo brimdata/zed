@@ -20,7 +20,7 @@ types to a smaller number of fused types each from a set of interrelated types.
 
 Fuse two records:
 ```mdtest-command
-echo '{a:1,b:2}{a:2,b:"foo"}' | zq -z 'fuse(this)' -
+echo '{a:1,b:2}{a:2,b:"foo"}' | super query -z -c 'fuse(this)' -
 ```
 =>
 ```mdtest-output
@@ -29,7 +29,7 @@ echo '{a:1,b:2}{a:2,b:"foo"}' | zq -z 'fuse(this)' -
 Fuse records with a group-by key:
 ```mdtest-command
 echo '{a:1,b:"bar"}{a:2.1,b:"foo"}{a:3,b:"bar"}' |
-  zq -z 'fuse(this) by b | sort' -
+  super query -z -c 'fuse(this) by b | sort' -
 ```
 =>
 ```mdtest-output

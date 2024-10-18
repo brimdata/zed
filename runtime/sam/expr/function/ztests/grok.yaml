@@ -1,16 +1,16 @@
 script: |
-  zq -z 'grok(pattern, field)' simple.zson
+  super query -z -c 'grok(pattern, field)' simple.zson
   echo "// ==="
-  echo '"0-1-2"' | zq -z -I patterns.zed -
+  echo '"0-1-2"' | super query -z -I patterns.zed -
   echo "// ==="
   # Ignores type annotation.
-  echo '"0"' | zq -z 'grok("%{INT:int:int64}", this)' -
+  echo '"0"' | super query -z -c 'grok("%{INT:int:int64}", this)' -
   echo "// ==="
   # Check to see that duplicate fields are squashed. This is not great but
   # this is what grokconstructor.appspot.com does.
-  zq -z 'grok("%{INT:one} %{INT:one}", "1 2")'
+  super query -z -c 'grok("%{INT:one} %{INT:one}", "1 2")'
   echo "// ==="
-  echo '"string value"' | zq -z 'grok("%{INT:int}", this)' -
+  echo '"string value"' | super query -z -c 'grok("%{INT:int}", this)' -
 
 inputs:
   - name: simple.zson

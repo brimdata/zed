@@ -1,8 +1,8 @@
 script: |
   source service.sh
-  zed create -use -q test
-  echo '{x: "foo"}' | zed load -q -
-  zed query -z 'debug f"debug: {x}"'
+  super db create -use -q test
+  echo '{x: "foo"}' | super db load -q -
+  super db query -z 'debug f"debug: {x}"'
 
 inputs:
   - name: service.sh

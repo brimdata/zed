@@ -1,7 +1,7 @@
 script: |
-  zc -C 'file a | join (file b) on c'
+  super dev compile -C 'file a | join (file b) on c'
   echo ===
-  zc -C -s 'file a | join (file b) on c'
+  super dev compile -C -s 'file a | join (file b) on c'
 
 outputs:
   - name: stdout

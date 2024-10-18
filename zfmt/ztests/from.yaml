@@ -1,25 +1,25 @@
 script: |
-  zc -C 'file path'
+  super dev compile -C 'file path'
   echo ===
-  zc -C 'file path format f'
+  super dev compile -C 'file path format f'
   echo ===
-  zc -C 'get http://host/path'
+  super dev compile -C 'get http://host/path'
   echo ===
-  zc -C 'get http://host/path format f'
+  super dev compile -C 'get http://host/path format f'
   echo ===
-  zc -C 'from foo'
+  super dev compile -C 'from foo'
   echo ===
-  zc -C 'from foo*'
+  super dev compile -C 'from foo*'
   echo ===
-  zc -C 'from /foo/'
+  super dev compile -C 'from /foo/'
   echo ===
-  zc -C 'from ( file path get http://host/path pool name )'
+  super dev compile -C 'from ( file path get http://host/path pool name )'
   echo ===
-  zc -C 'from ( file path format f get http://host/path format g pool name )'
+  super dev compile -C 'from ( file path format f get http://host/path format g pool name )'
   echo ===
-  zc -C 'from ( file path => head get http://host/path => head pool name => head )'
+  super dev compile -C 'from ( file path => head get http://host/path => head pool name => head )'
   echo ===
-  zc -C 'from ( file path format f => head get http://host/path format g => head pool name => head )'
+  super dev compile -C 'from ( file path format f => head get http://host/path format g => head pool name => head )'
 
 outputs:
   - name: stdout

@@ -6,10 +6,10 @@ script: |
   {
     seq -f '{x: "0", y: "1", z: "%.0f"}' 257
     seq -f '{x: "0", y: "2", z: "%.0f"}' 257
-  } | zq -o t.vng -f vng -
-  zed dev vector query -z 'count() by x' t.vng
-  zed dev vector query -z 'count() by y' t.vng | zq -z 'sort y' -
-  zed dev vector query -z 'count() by z' t.vng | zq -z 'z=="257"' -
+  } | super query -o t.vng -f vng -
+  super dev vector query -z 'count() by x' t.vng
+  super dev vector query -z 'count() by y' t.vng | super query -z -c 'sort y' -
+  super dev vector query -z 'count() by z' t.vng | super query -z -c 'z=="257"' -
 
 outputs:
   - name: stdout

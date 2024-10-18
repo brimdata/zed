@@ -54,7 +54,7 @@ type Channel struct {
 }
 
 func Analyze(ctx context.Context, query string, src *data.Source, head *lakeparse.Commitish) (*Info, error) {
-	seq, sset, err := parser.ParseZed(nil, query)
+	seq, sset, err := parser.ParseSuperPipe(nil, query)
 	if err != nil {
 		return nil, err
 	}

@@ -292,7 +292,7 @@ For example, if we assume this input file `weird.ndjson`
 applying the reference shaper via
 
 ```mdtest-command
-zq -Z -I shaper.zed weird.ndjson
+super query -Z -I shaper.zed weird.ndjson
 ```
 
 produces
@@ -323,7 +323,7 @@ output them all in a single binary [ZNG](../../formats/zng.md) file as
 follows:
 
 ```
-zq -I shaper.zed *.log > /tmp/all.zng
+super query -I shaper.zed *.log > /tmp/all.zng
 ```
 
 If you wish to apply the shaper and then perform additional
@@ -335,7 +335,7 @@ For example, to see a ZSON representation of just the errors that may have
 come from attempting to shape all the logs in the current directory:
 
 ```
-zq -Z -I shaper.zed '| has_error(this)' *.log
+super query -Z -I shaper.zed -c '| has_error(this)' *.log
 ```
 
 ## Importing Shaped Data Into Zui

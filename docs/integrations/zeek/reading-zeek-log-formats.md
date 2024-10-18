@@ -36,7 +36,7 @@ output as [ZSON](../../formats/zson.md).
 #### Example
 
 ```mdtest-command
-zq -Z 'head 1' conn.log
+super query -Z -c 'head 1' conn.log
 ```
 
 #### Output
@@ -101,7 +101,7 @@ log, but now as NDJSON generated using the JSON Streaming Logs package.
 #### Example
 
 ```mdtest-command
-zq -Z 'head 1' conn.ndjson
+super query -Z -c 'head 1' conn.ndjson
 ```
 
 #### Output

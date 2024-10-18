@@ -59,7 +59,7 @@ search ... | count() by typeof(this)
 For example,
 ```mdtest-command
 echo '1 2 "foo" 10.0.0.1 <string>' |
-  zq -z 'count() by typeof(this) | sort this' -
+  super query -z -c 'count() by typeof(this) | sort this' -
 ```
 produces
 ```mdtest-output
@@ -114,7 +114,7 @@ appears to the runtime as a side effect of operating upon the data.  If the type
 name referred to in this way does not exist, then the type value reference
 results in `error("missing")`.  For example,
 ```mdtest-command
-echo '1(=foo) 2(=bar) 3(=foo)' | zq -z 'typeof(this)==<foo>' -
+echo '1(=foo) 2(=bar) 3(=foo)' | super query -z -c 'typeof(this)==<foo>' -
 ```
 results in
 ```mdtest-output
@@ -123,7 +123,7 @@ results in
 ```
 and
 ```mdtest-command
-echo '1(=foo)' | zq -z 'yield <foo>' -
+echo '1(=foo)' | super query -z -c 'yield <foo>' -
 ```
 results in
 ```mdtest-output
@@ -131,7 +131,7 @@ results in
 ```
 but
 ```mdtest-command
-zq -z 'yield <foo>'
+super query -z -c 'yield <foo>'
 ```
 gives
 ```mdtest-output
@@ -145,7 +145,7 @@ named type retaining the proper type binding while accommodating changes in a
 particular named type.  For example,
 ```mdtest-command
 echo '1(=foo) 2(=bar) "hello"(=foo) 3(=foo)' |
-  zq -z 'count() by typeof(this) | sort this' -
+  super query -z -c 'count() by typeof(this) | sort this' -
 ```
 results in
 ```mdtest-output
@@ -217,7 +217,7 @@ logs to find out what happened.
 For example,
 input values can be transformed to errors as follows:
 ```mdtest-command
-echo '0 "foo" 10.0.0.1' | zq -z 'error(this)' -
+echo '0 "foo" 10.0.0.1' | super query -z -c 'error(this)' -
 ```
 produces
 ```mdtest-output
@@ -228,7 +228,7 @@ error(10.0.0.1)
 More practically, errors from the runtime show up as error values.
 For example,
 ```mdtest-command
-echo 0 | zq -z '1/this' -
+echo 0 | super query -z -c '1/this' -
 ```
 produces
 ```mdtest-output
@@ -238,7 +238,7 @@ And since errors are first-class and just values, they have a type.
 In particular, they are a complex type where the error value's type is the
 complex type `error` containing the type of the value.  For example,
 ```mdtest-command
-echo 0 | zq -z 'typeof(1/this)' -
+echo 0 | super query -z -c 'typeof(1/this)' -
 ```
 produces
 ```mdtest-output
@@ -327,7 +327,7 @@ But Zed has first-class errors so
 a reference to something that does not exist is an error of type
 `error(string)` whose value is `error("missing")`.  For example,
 ```mdtest-command
-echo "{x:1} {y:2}" | zq -z 'yield x' -
+echo "{x:1} {y:2}" | super query -z -c 'yield x' -
 ```
 produces
 ```mdtest-output
@@ -339,7 +339,7 @@ The [`quiet` function](functions/quiet.md) transforms missing errors into
 "quiet errors".  A quiet error is the value `error("quiet")` and is ignored
 by most operators, in particular `yield`.  For example,
 ```mdtest-command
-echo "{x:1} {y:2}" | zq -z "yield quiet(x)" -
+echo "{x:1} {y:2}" | super query -z -c "yield quiet(x)" -
 ```
 produces
 ```mdtest-output
@@ -350,7 +350,7 @@ And what if you want a default value instead of a missing error?  The
 [`coalesce` function](functions/coalesce.md) returns the first value that is not
 null, `error("missing")`, or `error("quiet")`.  For example,
 ```mdtest-command
-echo "{x:1} {y:2}" | zq -z "yield coalesce(x, 0)" -
+echo "{x:1} {y:2}" | super query -z -c "yield coalesce(x, 0)" -
 ```
 produces
 ```mdtest-output

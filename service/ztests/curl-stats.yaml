@@ -1,9 +1,9 @@
 script: |
   source service.sh
-  curl -X POST -d '{"name":"test"}' $ZED_LAKE/pool > pool.json
-  poolID=$(zq -f text 'yield ksuid(pool.id)' pool.json)
-  curl -X POST -d @- $ZED_LAKE/pool/$poolID/branch/main > load.json
-  curl $ZED_LAKE/pool/$poolID/stats
+  curl -X POST -d '{"name":"test"}' $SUPER_DB_LAKE/pool > pool.json
+  poolID=$(super query -f text -c 'yield ksuid(pool.id)' pool.json)
+  curl -X POST -d @- $SUPER_DB_LAKE/pool/$poolID/branch/main > load.json
+  curl $SUPER_DB_LAKE/pool/$poolID/stats
 
 inputs:
   - name: stdin

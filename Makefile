@@ -2,7 +2,7 @@ export GO111MODULE=on
 
 VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X github.com/brimdata/super/cli.version=$(VERSION)
-BUILD_COMMANDS = ./cmd/zed ./cmd/zq
+BUILD_COMMANDS = ./cmd/super
 
 ifeq "$(filter-out 386 arm mips mipsle, $(shell go env GOARCH))" ""
 $(error 32-bit architectures are unsupported; see https://github.com/brimdata/super/issues/4044)

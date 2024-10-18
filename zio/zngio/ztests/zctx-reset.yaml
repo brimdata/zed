@@ -1,9 +1,9 @@
 # Test that type contexts are properly reset and reusable after stream boundaries
 
 script: |
-  zq in.zson > s.zng
-  zq in.zson >> s.zng
-  zq -z s.zng
+  super query in.zson > s.zng
+  super query in.zson >> s.zng
+  super query -z s.zng
 
 inputs:
   - name: in.zson

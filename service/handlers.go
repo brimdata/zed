@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/brimdata/super"
+	zed "github.com/brimdata/super"
 	"github.com/brimdata/super/api"
 	"github.com/brimdata/super/api/queryio"
 	"github.com/brimdata/super/compiler"
@@ -57,7 +57,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	// The client must look at the return code and interpret the result
 	// accordingly and when it sees a ZNG error after underway,
 	// the error should be relay that to the caller/user.
-	query, sset, err := parser.ParseZed(nil, req.Query)
+	query, sset, err := parser.ParseSuperPipe(nil, req.Query)
 	if err != nil {
 		w.Error(srverr.ErrInvalid(err))
 		return

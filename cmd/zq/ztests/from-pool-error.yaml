@@ -1,9 +1,0 @@
-script: |
-  ! zq 'from ( pool a )'
-
-outputs:
-  - name: stderr
-    data: |
-      zq: "from pool" cannot be used without a lake at line 1, column 8:
-      from ( pool a )
-             ~~~~~~

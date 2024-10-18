@@ -1,0 +1,16 @@
+script: |
+  super query -aggmem 1B -z -c 'collect(this)' a.zson
+  ! super query -aggmem 0 a.zson
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+
+outputs:
+  - name: stdout
+    data: |
+      null
+  - name: stderr
+    data: |
+      aggmem value must be greater than zero

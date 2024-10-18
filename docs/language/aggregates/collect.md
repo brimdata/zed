@@ -17,7 +17,7 @@ of union of the types encountered.
 
 Simple sequence collected into an array:
 ```mdtest-command
-echo '1 2 3 4' | zq -z 'collect(this)' -
+echo '1 2 3 4' | super query -z -c 'collect(this)' -
 ```
 =>
 ```mdtest-output
@@ -26,7 +26,7 @@ echo '1 2 3 4' | zq -z 'collect(this)' -
 
 Continuous collection over a simple sequence:
 ```mdtest-command
-echo '1 2 3 4' | zq -z 'yield collect(this)' -
+echo '1 2 3 4' | super query -z -c 'yield collect(this)' -
 ```
 =>
 ```mdtest-output
@@ -38,7 +38,7 @@ echo '1 2 3 4' | zq -z 'yield collect(this)' -
 
 Mixed types create a union type for the array elements:
 ```mdtest-command
-echo '1 2 3 4 "foo"' | zq -z 'collect(this)' -
+echo '1 2 3 4 "foo"' | super query -z -c 'collect(this)' -
 ```
 =>
 ```mdtest-output
@@ -48,7 +48,7 @@ echo '1 2 3 4 "foo"' | zq -z 'collect(this)' -
 Create arrays of values bucketed by key:
 ```mdtest-command
 echo '{a:1,k:1} {a:2,k:1} {a:3,k:2} {a:4,k:2}' |
-  zq -z 'collect(a) by k | sort' -
+  super query -z -c 'collect(a) by k | sort' -
 ```
 =>
 ```mdtest-output

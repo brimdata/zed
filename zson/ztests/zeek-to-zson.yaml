@@ -1,7 +1,7 @@
 # If you change the test below after a change to make it pass, make sure the
 # input/output are still in sync with what's at zng/docs/zeek-compat.md.
 
-script: zq -f zson zeek_types.log
+script: super query -f zson zeek_types.log
 
 inputs:
   - name: zeek_types.log

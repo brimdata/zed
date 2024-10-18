@@ -1,5 +1,5 @@
 script: |
-  zq -z a.log b.zng
+  super query -z a.log b.zng
 
 inputs:
   - name: a.log

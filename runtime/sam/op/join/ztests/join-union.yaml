@@ -1,5 +1,5 @@
 script: |
-  zq -z 'inner join (file b.zson) on a=b' a.zson
+  super query -z -c 'inner join (file b.zson) on a=b' a.zson
 inputs:
   - name: a.zson
     data: |

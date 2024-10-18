@@ -1,50 +1,50 @@
 script: |
   source service.sh
-  zed create -q test1
-  zed create -q test2
-  for file in multifrom.zed agg.zed agg-no-keys.zed two-channels.zed agg-sort.zed scope.zed auto-combined-channels.zed; do
+  super db create -q test1
+  super db create -q test2
+  for file in multifrom.spq agg.spq agg-no-keys.spq two-channels.spq agg-sort.spq scope.spq auto-combined-channels.spq; do
     echo // === $file ===
     query="$(cat $file | jq -Rsa .)"
-    curl -H "Accept: application/json" -d "{\"query\":$query,\"head\":{\"pool\":\"test1\"}}" $ZED_LAKE/query/describe |
-      zq -J 'sources := (over sources | id := "XXX")' -
+    curl -H "Accept: application/json" -d "{\"query\":$query,\"head\":{\"pool\":\"test1\"}}" $SUPER_DB_LAKE/query/describe |
+      super query -J -c 'sources := (over sources | id := "XXX")' -
   done
 
 
 inputs:
   - name: service.sh
-  - name: multifrom.zed
+  - name: multifrom.spq
     data: |
       from (
         pool test1
         pool test2
       ) | put foo := "bar"
-  - name: agg.zed
+  - name: agg.spq
     data: |
       count() by key1:=v1, key2
-  - name: agg-no-keys.zed
+  - name: agg-no-keys.spq
     data: |
       sum(this)
-  - name: two-channels.zed
+  - name: two-channels.spq
     data: |
       fork (
       => from test1 | sum(y) by key1 | output main
       => from test2 | put x := "foo" | output secondary
       )
-  - name: agg-sort.zed
+  - name: agg-sort.spq
     data: |
       sum(this) by foo | sort x
-  - name: scope.zed
+  - name: scope.spq
     data: |
       type port = uint16
       from test1 | fork (=> output main => yield "bar" | output secondary)
-  - name: auto-combined-channels.zed
+  - name: auto-combined-channels.spq
     data: |
       from test1 | fork (=> pass => pass)
 
 outputs:
   - name: stdout
     data: |
-      // === multifrom.zed ===
+      // === multifrom.spq ===
       {
           "sources": [
               {
@@ -75,7 +75,7 @@ outputs:
               }
           ]
       }
-      // === agg.zed ===
+      // === agg.spq ===
       {
           "sources": {
               "kind": "Pool",
@@ -98,7 +98,7 @@ outputs:
               }
           ]
       }
-      // === agg-no-keys.zed ===
+      // === agg-no-keys.spq ===
       {
           "sources": {
               "kind": "Pool",
@@ -114,7 +114,7 @@ outputs:
               }
           ]
       }
-      // === two-channels.zed ===
+      // === two-channels.spq ===
       {
           "sources": [
               {
@@ -154,7 +154,7 @@ outputs:
               }
           ]
       }
-      // === agg-sort.zed ===
+      // === agg-sort.spq ===
       {
           "sources": {
               "kind": "Pool",
@@ -181,7 +181,7 @@ outputs:
               }
           ]
       }
-      // === scope.zed ===
+      // === scope.spq ===
       {
           "sources": {
               "kind": "Pool",
@@ -209,7 +209,7 @@ outputs:
               }
           ]
       }
-      // === auto-combined-channels.zed ===
+      // === auto-combined-channels.spq ===
       {
           "sources": {
               "kind": "Pool",

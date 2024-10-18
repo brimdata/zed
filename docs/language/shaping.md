@@ -73,7 +73,7 @@ We also use this sample JSON input in a file called `sample.json`:
 The `cast` function applies a cast operation to each leaf value that matches the
 field path in the specified type, e.g.,
 ```mdtest-command
-zq -Z -I connection.zed 'cast(this, <connection>)' sample.json
+super query -Z -I connection.zed -c 'cast(this, <connection>)' sample.json
 ```
 casts the address fields to type `ip`, the port fields to type `port`
 (which is a [named type](data-types.md#named-types) for type `uint16`) and the address port pairs to
@@ -98,7 +98,7 @@ order of the `server` and `client` fields:
 
 Cropping is useful when you want records to "fit" a schema tightly, e.g.,
 ```mdtest-command
-zq -Z -I connection.zed 'crop(this, <connection>)' sample.json
+super query -Z -I connection.zed -c 'crop(this, <connection>)' sample.json
 ```
 removes the `uid` field since it is not in the `connection` type:
 ```mdtest-output
@@ -119,7 +119,7 @@ removes the `uid` field since it is not in the `connection` type:
 
 Use `fill` when you want to fill out missing fields with nulls, e.g.,
 ```mdtest-command
-zq -Z -I connection.zed 'fill(this, <connection>)' sample.json
+super query -Z -I connection.zed -c 'fill(this, <connection>)' sample.json
 ```
 adds a null-valued `vlan` field since the input value is missing it and
 the `connection` type has it:
@@ -144,7 +144,7 @@ the `connection` type has it:
 The `order` function changes the order of fields in its input to match the
 order in the specified type, as field order is significant in Zed records, e.g.,
 ```mdtest-command
-zq -Z -I connection.zed 'order(this, <connection>)' sample.json
+super query -Z -I connection.zed -c 'order(this, <connection>)' sample.json
 ```
 reorders the `client` and `server` fields to match the input but does nothing
 about the `uid` field as it is not in the `connection` type:
@@ -168,7 +168,7 @@ As an alternative to the `order` function,
 fields without specifying types. For example:
 
 ```mdtest-command
-zq -Z 'yield {kind,client,server,...this}' sample.json
+super query -Z -c 'yield {kind,client,server,...this}' sample.json
 ```
 
 also produces
@@ -193,7 +193,7 @@ also produces
 The `shape` function brings everything together by applying `cast`,
 `fill`, and `order` all in one step, e.g.,
 ```mdtest-command
-zq -Z -I connection.zed 'shape(this, <connection>)' sample.json
+super query -Z -I connection.zed -c 'shape(this, <connection>)' sample.json
 ```
 reorders the `client` and `server` fields to match the input but does nothing
 about the `uid` field as it is not in the `connection` type:
@@ -215,7 +215,7 @@ about the `uid` field as it is not in the `connection` type:
 To get a tight shape of the target type,
 apply `crop` to the output of `shape`, e.g.,
 ```mdtest-command
-zq -Z -I connection.zed '
+super query -Z -I connection.zed -c '
   shape(this, <connection>)
   | crop(this, <connection>)
   ' sample.json
@@ -260,7 +260,7 @@ file `malformed.json`.
 When we apply our shaper via
 
 ```mdtest-command
-zq -Z -I connection.zed 'shape(this, <connection>)' malformed.json
+super query -Z -I connection.zed -c 'shape(this, <connection>)' malformed.json
 ```
 
 we see two errors:
@@ -295,7 +295,7 @@ could be applied to wrap the input record as an error while including detail
 to debug the problem, e.g.,
 
 ```mdtest-command
-zq -Z -I connection.zed '
+super query -Z -I connection.zed -c '
   yield {original: this, shaped: shape(this, <connection>)}
   | yield has_error(shaped)
     ? error({
@@ -351,7 +351,7 @@ general check for equality. For example, to treat cropped fields as an error,
 we can execute
 
 ```mdtest-command
-zq -Z -I connection.zed '
+super query -Z -I connection.zed -c '
   yield {original: this, cropped: crop(this, <connection>)}
   | yield original==cropped
     ? original
@@ -438,7 +438,7 @@ To perform fusion, Zed currently includes two key mechanisms
 The `fuse` operator reads all of its input, computes a fused type using
 the techniques above, and outputs the result, e.g.,
 ```mdtest-command
-echo '{x:1} {y:"foo"} {x:2,y:"bar"}' | zq -z fuse -
+echo '{x:1} {y:"foo"} {x:2,y:"bar"}' | super query -z -c fuse -
 ```
 produces
 ```mdtest-output
@@ -448,7 +448,7 @@ produces
 ```
 whereas
 ```mdtest-command
-echo '{x:1} {x:"foo",y:"foo"}{x:2,y:"bar"}' | zq -z fuse -
+echo '{x:1} {x:"foo",y:"foo"}{x:2,y:"bar"}' | super query -z -c fuse -
 ```
 requires a type union for field `x` and produces:
 ```mdtest-output
@@ -466,7 +466,7 @@ or unknown input data and how those various shapes relate to one another.
 For example, in the example sequence above, we can use the `fuse` aggregate function to determine
 the fused type rather than transforming the values, e.g.,
 ```mdtest-command
-echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"}' | zq -z 'fuse(this)' -
+echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"}' | super query -z -c 'fuse(this)' -
 ```
 results in
 ```mdtest-output
@@ -479,7 +479,7 @@ will fuse records based on their number of fields using the
 [`len` function:](functions/len.md)
 ```mdtest-command
 echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"}' |
-  zq -z 'fuse(this) by len(this) | sort len' -
+  super query -z -c 'fuse(this) by len(this) | sort len' -
 ```
 which produces
 ```mdtest-output
@@ -498,7 +498,7 @@ switch len(this) (
 when we run
 ```mdtest-command
 echo '{x:1} {x:"foo",y:"foo"} {x:2,y:"bar"} {a:1,b:2,c:3}' |
-  zq -z -I shape.zed '| sort this desc' -
+  super query -z -I shape.zed -c '| sort this desc' -
 ```
 we get
 ```mdtest-output

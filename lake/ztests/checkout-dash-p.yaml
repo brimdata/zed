@@ -1,14 +1,14 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
-  zed create -q POOL
-  zed use -q POOL
-  zed load -q a.zson
-  zed branch -q child
-  zed use -q @child
-  zed load -q b.zson
-  zed use -q POOL
-  zed query -z "*"
+  export SUPER_DB_LAKE=test
+  super db init -q
+  super db create -q POOL
+  super db use -q POOL
+  super db load -q a.zson
+  super db branch -q child
+  super db use -q @child
+  super db load -q b.zson
+  super db use -q POOL
+  super db query -z "*"
 
 inputs:
   - name: a.zson

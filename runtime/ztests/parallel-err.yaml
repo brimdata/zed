@@ -1,5 +1,5 @@
 script: |
-  ! zq -z 'join on a=b' A.zson
+  ! super query -z -c 'join on a=b' A.zson
 
 inputs:
   - name: A.zson

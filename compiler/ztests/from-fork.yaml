@@ -1,5 +1,5 @@
 script: |
-  zq -z 'from (file in.zson file in.zson ) | fork (=> count() => count())'
+  super query -z -c 'from (file in.zson file in.zson ) | fork (=> count() => count())'
 
 inputs:
   - name: in.zson

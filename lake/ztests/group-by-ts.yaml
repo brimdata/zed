@@ -1,21 +1,21 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
+  export SUPER_DB_LAKE=test
+  super db init -q
   # group-by-ts.zson contains records over two days, mapping to two partitions, and
   # the small target size here causes each partition to have several segments.
-  zed create -q -S 256B logs
+  super db create -q -S 256B logs
   # causes parition to have several chunk files.
-  zed load -q -use logs group-by-ts.zson
+  super db load -q -use logs group-by-ts.zson
   echo ===
-  zed query -z 'from logs | head 1'
+  super db query -z 'from logs | head 1'
   echo ===
-  zed query -z 'from logs | tail 1'
+  super db query -z 'from logs | tail 1'
   echo ===
-  zed query -z 'from logs | avg:=avg(g)'
+  super db query -z 'from logs | avg:=avg(g)'
   echo ===
-  zed query -z 'from logs | count:=count() by g | sort g'
+  super db query -z 'from logs | count:=count() by g | sort g'
   echo ===
-  zed query -z 'from logs | count:=count() by every(3600s), g | sort ts, g'
+  super db query -z 'from logs | count:=count() by every(3600s), g | sort ts, g'
 
 inputs:
   - name: group-by-ts.zson

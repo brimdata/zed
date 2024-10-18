@@ -1,0 +1,16 @@
+script: |
+  super query -C -c a
+  super query -C -I query.zed
+  super query -C -I query.zed -c a
+
+inputs:
+  - name: query.zed
+    data: |
+      q
+
+outputs:
+  - name: stdout
+    data: |
+      search a
+      search q
+      search q and a

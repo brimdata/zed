@@ -25,14 +25,14 @@ but as an example, you might use the `get` form of `from` to fetch data from an
 HTTP endpoint and process it with Zed, in this case, to extract the description
 and license of a GitHub repository:
 ```
-zq -f text 'get https://api.github.com/repos/brimdata/super
+super query -f text -c 'get https://api.github.com/repos/brimdata/super
             | yield description,license.name'
 ```
 When a Zed query is run on the command-line with `zq`, the `from` source is
 typically omitted and implied instead by the command-line file arguments.
 The input may be stdin via `-` as in
 ```
-echo '"hello, world"' | zq  -
+echo '"hello, world"' | super query  -
 ```
 The examples throughout the language documentation use this "echo pattern"
 to standard input of `zq -` to illustrate language semantics.
@@ -92,7 +92,7 @@ switch this (
 ```
 Then, running `zq` with `-I switch.zed` like so:
 ```mdtest-command
-echo '1 2 3 4' | zq -z -I switch.zed -
+echo '1 2 3 4' | super query -z -I switch.zed -
 ```
 produces
 ```mdtest-output
@@ -128,7 +128,7 @@ to its input values using the special identifier `this`.
 
 For example, sorting the following input
 ```mdtest-command
-echo '"foo" "bar" "BAZ"' | zq -z sort -
+echo '"foo" "bar" "BAZ"' | super query -z -c sort -
 ```
 produces this case-sensitive output:
 ```mdtest-output
@@ -141,7 +141,7 @@ input values with the expression `lower(this)`, which converts
 each value to lower-case for use in in the sort without actually modifying
 the input value, e.g.,
 ```
-echo '"foo" "bar" "BAZ"' | zq -z 'sort lower(this)' -
+echo '"foo" "bar" "BAZ"' | super query -z -c 'sort lower(this)' -
 ```
 produces
 ```
@@ -277,11 +277,11 @@ from the operator-less source text, in the order given, as follows:
 When in doubt, you can always check what the compiler is doing under the hood
 by running `zq` with the `-C` flag to print the parsed query in "canonical form", e.g.,
 ```mdtest-command
-zq -C foo
-zq -C 'is(<foo>)'
-zq -C 'count()'
-zq -C '{a:x+1,b:y-1}'
-zq -C 'a:=x+1,b:=y-1'
+super query -C -c foo
+super query -C -c 'is(<foo>)'
+super query -C -c 'count()'
+super query -C -c '{a:x+1,b:y-1}'
+super query -C -c 'a:=x+1,b:=y-1'
 ```
 produces
 ```mdtest-output

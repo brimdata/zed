@@ -1,0 +1,16 @@
+script: |
+  super query -z -I countfile.zed -c 'countfile()'
+
+inputs:
+  - name: countfile.zed
+    data: |
+      op countfile(): (
+        file test.zson | count()
+      )
+  - name: test.zson
+    data: '{} {} {} {}'
+
+outputs:
+  - name: stdout
+    data: |
+      4(uint64)

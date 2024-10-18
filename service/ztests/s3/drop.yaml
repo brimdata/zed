@@ -1,12 +1,12 @@
 skip: "issue #2651"
 
 script: |
-  source services.sh s3://bucket/zedlake
-  zed new -lake $ZED_LAKE test
+  source services.sh s3://bucket/lake
+  super db new -lake $SUPER_DB_LAKE test
   echo ===
-  zed drop -lake $ZED_LAKE -p test
+  super db drop -lake $SUPER_DB_LAKE -p test
   echo ===
-  zed ls -lake $ZED_LAKE
+  super db ls -lake $ZED_LAKE
   echo ===
 
 inputs:

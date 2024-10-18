@@ -89,7 +89,7 @@ T	123	456	123.4560	1592502151.123456	123.456	smile😁smile	\x09\x07\x04	80	127.
 #### Reading the TSV log, outputting as ZSON, and saving a copy:
 
 ```mdtest-command
-zq -Z zeek_types.log | tee zeek_types.zson
+super query -Z zeek_types.log | tee zeek_types.zson
 ```
 
 #### Output:
@@ -129,7 +129,7 @@ zq -Z zeek_types.log | tee zeek_types.zson
 #### Reading the saved ZSON output and outputting as Zeek TSV:
 
 ```mdtest-command
-zq -f zeek zeek_types.zson
+super query -f zeek zeek_types.zson
 ```
 
 #### Output:
@@ -255,7 +255,7 @@ For instance, revisiting the data from our example, we can output all fields wit
 #### Command:
 
 ```mdtest-command
-zq -f zeek 'cut my_record' zeek_types.zson
+super query -f zeek -c 'cut my_record' zeek_types.zson
 ```
 
 #### Output:

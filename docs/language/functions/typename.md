@@ -17,7 +17,7 @@ The _typename_ function returns the [type](../../formats/zson.md#25-types) of th
 
 Return a simple named type with a string constant argument:
 ```mdtest-command
-echo  '80(port=int16)' | zq -z 'yield typename("port")' -
+echo  '80(port=int16)' | super query -z -c 'yield typename("port")' -
 ```
 =>
 ```mdtest-output
@@ -25,7 +25,7 @@ echo  '80(port=int16)' | zq -z 'yield typename("port")' -
 ```
 Return a named type using an expression:
 ```mdtest-command
-echo  '{name:"port",p:80(port=int16)}' | zq -z 'yield typename(name)' -
+echo  '{name:"port",p:80(port=int16)}' | super query -z -c 'yield typename(name)' -
 ```
 =>
 ```mdtest-output
@@ -33,7 +33,7 @@ echo  '{name:"port",p:80(port=int16)}' | zq -z 'yield typename(name)' -
 ```
 The result is `error("missing")` if the type name does not exist:
 ```mdtest-command
-echo  '80' | zq -z 'yield typename("port")' -
+echo  '80' | super query -z -c 'yield typename("port")' -
 ```
 =>
 ```mdtest-output

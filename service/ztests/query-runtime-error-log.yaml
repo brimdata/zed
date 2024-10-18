@@ -1,9 +1,9 @@
 script: |
   LAKE_EXTRA_FLAGS='-log.path=service.log' source service.sh
-  zed create -use -q test
-  echo '{}' | zed load -q -
-  curl -o /dev/null -H 'Accept: application/x-parquet' -d '{"query":"from test"}' $ZED_LAKE/query 
-  zq -Z 'cut level, msg, error' service.log
+  super db create -use -q test
+  echo '{}' | super db load -q -
+  curl -o /dev/null -H 'Accept: application/x-parquet' -d '{"query":"from test"}' $SUPER_DB_LAKE/query 
+  super query -Z -c 'cut level, msg, error' service.log
 
 inputs:
   - name: service.sh

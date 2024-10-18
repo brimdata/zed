@@ -1,0 +1,9 @@
+script: |
+  ! super query -c 'file sample.zson | count('
+
+outputs:
+  - name: stderr
+    data: |
+      super query: error parsing SuperPipe at line 1, column 26:
+      file sample.zson | count(
+                           === ^ ===
