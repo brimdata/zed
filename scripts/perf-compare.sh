@@ -22,7 +22,7 @@ else
   exit 1
 fi
 
-for CMD in zq jq zeek-cut; do
+for CMD in super jq zeek-cut; do
   if ! [[ $(type -P "$CMD") ]]; then
     echo "$CMD not found in PATH"
     exit 1
@@ -45,7 +45,7 @@ declare -a DESCRIPTIONS=(
     'Output all events with the field `id.resp_h` set to `52.85.83.116`'
 )
 
-declare -a ZED_QUERIES=(
+declare -a SUPERPIPE_QUERIES=(
     '*'
     'cut quiet(ts)'
     'count:=count()'
@@ -75,7 +75,7 @@ declare -a ZCUT_FIELDS=(
     'NONE'
 )
 
-for (( n=0; n<"${#ZED_QUERIES[@]}"; n++ ))
+for (( n=0; n<"${#SUPERPIPE_QUERIES[@]}"; n++ ))
 do
     DESC=${DESCRIPTIONS[$n]}
     MD=${MARKDOWNS[$n]}
@@ -84,19 +84,19 @@ do
     echo "|:----------:|:---------------:|:-----------------:|:------------------:|-----------:|-----------:|----------:|" | tee -a "$MD"
     for INPUT in zeek zng zng-uncompressed zson ndjson ; do
       for OUTPUT in zeek zng zng-uncompressed zson ndjson ; do
-        zed=${ZED_QUERIES[$n]}
-        echo -n "|\`zq\`|\`$zed\`|$INPUT|$OUTPUT|" | tee -a "$MD"
+        superpipe_query=${SUPERPIPE_QUERIES[$n]}
+        echo -n "|\`super query\`|\`$superpipe_query\`|$INPUT|$OUTPUT|" | tee -a "$MD"
         case $INPUT in
-          ndjson ) zq_flags="-i json -I $shaper" zed="| $zed" ;;
-          zng-uncompressed ) zq_flags="-i zng" ;;
-          * ) zq_flags="-i $INPUT" ;;
+          ndjson ) super_flags="-i json -I $shaper" superpipe_query="| $superpipe_query" ;;
+          zng-uncompressed ) super_flags="-i zng" ;;
+          * ) super_flags="-i $INPUT" ;;
         esac
         case $OUTPUT in
-          ndjson ) zq_flags="$zq_flags -f json" ;;
-          zng-uncompressed ) zq_flags="$zq_flags -f zng -zng.compress=false" ;;
-          * ) zq_flags="$zq_flags -f $OUTPUT" ;;
+          ndjson ) super_flags="$super_flags -f json" ;;
+          zng-uncompressed ) super_flags="$super_flags -f zng -zng.compress=false" ;;
+          * ) super_flags="$super_flags -f $OUTPUT" ;;
         esac
-        ALL_TIMES=$(time -p (zq $zq_flags "$zed" $DATA/$INPUT/* > /dev/null) 2>&1)
+        ALL_TIMES=$(time -p (super query $super_flags -c "$superpipe_query" $DATA/$INPUT/* > /dev/null) 2>&1)
         echo "$ALL_TIMES" | tr '\n' ' ' | awk '{ print $2 "|" $4 "|" $6 "|" }' | tee -a "$MD"
       done
     done
