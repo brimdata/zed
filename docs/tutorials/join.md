@@ -152,7 +152,7 @@ from fruit
 ) on flavor=likes eater:=name
 ```
 
-sPopulating the pools, then executing the query:
+Populating the pools, then executing the query:
 
 ```mdtest-command
 export SUPER_DB_LAKE=lake
