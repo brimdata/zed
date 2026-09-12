@@ -213,8 +213,13 @@ func (t *translator) expr(e ast.Expr, inType super.Type) (sem.Expr, super.Type) 
 				}
 				fields[name] = struct{}{}
 				e, typ := t.expr(elem.Value, inType)
+				//XXX
 				if elem.Opt {
 					e = &sem.CallExpr{Node: elem.Value, Tag: "some", Args: []sem.Expr{e}}
+				if elem.Opt && typ == super.TypeNone {
+					//t.error(elem, fmt.Errorf("non-union none assigned to optional field %s", name))
+					//typ = t.checker.unknown
+					//XXX we want untyped nones to cause field to be dropped?
 				}
 				out = append(out, &sem.FieldElem{
 					Node:  elem,
@@ -252,7 +257,7 @@ func (t *translator) expr(e ast.Expr, inType super.Type) (sem.Expr, super.Type) 
 		return &sem.RecordExpr{
 			Node:  e,
 			Elems: out,
-		}, t.checker.fuseRecordElems(out, types)
+		}, t.checker.formRecordElems(out, types)
 	case *ast.RegexpExpr:
 		return &sem.RegexpSearchExpr{
 			Node:    e,
@@ -441,7 +446,7 @@ func (t *translator) dottedBaseCase(loc ast.Node, lhs *ast.IDExpr, rhs *ast.IDEx
 }
 
 func (t *translator) deref(loc ast.Node, lhs sem.Expr, id *ast.IDExpr, noneish bool, inType super.Type) (sem.Expr, super.Type) {
-	typ, _ := t.checker.deref(id, inType, id.Name)
+	typ := t.checker.deref(id, inType, id.Name, noneish)
 	if lhs, ok := lhs.(*sem.ThisExpr); ok {
 		lhs.Chain = lhs.Chain.Append(id.Name, noneish)
 		lhs.Node = loc
@@ -688,11 +693,22 @@ func (t *translator) semCall(call *ast.CallExpr, inType super.Type) (sem.Expr, s
 	if e, typ := t.maybeConvertAgg(call, inType); e != nil {
 		return e, typ
 	}
-	args, argTypes := t.exprs(call.Args, inType)
 	switch f := call.Func.(type) {
 	case *ast.FuncNameExpr:
+		if f.Name == "ok" {
+			if len(call.Args) != 1 {
+				//XXX
+				panic(".")
+			}
+			t.checker.pushErrs()
+			e, typ := t.expr(call.Args[0], inType)
+			call := sem.NewCall(call, "ok", []sem.Expr{e})
+			return call, t.checker.checkOk(typ, call, t.checker.popErrs())
+		}
+		args, argTypes := t.exprs(call.Args, inType)
 		return t.semCallByName(call, f.Name, args, argTypes, inType)
 	case *ast.LambdaExpr:
+		args, argTypes := t.exprs(call.Args, inType)
 		return t.semCallLambda(f, args, argTypes)
 	default:
 		panic(f)
@@ -779,10 +795,12 @@ func (t *translator) semCallByName(call *ast.CallExpr, name string, args []sem.E
 	nameLower := strings.ToLower(name)
 	switch {
 	case nameLower == "is_ok":
+		//XXX type check underlying ok()
 		if err := function.CheckArgCount(nargs, 1, 1); err != nil {
 			t.error(call, err)
 			return badExpr, t.checker.unknown
 		}
+		//XXX need to type check the args and sem.NewCall...
 		return &sem.BinaryExpr{
 			Node: call,
 			Op:   "!=",
@@ -1237,7 +1255,13 @@ func (t *translator) arrayElems(elems []ast.ArrayElem, inType super.Type) ([]sem
 		case *ast.SpreadElem:
 			elemExpr, elemType := t.expr(elem.Expr, inType)
 			out = append(out, &sem.SpreadElem{Node: elem, Expr: elemExpr})
-			types = append(types, elemType)
+			var spreadType super.Type
+			if arrayType, ok := elemType.(*super.TypeArray); ok {
+				spreadType = arrayType.Type
+			} else {
+				spreadType = t.checker.unknown
+			}
+			types = append(types, spreadType)
 		case *ast.ExprElem:
 			elemExpr, elemType := t.expr(elem.Expr, inType)
 			out = append(out, &sem.ExprElem{Node: elem, Expr: elemExpr})
