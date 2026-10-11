@@ -17,15 +17,11 @@ func NewProjection(paths []Path) Projection {
 	return p
 }
 
-func NewProjectionMaybeNone(none bool, paths []Path) Projection {
-	if none {
-		return NewProjectionNone()
+func NewProjectionMaybe(hasProjection bool, paths []Path) Projection {
+	if hasProjection && len(paths) == 0 {
+		return []ProjectionNode{}
 	}
 	return NewProjection(paths)
-}
-
-func NewProjectionNone() Projection {
-	return []ProjectionNode{}
 }
 
 func (p Projection) insertPath(path Path) Projection {

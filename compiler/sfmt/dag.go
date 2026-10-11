@@ -315,15 +315,15 @@ func (c *canonDAG) op(p dag.Op) {
 		if p.Pushdown.Unordered {
 			c.write(" unordered")
 		}
-		if len(p.Pushdown.Projection) > 0 || p.Pushdown.None {
-			c.project(p.Pushdown.Projection, p.Pushdown.None)
+		if p.Pushdown.HasProjection {
+			c.project(p.Pushdown.Projection)
 		}
 		if mf := p.Pushdown.MetaFilter; mf != nil {
 			if mf.Expr != nil {
 				c.ret()
 				c.open()
 				c.open("meta-filter")
-				c.project(mf.Projection, false)
+				c.project(mf.Projection)
 				c.write(" (")
 				c.ret()
 				c.expr(mf.Expr, "")
@@ -335,11 +335,11 @@ func (c *canonDAG) op(p dag.Op) {
 			}
 		}
 		if df := p.Pushdown.DataFilter; df != nil {
-			if df.Expr != nil {
+			if df.HasProjection {
 				c.ret()
 				c.open()
 				c.open("data-filter")
-				c.project(df.Projection, false)
+				c.project(df.Projection)
 				c.write(" (")
 				c.ret()
 				c.expr(df.Expr, "")
@@ -394,7 +394,7 @@ func (c *canonDAG) op(p dag.Op) {
 			c.write(")")
 		}
 		if len(p.Fields) > 0 {
-			c.project(p.Fields, false)
+			c.project(p.Fields)
 		}
 		if p.Filter != nil {
 			c.write(" filter (")
@@ -616,13 +616,7 @@ func (c *canonDAG) op(p dag.Op) {
 	}
 }
 
-func (c *canonDAG) project(fields []field.Path, none bool) {
-	if len(fields) == 0 {
-		if none {
-			c.write(" project none")
-		}
-		return
-	}
+func (c *canonDAG) project(fields []field.Path) {
 	var ss []string
 	for _, f := range fields {
 		ss = append(ss, f.String())

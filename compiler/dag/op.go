@@ -314,15 +314,16 @@ type (
 // Support type for scanner types.
 type (
 	Pushdown struct {
-		None       bool         `json:"none"`
-		Projection []field.Path `json:"projection"`
-		DataFilter *ScanFilter  `json:"data_filter"`
-		MetaFilter *ScanFilter  `json:"meta_filter"`
-		Unordered  bool         `json:"unordered"`
+		HasProjection bool         `json:"has_projection"`
+		Projection    []field.Path `json:"projection"`
+		DataFilter    *ScanFilter  `json:"data_filter"`
+		MetaFilter    *ScanFilter  `json:"meta_filter"`
+		Unordered     bool         `json:"unordered"`
 	}
 	ScanFilter struct {
-		Projection []field.Path `json:"projection"`
-		Expr       Expr         `json:"expr"`
+		HasProjection bool         `json:"has_projection"`
+		Projection    []field.Path `json:"projection"`
+		Expr          Expr         `json:"expr"`
 	}
 )
 
