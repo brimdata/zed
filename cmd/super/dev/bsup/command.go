@@ -119,7 +119,7 @@ func (c *Command) dump(ctx context.Context, reader *bsup.RawReader) error {
 		}
 		c.frames++
 	}
-	return nil
+	return ctx.Err()
 }
 
 func (c *Command) dumpMetaBytes(ctx context.Context, reader *bsup.RawReader) error {
@@ -147,7 +147,7 @@ func (c *Command) dumpMetaBytes(ctx context.Context, reader *bsup.RawReader) err
 		}
 		c.frames++
 	}
-	return nil
+	return ctx.Err()
 }
 
 func (c *Command) stop() bool {
@@ -238,7 +238,9 @@ func (c *Command) columnFrame(frame *bsup.RawColFrame) error {
 				return err
 			}
 			for _, val := range vals {
-				c.emit(val.Copy())
+				if err := c.emit(val.Copy()); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -269,7 +271,9 @@ func (c *Command) columnFrame(frame *bsup.RawColFrame) error {
 
 func (c *Command) rowFrame(frame *bsup.RawRowFrame) error {
 	if c.headers {
-		c.marshal(frame.Header())
+		if err := c.marshal(frame.Header()); err != nil {
+			return err
+		}
 	}
 	if c.typedefs {
 		typedefsBytes, err := frame.Typedefs()
@@ -298,7 +302,9 @@ func (c *Command) rowFrame(frame *bsup.RawRowFrame) error {
 
 func (c *Command) superFooter(frame *bsup.RawSuperFooter) error {
 	if c.headers {
-		c.marshal(frame.Footer())
+		if err := c.marshal(frame.Footer()); err != nil {
+			return err
+		}
 	}
 	if c.fused {
 		fusedTypeBytes, err := frame.FusedTypeBytes()
@@ -326,7 +332,9 @@ func (c *Command) marshalTypeDefs(bytes []byte) error {
 			if err != nil {
 				return err
 			}
-			c.emit(val)
+			if err := c.emit(val); err != nil {
+				return err
+			}
 		}
 		id++
 	}

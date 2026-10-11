@@ -17,25 +17,23 @@ type RawFrame interface {
 }
 
 func (r *RawReader) Next() (RawFrame, error) {
-	for {
-		readerAt, err := scanNextFrameBuffer(r.reader)
-		if readerAt == nil || err != nil {
-			return nil, err
-		}
-		h, err := readNextHeader(readerAt, 0)
-		if h == nil || err != nil {
-			return nil, err
-		}
-		switch h := h.(type) {
-		case *SuperFooter:
-			return newRawSuperFrame(readerAt, h), nil
-		case *ColumnHeader:
-			return newRawColFrame(readerAt, h), nil
-		case *RowHeader:
-			return newRawRowFrame(readerAt, h), nil
-		default:
-			panic(h)
-		}
+	readerAt, err := scanNextFrameBuffer(r.reader)
+	if readerAt == nil || err != nil {
+		return nil, err
+	}
+	h, err := readNextHeader(readerAt, 0)
+	if h == nil || err != nil {
+		return nil, err
+	}
+	switch h := h.(type) {
+	case *SuperFooter:
+		return newRawSuperFrame(readerAt, h), nil
+	case *ColumnHeader:
+		return newRawColFrame(readerAt, h), nil
+	case *RowHeader:
+		return newRawRowFrame(readerAt, h), nil
+	default:
+		panic(h)
 	}
 }
 
