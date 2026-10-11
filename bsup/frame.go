@@ -101,7 +101,6 @@ type RowFrame struct {
 	sctx     *super.Context
 	readerAt io.ReaderAt
 	header   *RowHeader
-	Control  bool
 }
 
 func newRowFrame(sctx *super.Context, r io.ReaderAt, header *RowHeader) (*RowFrame, error) {
