@@ -174,6 +174,16 @@ func (c *Command) marshal(thing any) error {
 	return c.emit(val)
 }
 
+func wrapType(kind string, typ any) any {
+	return &struct {
+		Kind string
+		Type any
+	}{
+		Kind: kind,
+		Type: typ,
+	}
+}
+
 func (c *Command) flush() error {
 	if len(c.vals) != 0 {
 		err := c.writer.Push(sbuf.Dematerialize(c.sctx, c.vals...))
@@ -245,13 +255,7 @@ func (c *Command) columnFrame(frame *bsup.RawColFrame) error {
 		if err != nil {
 			return err
 		}
-		if err := c.marshal(struct {
-			Kind string
-			Type super.Type
-		}{
-			Kind: "ColumnFrameFusedType",
-			Type: fusedType,
-		}); err != nil {
+		if err := c.marshal(wrapType("ColumnFrameFusedType", fusedType)); err != nil {
 			return err
 		}
 	}
@@ -280,13 +284,7 @@ func (c *Command) rowFrame(frame *bsup.RawRowFrame) error {
 		if err != nil {
 			return err
 		}
-		if err := c.marshal(struct {
-			Kind string
-			Type super.Type
-		}{
-			Kind: "RowFrameFusedType",
-			Type: fusedType,
-		}); err != nil {
+		if err := c.marshal(wrapType("RowFrameFusedType", fusedType)); err != nil {
 			return err
 		}
 	}
@@ -306,13 +304,7 @@ func (c *Command) superFooter(frame *bsup.RawSuperFooter) error {
 		if err != nil {
 			return err
 		}
-		if err := c.marshal(struct {
-			Kind string
-			Type super.Type
-		}{
-			Kind: "SuperFusedType",
-			Type: fusedType,
-		}); err != nil {
+		if err := c.marshal(wrapType("SuperFrameFusedType", fusedType)); err != nil {
 			return err
 		}
 	}

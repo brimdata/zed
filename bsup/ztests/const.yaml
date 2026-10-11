@@ -1,6 +1,6 @@
 script: |
   super -o out.bsup -
-  super dev bsup -s out.bsup
+  super dev bsup -headers -metas -fused -s out.bsup
 
 inputs:
   - name: stdin
