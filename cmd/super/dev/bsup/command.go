@@ -85,18 +85,19 @@ func (c *Command) Run(args []string) error {
 	defer r.Close()
 	reader := bsup.NewRawReader(r)
 	if c.metabytes {
-		c.dumpMetaBytes(ctx, reader)
-	} else {
-		writer, err := c.outputFlags.Open(ctx, engine)
-		if err != nil {
-			return err
-		}
-		c.writer = writer
-		c.dump(ctx, reader)
-		err = c.flush()
-		if err2 := writer.Close(); err == nil {
-			err = err2
-		}
+		return c.dumpMetaBytes(ctx, reader)
+	}
+	writer, err := c.outputFlags.Open(ctx, engine)
+	if err != nil {
+		return err
+	}
+	c.writer = writer
+	err = c.dump(ctx, reader)
+	if err2 := c.flush(); err == nil {
+		err = err2
+	}
+	if err2 := writer.Close(); err == nil {
+		err = err2
 	}
 	return err
 }
@@ -189,7 +190,7 @@ func wrapType(kind string, typ any) any {
 func (c *Command) flush() error {
 	if len(c.vals) != 0 {
 		err := c.writer.Push(sbuf.Dematerialize(c.sctx, c.vals...))
-		c.vals = c.vals[0:]
+		c.vals = c.vals[:0]
 		return err
 	}
 	return nil
@@ -210,7 +211,9 @@ func (c *Command) frame(frame bsup.RawFrame) error {
 
 func (c *Command) columnFrame(frame *bsup.RawColFrame) error {
 	if c.headers {
-		c.marshal(frame.Header())
+		if err := c.marshal(frame.Header()); err != nil {
+			return err
+		}
 	}
 	if c.metas {
 		metaBytes, err := frame.Metadata()
