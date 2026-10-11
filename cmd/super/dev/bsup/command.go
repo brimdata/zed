@@ -2,6 +2,7 @@ package bsup
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"flag"
 	"io"
@@ -84,14 +85,14 @@ func (c *Command) Run(args []string) error {
 	defer r.Close()
 	reader := bsup.NewRawReader(r)
 	if c.metabytes {
-		c.dumpMetaBytes(reader)
+		c.dumpMetaBytes(ctx, reader)
 	} else {
 		writer, err := c.outputFlags.Open(ctx, engine)
 		if err != nil {
 			return err
 		}
 		c.writer = writer
-		c.dump(reader)
+		c.dump(ctx, reader)
 		err = c.flush()
 		if err2 := writer.Close(); err == nil {
 			err = err2
@@ -100,11 +101,11 @@ func (c *Command) Run(args []string) error {
 	return err
 }
 
-func (c *Command) dump(reader *bsup.RawReader) error {
+func (c *Command) dump(ctx context.Context, reader *bsup.RawReader) error {
 	c.sctx = super.NewContext()
 	c.marshaler = super.NewMarshaler(c.sctx)
 	c.marshaler.Decorate(super.StyleSimple)
-	for !c.stop() {
+	for !c.stop() && ctx.Err() == nil {
 		frame, err := reader.Next()
 		if err != nil {
 			return err
@@ -120,8 +121,8 @@ func (c *Command) dump(reader *bsup.RawReader) error {
 	return nil
 }
 
-func (c *Command) dumpMetaBytes(reader *bsup.RawReader) error {
-	for !c.stop() {
+func (c *Command) dumpMetaBytes(ctx context.Context, reader *bsup.RawReader) error {
+	for !c.stop() && ctx.Err() == nil {
 		frame, err := reader.Next()
 		if err != nil {
 			return err
@@ -135,8 +136,9 @@ func (c *Command) dumpMetaBytes(reader *bsup.RawReader) error {
 			if err != nil {
 				return err
 			}
-			_, err = os.Stdout.Write(metaBytes)
-			return err
+			if _, err = os.Stdout.Write(metaBytes); err != nil {
+				return err
+			}
 		case *bsup.RawRowFrame:
 		case *bsup.RawSuperFooter:
 		default:
