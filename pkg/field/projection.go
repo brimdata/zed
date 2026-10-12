@@ -39,6 +39,10 @@ func (p Projection) insertPath(path Path) Projection {
 	return p
 }
 
+func (p Projection) IsEmpty() bool {
+	return len(p) == 0 && p != nil
+}
+
 func (p Projection) Paths() []Path {
 	var paths []Path
 	for _, node := range p {

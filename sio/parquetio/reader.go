@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"slices"
 	"sync/atomic"
 	"time"
@@ -33,6 +34,7 @@ type Reader struct {
 
 	fr                 *pqarrow.FileReader
 	colIndexes         []int
+	emptyProjection    bool
 	metadataColIndexes []int
 	metadataFilters    []expr.Evaluator
 
@@ -61,10 +63,12 @@ func NewReader(ctx context.Context, sctx *super.Context, r io.Reader, p vio.Push
 	if err != nil {
 		return nil, err
 	}
+	var emptyProjection bool
 	var metadataColIndexes []int
 	var metadataFilters []expr.Evaluator
 	var fields []field.Path
 	if p != nil {
+		emptyProjection = p.Projection().IsEmpty()
 		fields = p.Projection().Paths()
 		filter, err := p.MetaFilter()
 		if err != nil {
@@ -97,6 +101,7 @@ func NewReader(ctx context.Context, sctx *super.Context, r io.Reader, p vio.Push
 		sctx:               sctx,
 		fr:                 fr,
 		colIndexes:         columnIndexes(fr.Manifest, fields),
+		emptyProjection:    emptyProjection,
 		metadataColIndexes: metadataColIndexes,
 		metadataFilters:    metadataFilters,
 		nextRowGroup:       &atomic.Int64{},
@@ -152,6 +157,13 @@ func (r *Reader) ConcurrentPull(done bool, id int) (vector.Any, error) {
 			rowGroup := int(r.nextRowGroup.Add(1) - 1)
 			if rowGroup >= pr.NumRowGroups() {
 				return nil, nil
+			}
+			if r.emptyProjection {
+				numRows := pr.MetaData().RowGroup(rowGroup).NumRows()
+				if numRows > math.MaxUint32 {
+					panic(numRows)
+				}
+				return vector.NewNull(uint32(numRows)), nil
 			}
 			if len(r.metadataFilters) > 0 {
 				rgMetadata := pr.MetaData().RowGroup(rowGroup)
