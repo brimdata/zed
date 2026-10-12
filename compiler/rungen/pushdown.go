@@ -7,11 +7,12 @@ import (
 )
 
 type pushdown struct {
-	projection field.Projection
-	metaFilter *dagFilter
-	dataFilter *dagFilter
-	unordered  bool
-	builder    *Builder
+	projection   field.Projection
+	metaFilter   *dagFilter
+	searchFilter *dagFilter
+	dataFilter   *dagFilter
+	unordered    bool
+	builder      *Builder
 }
 
 type dagFilter struct {
