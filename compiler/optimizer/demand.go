@@ -126,15 +126,14 @@ func demandForSimpleOp(op dag.Op, downstream demand.Demand) demand.Demand {
 		d := downstream
 		if df := op.Pushdown.DataFilter; df != nil {
 			exprDemand := demandForExpr(df.Expr)
-			d = demand.Union(d, exprDemand)
-			df.Projection = nil
-			df.HasProjection = false
-			// Only worth a separate pass if the filter needs a strict subset of what
-			// the scan will load anyway.
-			if !demand.IsAll(exprDemand) && !demand.IsNone(exprDemand) && !demand.IsNone(demand.Delete(d, exprDemand)) {
+			// Only worth a separate pass if the rest of the query needs fields
+			// beyond the ones the filter loads.
+			if !demand.IsAll(exprDemand) && !demand.IsNone(exprDemand) &&
+				!demand.IsNone(demand.Delete(downstream, exprDemand)) {
 				df.Projection = demand.Fields(exprDemand)
 				df.HasProjection = true
 			}
+			d = demand.Union(d, exprDemand)
 		}
 		op.Pushdown.Projection = demand.Fields(d)
 		op.Pushdown.HasProjection = len(op.Pushdown.Projection) != 0 || demand.IsNone(d)

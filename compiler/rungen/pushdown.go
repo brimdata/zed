@@ -10,8 +10,8 @@ type pushdown struct {
 	projection field.Projection
 	metaFilter *dagFilter
 	dataFilter *dagFilter
-	builder    *Builder
 	unordered  bool
+	builder    *Builder
 }
 
 type dagFilter struct {
