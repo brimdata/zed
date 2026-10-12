@@ -13,7 +13,7 @@ func NewRawReader(r io.Reader) *RawReader {
 }
 
 type RawFrame interface {
-	Frame
+	rawFrameType()
 }
 
 func (r *RawReader) Next() (RawFrame, error) {
@@ -37,9 +37,9 @@ func (r *RawReader) Next() (RawFrame, error) {
 	}
 }
 
-func (*RawColFrame) frameType()    {}
-func (*RawRowFrame) frameType()    {}
-func (*RawSuperFooter) frameType() {}
+func (*RawColFrame) rawFrameType()    {}
+func (*RawRowFrame) rawFrameType()    {}
+func (*RawSuperFooter) rawFrameType() {}
 
 type RawColFrame struct {
 	readerAt io.ReaderAt
