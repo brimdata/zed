@@ -128,6 +128,8 @@ func newTableFromType(typ super.Type, unknown *super.TypeError) relTable {
 
 func recordOf(typ super.Type) *super.TypeRecord {
 	switch typ := super.TypeUnder(typ).(type) {
+	case *super.TypeFusion:
+		return recordOf(typ.Type)
 	case *super.TypeRecord:
 		return typ
 	case *super.TypeUnion:
