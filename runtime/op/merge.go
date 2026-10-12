@@ -16,6 +16,7 @@ type Merge struct {
 	ctx context.Context
 	cmp samexpr.CompareFn
 
+	eos     bool
 	heap    []*mergeParent
 	index   []uint32
 	once    sync.Once
@@ -25,13 +26,9 @@ type Merge struct {
 func NewMerge(ctx context.Context, parents []vio.Puller, cmp samexpr.CompareFn) *Merge {
 	var mergeParents []*mergeParent
 	for i, p := range parents {
-		mergeParents = append(mergeParents, &mergeParent{
-			ctx:      ctx,
-			parent:   p,
-			resultCh: make(chan result),
-			doneCh:   make(chan struct{}),
-			tag:      uint32(i),
-		})
+		mp := newMergeParent(ctx, p, uint32(i))
+		go mp.run()
+		mergeParents = append(mergeParents, mp)
 	}
 	return &Merge{
 		ctx:     ctx,
@@ -41,17 +38,11 @@ func NewMerge(ctx context.Context, parents []vio.Puller, cmp samexpr.CompareFn) 
 }
 
 func (m *Merge) Pull(done bool) (vector.Any, error) {
-	var err error
-	m.once.Do(func() {
-		for _, p := range m.parents {
-			go p.run()
-		}
-		err = m.start()
-	})
-	if err != nil {
-		return nil, err
+	if m.eos {
+		m.eos = false
+		return nil, nil
 	}
-	if done || m.Len() == 0 {
+	if done {
 		for _, parent := range m.heap {
 			select {
 			case parent.doneCh <- struct{}{}:
@@ -59,8 +50,17 @@ func (m *Merge) Pull(done bool) (vector.Any, error) {
 				return nil, m.ctx.Err()
 			}
 		}
-		// Restart parents and return EOS.
-		return nil, m.start()
+		m.heap = m.heap[:0]
+		return nil, nil
+	}
+	if m.Len() == 0 {
+		if err := m.wakeAndReplenishParents(); err != nil {
+			return nil, err
+		}
+		if m.Len() == 0 {
+			// All parents are at EOS.
+			return nil, nil
+		}
 	}
 	tags := make([]uint32, 0, 2048)
 	for {
@@ -73,14 +73,21 @@ func (m *Merge) Pull(done bool) (vector.Any, error) {
 		if err := m.updateHeap(); err != nil {
 			return nil, err
 		}
+		m.eos = m.Len() == 0
 		if len(views) > 0 {
 			return vector.Stitch(vector.NewDynamic(tags, views)), nil
 		}
 	}
 }
 
-func (m *Merge) start() error {
-	m.heap = m.heap[:0]
+func (m *Merge) wakeAndReplenishParents() error {
+	for _, p := range m.parents {
+		select {
+		case p.waitCh <- struct{}{}:
+		case <-m.ctx.Done():
+			return m.ctx.Err()
+		}
+	}
 	for _, parent := range m.parents {
 		ok, err := parent.replenish()
 		if err != nil {
@@ -148,11 +155,13 @@ func (m *Merge) Pop() any {
 }
 
 type mergeParent struct {
-	ctx      context.Context
-	parent   vio.Puller
-	resultCh chan result
+	ctx    context.Context
+	parent vio.Puller
+	tag    uint32
+
 	doneCh   chan struct{}
-	tag      uint32
+	resultCh chan result
+	waitCh   chan struct{}
 
 	vec     vector.Any
 	off     uint32
@@ -161,13 +170,34 @@ type mergeParent struct {
 	val     super.Value
 }
 
+func newMergeParent(ctx context.Context, parent vio.Puller, tag uint32) *mergeParent {
+	return &mergeParent{
+		ctx:      ctx,
+		parent:   parent,
+		tag:      tag,
+		doneCh:   make(chan struct{}),
+		resultCh: make(chan result),
+		waitCh:   make(chan struct{}),
+	}
+}
+
 func (m *mergeParent) run() {
+	wait := true
 	for {
+		if wait {
+			select {
+			case <-m.waitCh:
+			case <-m.ctx.Done():
+				return
+			}
+		}
 		vec, err := m.parent.Pull(false)
+		wait = vec == nil
 	Select:
 		select {
 		case m.resultCh <- result{vec, err}:
 		case <-m.doneCh:
+			wait = true
 			vec, err = m.parent.Pull(true)
 			if err != nil {
 				// Send err downstream.
