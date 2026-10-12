@@ -121,12 +121,22 @@ func demandForSimpleOp(op dag.Op, downstream demand.Demand) demand.Demand {
 	case *dag.FileScan:
 		if mf := op.Pushdown.MetaFilter; mf != nil {
 			mf.Projection = demand.Fields(demandForExpr(mf.Expr))
+			mf.HasProjection = true
 		}
 		d := downstream
 		if df := op.Pushdown.DataFilter; df != nil {
-			d = demand.Union(d, demandForExpr(df.Expr))
+			exprDemand := demandForExpr(df.Expr)
+			// Only worth a separate pass if the rest of the query needs fields
+			// beyond the ones the filter loads.
+			if !demand.IsAll(exprDemand) && !demand.IsNone(exprDemand) &&
+				!demand.IsNone(demand.Delete(downstream, exprDemand)) {
+				df.Projection = demand.Fields(exprDemand)
+				df.HasProjection = true
+			}
+			d = demand.Union(d, exprDemand)
 		}
 		op.Pushdown.Projection = demand.Fields(d)
+		op.Pushdown.HasProjection = len(op.Pushdown.Projection) != 0 || demand.IsNone(d)
 		return demand.None()
 	case *dag.HTTPScan, *dag.ListerScan, *dag.NullScan, *dag.PoolMetaScan, *dag.PoolScan:
 		return demand.None()

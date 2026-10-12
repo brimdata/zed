@@ -17,19 +17,21 @@ type Robot struct {
 	env      *exec.Environment
 	expr     expr.Evaluator
 	pushdown vio.Pushdown
+	progress *vio.Progress
 	format   string
 	vec      vector.Any
 	off      uint32
 	src      vio.Puller
 }
 
-func NewRobot(rctx *runtime.Context, env *exec.Environment, parent vio.Puller, e expr.Evaluator, format string, p vio.Pushdown) *Robot {
+func NewRobot(rctx *runtime.Context, env *exec.Environment, parent vio.Puller, e expr.Evaluator, format string, p vio.Pushdown, progress *vio.Progress) *Robot {
 	return &Robot{
 		parent:   parent,
 		rctx:     rctx,
 		env:      env,
 		expr:     e,
 		pushdown: p,
+		progress: progress,
 		format:   format,
 	}
 }
@@ -140,7 +142,7 @@ func (o *Robot) open(path string) (vio.Puller, error) {
 			return o.openPool(id)
 		}
 	}
-	return o.env.Open(o.rctx.Context, o.rctx.Sctx, path, o.format, o.pushdown, 1)
+	return o.env.Open(o.rctx.Context, o.rctx.Sctx, path, o.format, o.pushdown, o.progress, 1)
 }
 
 func (r *Robot) openPool(id uuid.UUID) (vio.Puller, error) {
