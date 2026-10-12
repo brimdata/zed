@@ -134,7 +134,7 @@ type reader struct {
 	dispatcher   *dispatcher
 	metaFilter   *vio.ValueFilter
 	dataFilter   *vio.Filter
-	searchFilter vio.SearchExpr
+	searchFilter vio.SearchEvaluator
 	pushdown     vio.Pushdown
 	progress     *vio.Progress
 	q            []vector.Any
@@ -143,7 +143,7 @@ type reader struct {
 func newReader(ctx context.Context, sctx *super.Context, d *dispatcher, pushdown vio.Pushdown, progress *vio.Progress) (reader, error) {
 	var metaFilter *vio.ValueFilter
 	var dataFilter *vio.Filter
-	var searchFilter vio.SearchExpr
+	var searchFilter vio.SearchEvaluator
 	if pushdown != nil {
 		var err error
 		metaFilter, err = pushdown.MetaFilter()
@@ -214,7 +214,6 @@ func (r *reader) Pull(done bool) (vector.Any, error) {
 				atomic.AddInt64(&r.progress.FramesSkippedMetaFilter, 1)
 				continue
 			}
-
 			var pick []uint32
 			loader := loader.NewFrameLoader(r.sctx, frame)
 			if r.searchFilter != nil {

@@ -32,7 +32,7 @@ func (p *pushdown) DataFilter() (*vio.Filter, error) {
 	return &vio.Filter{Expr: e, Projection: p.dataFilter.projection}, nil
 }
 
-func (p *pushdown) SearchFilter() (vio.SearchExpr, error) {
+func (p *pushdown) SearchFilter() (vio.SearchEvaluator, error) {
 	if p.searchFilter == nil {
 		return nil, nil
 	}

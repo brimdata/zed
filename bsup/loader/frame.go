@@ -74,6 +74,6 @@ func (f *FrameLoader) Strings() []string {
 	return c.strings
 }
 
-func (f *FrameLoader) Search(expr vio.SearchExpr) (bool, error) {
+func (f *FrameLoader) Search(expr vio.SearchEvaluator) (bool, error) {
 	return expr.Eval(f.Strings()), nil
 }
