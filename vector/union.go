@@ -57,7 +57,7 @@ func NewUnionFromRLE(typ *super.TypeUnion, rle []uint32, vecs []Any) *Union {
 	return &Union{dynamic: NewDynamic(nil, vecs), rle: rle, Typ: typ}
 }
 
-func NewUnionOptionRLE(sctx *super.Context, vec Any, length uint32, runlens []uint32) *Union {
+func NewUnionNoneRLE(sctx *super.Context, vec Any, length uint32, runlens []uint32) *Union {
 	typ := vec.Type()
 	optionType := sctx.UnionWithNone(typ)
 	if union, ok := vec.(*Union); ok {

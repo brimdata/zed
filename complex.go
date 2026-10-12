@@ -504,3 +504,84 @@ func Flatten(types []Type) []Type {
 	}
 	return UniqueTypes(out)
 }
+
+func isValidFusionType(typ Type) bool {
+	switch typ := typ.(type) {
+	case *TypeNamed:
+		// Named types are a barrier to fusion. Their bodies can't contain
+		// fusions (checked when the named type is bound), so there's
+		// nothing below this point for a fusion's subtypes to describe.
+		return true
+	case *TypeUnion:
+		if _, ok := typ.LUT[TypeNone]; ok {
+			// A none must be recorded by its own fusion's subtypes.
+			return false
+		}
+		for _, t := range typ.Types {
+			if !isValidFusionType(t) {
+				return false
+			}
+		}
+	case *TypeFusion:
+		// A fusion's own subtypes record a none at its top level, so a
+		// union there may contain none. Check its other members.
+		if union, ok := typ.Type.(*TypeUnion); ok {
+			for _, t := range union.Types {
+				if t != TypeNone && !isValidFusionType(t) {
+					return false
+				}
+			}
+			return true
+		}
+		return isValidFusionType(typ.Type)
+	case *TypeRecord:
+		for _, f := range typ.Fields {
+			if !isValidFusionType(f.Type) {
+				return false
+			}
+		}
+	case *TypeArray:
+		return isValidFusionType(typ.Type)
+	case *TypeSet:
+		return isValidFusionType(typ.Type)
+	case *TypeMap:
+		return isValidFusionType(typ.KeyType) && isValidFusionType(typ.ValType)
+	case *TypeError:
+		return isValidFusionType(typ.Type)
+	case *TypeOption:
+		return isValidFusionType(typ.Type)
+	}
+	return true
+}
+
+func containsFusion(typ Type) bool {
+	switch typ := typ.(type) {
+	case *TypeFusion:
+		// fusion(all) is the any type: each value carries its own type, so it
+		// doesn't describe structure that the named barrier needs to protect.
+		return typ.Type != TypeAll
+	case *TypeRecord:
+		for _, f := range typ.Fields {
+			if containsFusion(f.Type) {
+				return true
+			}
+		}
+	case *TypeUnion:
+		for _, t := range typ.Types {
+			if containsFusion(t) {
+				return true
+			}
+		}
+	case *TypeArray:
+		return containsFusion(typ.Type)
+	case *TypeSet:
+		return containsFusion(typ.Type)
+	case *TypeMap:
+		return containsFusion(typ.KeyType) || containsFusion(typ.ValType)
+	case *TypeError:
+		return containsFusion(typ.Type)
+	case *TypeOption:
+		return containsFusion(typ.Type)
+	}
+	return false
+}
