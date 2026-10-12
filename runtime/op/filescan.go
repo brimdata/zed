@@ -82,7 +82,7 @@ func (f *FileScan) done() (allDone bool, err error) {
 	f.eos = false
 	f.inputValuesRemaining = 0
 	f.numDone = 0
-	return true, nil
+	return true, err
 }
 
 func (f *FileScan) nextFile(current exec.ConcurrentPuller) (exec.ConcurrentPuller, error) {
