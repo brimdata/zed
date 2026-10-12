@@ -375,7 +375,7 @@ func (c *Context) BindTypeNamed(patch int, named *TypeNamed, inner Type) {
 	// any concurent threads waiting on this type's resolution.
 	named.Type = inner
 	c.typedefs.BindTypeNamed(patch, uint32(TypeID(inner)))
-	named.cond.Signal()
+	named.cond.Broadcast()
 }
 
 func (c *Context) LookupTypeError(inner Type) *TypeError {
