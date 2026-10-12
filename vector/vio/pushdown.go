@@ -8,7 +8,7 @@ import (
 
 type Pushdown interface {
 	Projection() field.Projection
-	SearchFilter() (Searcher, error)
+	SearchFilter() (SearchEvaluator, error)
 	MetaFilter() (*ValueFilter, error)
 	DataFilter() (*Filter, error)
 	Unordered() bool
@@ -22,8 +22,8 @@ type ValueEvaluator interface {
 	Eval(super.Value) super.Value
 }
 
-type Searcher interface {
-	Eval(string) bool
+type SearchEvaluator interface {
+	Eval(bufs []string) bool
 }
 
 type Filter struct {

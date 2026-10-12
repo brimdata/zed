@@ -39,3 +39,16 @@ func (c *const_) project(loader *FrameLoader, projection field.Projection) vecto
 	}
 	return vec
 }
+func (k *const_) strings(c *collector) {
+	val := k.meta.Value
+	if val.IsNull() {
+		return
+	}
+	typ := super.TypeUnder(val.Type())
+	if typ.Kind() == super.PrimitiveKind && typ.ID() != super.IDString {
+		return
+	}
+	// Complex consts: every embedded string appears verbatim in the
+	// encoding, so the raw bytes are a safe superset to scan.
+	c.append(val.Bytes())
+}

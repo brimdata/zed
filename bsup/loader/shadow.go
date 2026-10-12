@@ -39,6 +39,7 @@ type shadow interface {
 	length() uint32
 	unmarshal(*bsup.Context, field.Projection)
 	project(*FrameLoader, field.Projection) vector.Any
+	strings(*collector)
 }
 
 // newShadow decodes the BSUP metadata structure to the appropriate shadow object.

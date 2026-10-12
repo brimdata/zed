@@ -128,8 +128,17 @@ func demandForSimpleOp(op dag.Op, downstream demand.Demand) demand.Demand {
 			exprDemand := demandForExpr(df.Expr)
 			// Only worth a separate pass if the rest of the query needs fields
 			// beyond the ones the filter loads.
-			if !demand.IsAll(exprDemand) && !demand.IsNone(exprDemand) &&
-				!demand.IsNone(demand.Delete(downstream, exprDemand)) {
+			if demand.IsAll(exprDemand) {
+				// If the predicate wants to look at the entire this, then it is a candidate
+				// for search.  We don't check for sure if it is and let the compiler do
+				// that later, but this dataflow analysis here lets us put the candidate
+				// in place.
+				op.Pushdown.SearchFilter = &dag.ScanFilter{
+					HasProjection: true,
+					Projection:    nil,
+					Expr:          df.Expr,
+				}
+			} else if !demand.IsNone(exprDemand) && !demand.IsNone(demand.Delete(downstream, exprDemand)) {
 				df.Projection = demand.Fields(exprDemand)
 				df.HasProjection = true
 			}

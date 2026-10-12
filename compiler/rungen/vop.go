@@ -279,8 +279,12 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 		if df := o.Pushdown.DataFilter; df != nil && df.HasProjection {
 			dataFilter = &dagFilter{field.NewProjection(df.Projection), df.Expr}
 		}
+		var searchFilter *dagFilter
+		if sf := o.Pushdown.DataFilter; sf != nil && sf.Expr != nil {
+			searchFilter = &dagFilter{nil, sf.Expr}
+		}
 		projection := field.NewProjectionMaybe(o.Pushdown.HasProjection, o.Pushdown.Projection)
-		pushdown := b.newPushdown(projection, metaFilter, dataFilter, o.Pushdown.Unordered)
+		pushdown := b.newPushdown(projection, metaFilter, searchFilter, dataFilter, o.Pushdown.Unordered)
 		return op.NewFileScan(b.rctx, b.env, parent, o.Paths, o.Format, pushdown, b.progress), nil
 	case *dag.FilterOp:
 		e, err := b.compileVamExpr(o.Expr)
@@ -357,7 +361,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 		if o.Filter != nil {
 			dataFilter = &dagFilter{nil, o.Filter}
 		}
-		return op.NewRobot(b.rctx, b.env, parent, e, o.Format, b.newPushdown(nil, nil, dataFilter, false), b.progress), nil
+		return op.NewRobot(b.rctx, b.env, parent, e, o.Format, b.newPushdown(nil, nil, nil, dataFilter, false), b.progress), nil
 	case *dag.PoolScan:
 		if parent != nil {
 			return nil, errors.New("internal error: pool scan cannot have a parent operator")

@@ -5,6 +5,7 @@ import (
 	"github.com/superdb/super/bsup"
 	"github.com/superdb/super/pkg/field"
 	"github.com/superdb/super/vector"
+	"github.com/superdb/super/vector/vio"
 )
 
 // FrameLoader is the interface to load a BSUP column frame from storage into
@@ -53,12 +54,26 @@ func (f *FrameLoader) Load(sctx *super.Context, projection field.Projection) (ve
 // LoadUnordered returns the underlying values vectors instead of a
 // vector.Dynamic.
 func (f *FrameLoader) LoadUnordered(vecs []vector.Any, sctx *super.Context, projection field.Projection) ([]vector.Any, error) {
-	cctx := f.frame.Context()
-	f.root = newShadow(cctx, f.frame.Root())
-	f.root.unmarshal(cctx, projection)
+	f.root.unmarshal(f.frame.Context(), projection)
 	if d, ok := f.root.(*dynamic); ok {
 		return d.projectUnordered(vecs, f, projection), nil
 	}
 	vec := f.root.project(f, projection)
 	return append(vecs, vec), nil
+}
+
+// Strings loads every string buffer in the frame (string columns, dict
+// values, and string/complex consts) and returns them as a list. Only
+// string data is read; other columns are not touched. Loaded tables are
+// cached in the shadow, so a later Load reuses them.
+func (f *FrameLoader) Strings() []string {
+	f.root.unmarshal(f.frame.Context(), nil)
+	c := &collector{loader: f}
+	f.root.strings(c)
+	c.wg.Wait()
+	return c.strings
+}
+
+func (f *FrameLoader) Search(expr vio.SearchEvaluator) (bool, error) {
+	return expr.Eval(f.Strings()), nil
 }

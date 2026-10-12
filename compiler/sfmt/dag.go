@@ -318,37 +318,10 @@ func (c *canonDAG) op(p dag.Op) {
 		if p.Pushdown.HasProjection {
 			c.project(p.Pushdown.Projection)
 		}
-		if mf := p.Pushdown.MetaFilter; mf != nil {
-			if mf.Expr != nil {
-				c.ret()
-				c.open()
-				c.open("meta-filter")
-				c.project(mf.Projection)
-				c.write(" (")
-				c.ret()
-				c.expr(mf.Expr, "")
-				c.ret()
-				c.close()
-				c.ret()
-				c.write(")")
-				c.close()
-			}
-		}
-		if df := p.Pushdown.DataFilter; df != nil {
-			if df.HasProjection {
-				c.ret()
-				c.open()
-				c.open("data-filter")
-				c.project(df.Projection)
-				c.write(" (")
-				c.ret()
-				c.expr(df.Expr, "")
-				c.ret()
-				c.close()
-				c.ret()
-				c.write(")")
-				c.close()
-			}
+		c.scanFilter("meta-filter", p.Pushdown.MetaFilter)
+		c.scanFilter("search-filter", p.Pushdown.SearchFilter)
+		if p.Pushdown.DataFilter != nil && p.Pushdown.DataFilter.HasProjection {
+			c.scanFilter("data-filter", p.Pushdown.DataFilter)
 		}
 	case *dag.HTTPScan:
 		c.next()
@@ -612,6 +585,23 @@ func (c *canonDAG) op(p dag.Op) {
 	default:
 		c.next()
 		c.open("unknown operator: %T", p)
+		c.close()
+	}
+}
+
+func (c *canonDAG) scanFilter(which string, sf *dag.ScanFilter) {
+	if sf != nil && sf.Expr != nil {
+		c.ret()
+		c.open()
+		c.open(which)
+		c.project(sf.Projection)
+		c.write(" (")
+		c.ret()
+		c.expr(sf.Expr, "")
+		c.ret()
+		c.close()
+		c.ret()
+		c.write(")")
 		c.close()
 	}
 }
