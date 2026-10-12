@@ -3,7 +3,6 @@ package op
 import (
 	"container/heap"
 	"context"
-	"sync"
 
 	"github.com/superdb/super"
 	samexpr "github.com/superdb/super/runtime/sam/expr"
@@ -19,7 +18,6 @@ type Merge struct {
 	eos     bool
 	heap    []*mergeParent
 	index   []uint32
-	once    sync.Once
 	parents []*mergeParent
 }
 
@@ -198,6 +196,10 @@ func (m *mergeParent) run() {
 		case m.resultCh <- result{vec, err}:
 		case <-m.doneCh:
 			wait = true
+			if vec == nil && err == nil {
+				// Parent is already at EOS.
+				continue
+			}
 			vec, err = m.parent.Pull(true)
 			if err != nil {
 				// Send err downstream.
