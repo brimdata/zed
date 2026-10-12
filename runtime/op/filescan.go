@@ -68,24 +68,21 @@ func (f *FileScan) NewConcurrentPullers(n int) []vio.Puller {
 	return out
 }
 
-func (f *FileScan) done() error {
+func (f *FileScan) done() (allDone bool, err error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.numDone++
-	if f.numDone == len(f.pullers) {
-		f.current = nil
-		if !f.eos {
-			_, err := f.parent.Pull(true)
-			return err
-		}
-		f.eos = false
-		f.inputValuesRemaining = 0
-		f.numDone = 0
-		for _, p := range f.pullers {
-			p.waitCh <- struct{}{}
-		}
+	if f.numDone < len(f.pullers) {
+		return false, nil
 	}
-	return nil
+	f.current = nil
+	if !f.eos {
+		_, err = f.parent.Pull(true)
+	}
+	f.eos = false
+	f.inputValuesRemaining = 0
+	f.numDone = 0
+	return true, err
 }
 
 func (f *FileScan) nextFile(current exec.ConcurrentPuller) (exec.ConcurrentPuller, error) {
@@ -137,8 +134,8 @@ type concurrentPuller struct {
 	f  *FileScan
 	id int
 
-	eos     bool
 	current exec.ConcurrentPuller
+	wait    bool
 	waitCh  chan struct{}
 }
 
@@ -147,19 +144,16 @@ func newPuller(f *FileScan, id int) *concurrentPuller {
 }
 
 func (p *concurrentPuller) Pull(done bool) (vector.Any, error) {
-	if done {
-		p.f.done()
-		p.eos = true
-		p.current = nil
-		return nil, nil
-	}
-	if p.eos {
-		p.eos = false
+	if p.wait {
 		select {
 		case <-p.waitCh:
 		case <-p.f.rctx.Context.Done():
 			return nil, p.f.rctx.Context.Err()
 		}
+		p.wait = false
+	}
+	if done {
+		return nil, p.done()
 	}
 	for {
 		if err := p.f.rctx.Context.Err(); err != nil {
@@ -176,8 +170,20 @@ func (p *concurrentPuller) Pull(done bool) (vector.Any, error) {
 			return nil, err
 		}
 		if puller == nil {
-			return p.Pull(true)
+			return nil, p.done()
 		}
 		p.current = puller
 	}
+}
+
+func (p *concurrentPuller) done() error {
+	p.current = nil
+	p.wait = true
+	allDone, err := p.f.done()
+	if allDone {
+		for _, p := range p.f.pullers {
+			p.waitCh <- struct{}{}
+		}
+	}
+	return err
 }

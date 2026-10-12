@@ -76,3 +76,14 @@ outputs:
       ===
       4
       4
+
+---
+
+# This previously deadlocked.
+script: |
+  seq -f '{a:%g}' 1000 | super -s -c 'from /dev/stdin | top 1 a'
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1}
