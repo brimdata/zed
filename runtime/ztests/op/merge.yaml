@@ -1,0 +1,14 @@
+# This previously deadlocked.
+script: |
+  super -s -c 'fork ( pass ) ( from a.sup | sort a ) | count()'
+
+inputs:
+  - name: a.sup
+    data: |
+      {a:1}
+      {a:2}
+
+outputs:
+  - name: stdout
+    data: |
+      3
