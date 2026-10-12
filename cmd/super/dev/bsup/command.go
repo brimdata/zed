@@ -2,9 +2,11 @@ package bsup
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"flag"
 	"io"
+	"os"
 
 	"github.com/superdb/super"
 	"github.com/superdb/super/bsup"
@@ -33,18 +35,32 @@ func init() {
 type Command struct {
 	*dev.Command
 	outputFlags outputflags.Flags
+	headers     bool
 	fused       bool
+	metas       bool
+	typedefs    bool
+	metabytes   bool
 	marshaler   *super.Marshaler
 	vals        []super.Value
 	writer      vio.Pusher
-	reader      io.Reader
+	w           io.Writer
 	sctx        *super.Context
+	limit       int
+	framelimit  int
+	count       int
+	frames      int
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*dev.Command)}
 	c.outputFlags.SetFlags(f)
-	f.BoolVar(&c.fused, "fused", false, "emit container's fused type instead of meta data")
+	f.BoolVar(&c.headers, "headers", true, "emit file's headers")
+	f.BoolVar(&c.metas, "metas", false, "emit BSUP columns metas")
+	f.BoolVar(&c.metabytes, "metabytes", false, "dump raw BSUP columns metas as BSUP row frames to stdout")
+	f.BoolVar(&c.typedefs, "typedefs", false, "emit file's typedefs table")
+	f.BoolVar(&c.fused, "fused", false, "emit the fused types")
+	f.IntVar(&c.limit, "limit", 0, "cap number of values output")
+	f.IntVar(&c.framelimit, "framelimit", 0, "cap number of frames output")
 	return c, nil
 }
 
@@ -67,56 +83,86 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer r.Close()
-	c.reader = r
+	reader := bsup.NewRawReader(r)
+	if c.metabytes {
+		return c.dumpMetaBytes(ctx, reader)
+	}
 	writer, err := c.outputFlags.Open(ctx, engine)
 	if err != nil {
 		return err
 	}
 	c.writer = writer
-	c.sctx = super.NewContext()
-	c.marshaler = super.NewMarshaler(c.sctx)
-	c.marshaler.Decorate(super.StyleSimple)
-	if c.fused {
-		if err := c.emitFused(); err != nil {
-			return err
-		}
-	} else {
-		for {
-			hdr, err := bsup.ReadHeader(r)
-			if err != nil {
-				return err
-			}
-			if hdr == nil {
-				break
-			}
-			c.marshal(hdr)
-			if err := c.frame(hdr); err != nil {
-				return err
-			}
-		}
+	err = c.dump(ctx, reader)
+	if err2 := c.flush(); err == nil {
+		err = err2
 	}
-	err = c.flush()
 	if err2 := writer.Close(); err == nil {
 		err = err2
 	}
 	return err
 }
 
-func (c *Command) emitFused() error {
-	r, ok := c.reader.(io.ReaderAt)
-	if !ok {
-		return errors.New("need seekable input for -fused")
+func (c *Command) dump(ctx context.Context, reader *bsup.RawReader) error {
+	c.sctx = super.NewContext()
+	c.marshaler = super.NewMarshaler(c.sctx)
+	c.marshaler.Decorate(super.StyleSimple)
+	for !c.stop() && ctx.Err() == nil {
+		frame, err := reader.Next()
+		if err != nil {
+			return err
+		}
+		if frame == nil {
+			return nil
+		}
+		if err := c.frame(frame); err != nil {
+			return err
+		}
+		c.frames++
 	}
-	container := bsup.NewSeekable(c.sctx, r)
-	typ, err := container.FusedType(c.sctx)
-	if err != nil {
-		return err
+	return ctx.Err()
+}
+
+func (c *Command) dumpMetaBytes(ctx context.Context, reader *bsup.RawReader) error {
+	for !c.stop() && ctx.Err() == nil {
+		frame, err := reader.Next()
+		if err != nil {
+			return err
+		}
+		if frame == nil {
+			return nil
+		}
+		switch frame := frame.(type) {
+		case *bsup.RawColFrame:
+			metaBytes, err := frame.Metadata()
+			if err != nil {
+				return err
+			}
+			if _, err = os.Stdout.Write(metaBytes); err != nil {
+				return err
+			}
+		case *bsup.RawRowFrame:
+		case *bsup.RawSuperFooter:
+		default:
+			panic(frame)
+		}
+		c.frames++
 	}
-	return c.emit(c.sctx.LookupTypeValue(typ))
+	return ctx.Err()
+}
+
+func (c *Command) stop() bool {
+	if c.limit != 0 && c.count >= c.limit {
+		return true
+	}
+	return c.framelimit != 0 && c.frames >= c.framelimit
 }
 
 func (c *Command) emit(val super.Value) error {
+	if c.limit != 0 && c.count >= c.limit {
+		return nil
+	}
 	c.vals = append(c.vals, val)
+	c.count++
 	if len(c.vals) > 100 {
 		return c.flush()
 	}
@@ -131,144 +177,149 @@ func (c *Command) marshal(thing any) error {
 	return c.emit(val)
 }
 
+func wrapType(kind string, typ any) any {
+	return &struct {
+		Kind string
+		Type any
+	}{
+		Kind: kind,
+		Type: typ,
+	}
+}
+
 func (c *Command) flush() error {
 	if len(c.vals) != 0 {
 		err := c.writer.Push(sbuf.Dematerialize(c.sctx, c.vals...))
-		c.vals = c.vals[0:]
+		c.vals = c.vals[:0]
 		return err
 	}
 	return nil
 }
 
-func (c *Command) discard(n int64) error {
-	_, err := io.CopyN(io.Discard, c.reader, n)
-	return err
-}
-func (c *Command) frame(hdr bsup.Header) error {
-	switch hdr := hdr.(type) {
-	case *bsup.ColumnHeader:
-		return c.columnFrame(hdr)
-	case *bsup.RowHeader:
-		return c.rowFrame(hdr)
-	case *bsup.SuperFooter:
-		return c.superFooter(hdr)
+func (c *Command) frame(frame bsup.RawFrame) error {
+	switch frame := frame.(type) {
+	case *bsup.RawColFrame:
+		return c.columnFrame(frame)
+	case *bsup.RawRowFrame:
+		return c.rowFrame(frame)
+	case *bsup.RawSuperFooter:
+		return c.superFooter(frame)
 	default:
-		panic(hdr)
+		panic(frame)
 	}
 }
 
-func (c *Command) columnFrame(header *bsup.ColumnHeader) error {
-	metaBytes, err := io.ReadAll(io.LimitReader(c.reader, int64(header.MetadataSize)))
-	if err != nil {
-		return err
+func (c *Command) columnFrame(frame *bsup.RawColFrame) error {
+	if c.headers {
+		if err := c.marshal(frame.Header()); err != nil {
+			return err
+		}
 	}
-	fit := bsup.NewSeekable(c.sctx, bytes.NewReader(metaBytes))
-	for {
-		frame, err := fit.Next()
+	if c.metas {
+		metaBytes, err := frame.Metadata()
 		if err != nil {
 			return err
 		}
-		if frame == nil {
-			break
+		fit := bsup.NewSeekable(c.sctx, bytes.NewReader(metaBytes))
+		for {
+			frame, err := fit.Next()
+			if err != nil {
+				return err
+			}
+			if frame == nil {
+				break
+			}
+			rowframe, ok := frame.(*bsup.RowFrame)
+			if !ok {
+				return errors.New("non-row data in column metadata")
+			}
+			vals, err := rowframe.DeserializeValues()
+			if err != nil {
+				return err
+			}
+			for _, val := range vals {
+				if err := c.emit(val.Copy()); err != nil {
+					return err
+				}
+			}
 		}
-		rowframe, ok := frame.(*bsup.RowFrame)
-		if !ok {
-			return errors.New("non-row data in column metadata")
-		}
-		vals, err := rowframe.DeserializeValues()
+	}
+	if c.typedefs {
+		typedefsBytes, err := frame.Typedefs()
 		if err != nil {
 			return err
 		}
-		for _, val := range vals {
-			c.emit(val.Copy())
+		if err := c.marshalTypeDefs(typedefsBytes); err != nil {
+			return err
 		}
 	}
-	typedefsBytes := make([]byte, header.TypedefsSize)
-	if _, err := io.ReadFull(c.reader, typedefsBytes); err != nil {
-		return err
+	if c.fused {
+		fusedTypeBytes, err := frame.FusedTypeBytes()
+		if err != nil {
+			return err
+		}
+		fusedType, err := c.sctx.LookupByValue(fusedTypeBytes)
+		if err != nil {
+			return err
+		}
+		if err := c.marshal(wrapType("ColumnFrameFusedType", fusedType)); err != nil {
+			return err
+		}
 	}
-	if err := c.marshalTypeDefs(typedefsBytes); err != nil {
-		return err
-	}
-	fusedTypeBytes := make([]byte, header.FusedTypeSize)
-	if _, err := io.ReadFull(c.reader, fusedTypeBytes); err != nil {
-		return err
-	}
-	fusedType, err := c.sctx.LookupByValue(fusedTypeBytes)
-	if err != nil {
-		return err
-	}
-	if err := c.marshal(struct {
-		Kind string
-		Type super.Type
-	}{
-		Kind: "ColumnFrameFusedType",
-		Type: fusedType,
-	}); err != nil {
-		return err
-	}
-	_, segSize := header.SegmentsSection()
-	return c.discard(segSize)
+	return nil
 }
 
-func (c *Command) rowFrame(header *bsup.RowHeader) error {
-	fusedTypeBytes := make([]byte, header.FusedTypeSize)
-	if _, err := io.ReadFull(c.reader, fusedTypeBytes); err != nil {
-		return err
+func (c *Command) rowFrame(frame *bsup.RawRowFrame) error {
+	if c.headers {
+		if err := c.marshal(frame.Header()); err != nil {
+			return err
+		}
 	}
-	fusedType, err := c.sctx.LookupByValue(fusedTypeBytes)
-	if err != nil {
-		return err
+	if c.typedefs {
+		typedefsBytes, err := frame.Typedefs()
+		if err != nil {
+			return err
+		}
+		if err := c.marshalTypeDefs(typedefsBytes); err != nil {
+			return err
+		}
 	}
-	typedefsBytes := make([]byte, header.TypedefsSize)
-	if _, err := io.ReadFull(c.reader, typedefsBytes); err != nil {
-		return err
+	if c.fused {
+		fusedTypeBytes, err := frame.FusedTypeBytes()
+		if err != nil {
+			return err
+		}
+		fusedType, err := c.sctx.LookupByValue(fusedTypeBytes)
+		if err != nil {
+			return err
+		}
+		if err := c.marshal(wrapType("RowFrameFusedType", fusedType)); err != nil {
+			return err
+		}
 	}
-	if err := c.marshalTypeDefs(typedefsBytes); err != nil {
-		return err
-	}
-
-	if err := c.marshal(struct {
-		Kind string
-		Type super.Type
-	}{
-		Kind: "RowFrameFusedType",
-		Type: fusedType,
-	}); err != nil {
-		return err
-	}
-	_, dataSize := header.DataSection()
-	if err := c.marshal(struct {
-		Kind string
-		Size int64
-	}{
-		Kind: "RowFrameData",
-		Size: dataSize,
-	}); err != nil {
-		return err
-	}
-	return c.discard(dataSize)
+	return nil
 }
 
-func (c *Command) superFooter(header *bsup.SuperFooter) error {
-	fusedTypeBytes := make([]byte, header.FusedTypeSize())
-	if _, err := io.ReadFull(c.reader, fusedTypeBytes); err != nil {
-		return err
+func (c *Command) superFooter(frame *bsup.RawSuperFooter) error {
+	if c.headers {
+		if err := c.marshal(frame.Footer()); err != nil {
+			return err
+		}
 	}
-	fusedType, err := c.sctx.LookupByValue(fusedTypeBytes)
-	if err != nil {
-		return err
+	if c.fused {
+		fusedTypeBytes, err := frame.FusedTypeBytes()
+		if err != nil {
+			return err
+		}
+		fusedType, err := c.sctx.LookupByValue(fusedTypeBytes)
+		if err != nil {
+			return err
+		}
+		if err := c.marshal(wrapType("SuperFrameFusedType", fusedType)); err != nil {
+			return err
+		}
 	}
-	if err := c.discard(bsup.SuperFooterPad); err != nil {
-		return err
-	}
-	return c.marshal(struct {
-		Kind string
-		Type super.Type
-	}{
-		Kind: "SuperFrameFusedType",
-		Type: fusedType,
-	})
+	return nil
 }
 
 func (c *Command) marshalTypeDefs(bytes []byte) error {
@@ -281,7 +332,9 @@ func (c *Command) marshalTypeDefs(bytes []byte) error {
 			if err != nil {
 				return err
 			}
-			c.emit(val)
+			if err := c.emit(val); err != nil {
+				return err
+			}
 		}
 		id++
 	}

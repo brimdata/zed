@@ -38,7 +38,7 @@ script: |
   super -o a-cols.bsup a.sup
   super -o b-rows.bsup -rows b.sup
   cat a-cols.bsup b-rows.bsup > both.bsup
-  super dev bsup -s -fused both.bsup
+  super dev bsup -s -fused -headers=false both.bsup
 
 inputs:
   - name: a.sup
@@ -53,4 +53,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      <{b:fusion(int64|string|none),a:fusion(int64|string|none)}>
+      {Kind:"ColumnFrameFusedType",Type:<{a:fusion(int64|string)}>}
+      {Kind:"SuperFrameFusedType",Type:<{a:fusion(int64|string)}>}
+      {Kind:"RowFrameFusedType",Type:<{b:fusion(int64|string)}>}
+      {Kind:"SuperFrameFusedType",Type:<{b:fusion(int64|string)}>}

@@ -20,7 +20,7 @@ func NewStream(sctx *super.Context, r io.Reader) *Stream {
 
 func (s *Stream) Next() (Frame, error) {
 	for {
-		readerAt, err := s.scanNextFrameBuffer()
+		readerAt, err := scanNextFrameBuffer(s.reader)
 		if readerAt == nil || err != nil {
 			return nil, err
 		}
@@ -45,10 +45,10 @@ func (s *Stream) FusedType(sctx *super.Context) (super.Type, error) {
 	return nil, nil
 }
 
-func (s *Stream) scanNextFrameBuffer() (io.ReaderAt, error) {
+func scanNextFrameBuffer(r io.Reader) (io.ReaderAt, error) {
 	// All frame types begin with magic (4), version (2), and framesize (8)
 	var peek [14]byte
-	if _, err := io.ReadFull(s.reader, peek[:]); err != nil {
+	if _, err := io.ReadFull(r, peek[:]); err != nil {
 		if err == io.EOF {
 			err = nil
 		}
@@ -61,7 +61,7 @@ func (s *Stream) scanNextFrameBuffer() (io.ReaderAt, error) {
 	buf := make([]byte, size)
 	copy(buf, peek[:])
 	// read the rest of the frame into a memory buf that serves as ReaderAt
-	if _, err := io.ReadFull(s.reader, buf[14:]); err != nil {
+	if _, err := io.ReadFull(r, buf[14:]); err != nil {
 		return nil, err
 	}
 	return bytes.NewReader(buf), nil

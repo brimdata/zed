@@ -286,6 +286,10 @@ func (s *SuperFooter) FusedTypeSize() uint64 {
 	return s.FooterSize - (SuperFooterSize + SuperFooterPad)
 }
 
+func (s SuperFooter) FusedTypeSection() (int64, int64) {
+	return SuperFooterSize, int64(s.FusedTypeSize())
+}
+
 // Serialize the front part of a SuperHeader.  The caller is responsible for
 // writing the length trailer after the fused type.
 func (s SuperFooter) Serialize() []byte {
