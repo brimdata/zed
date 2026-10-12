@@ -136,16 +136,17 @@ func (b *Builder) compileAssignmentsToLvals(assignments []dag.Assignment) ([]*sa
 // For runtime/sam/expr/filter_test.go
 func NewPushdown(b *Builder, e dag.Expr) vio.Pushdown {
 	dataFilter := &dagFilter{nil, e}
-	return b.newPushdown(nil, nil, dataFilter, false)
+	return b.newPushdown(nil, nil, nil, dataFilter, false)
 }
 
-func (b *Builder) newPushdown(projection field.Projection, metaFilter, dataFilter *dagFilter, unordered bool) *pushdown {
+func (b *Builder) newPushdown(projection field.Projection, metaFilter, searchFilter, dataFilter *dagFilter, unordered bool) *pushdown {
 	return &pushdown{
-		builder:    b,
-		projection: projection,
-		dataFilter: dataFilter,
-		metaFilter: metaFilter,
-		unordered:  unordered,
+		builder:      b,
+		projection:   projection,
+		metaFilter:   metaFilter,
+		searchFilter: searchFilter,
+		dataFilter:   dataFilter,
+		unordered:    unordered,
 	}
 }
 

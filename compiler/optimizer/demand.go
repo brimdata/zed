@@ -132,6 +132,16 @@ func demandForSimpleOp(op dag.Op, downstream demand.Demand) demand.Demand {
 				!demand.IsNone(demand.Delete(downstream, exprDemand)) {
 				df.Projection = demand.Fields(exprDemand)
 				df.HasProjection = true
+			} else if demand.IsAll(exprDemand) {
+				// If the predicate wants to look at the entire this, then it is candidate
+				// for search.  We don't check for sure if it is and let the compiler do
+				// that later, but this dataflow analysis here lets us put the candidate
+				// in place.
+				op.Pushdown.SearchFilter = &dag.ScanFilter{
+					HasProjection: true,
+					Projection:    nil,
+					Expr:          df.Expr,
+				}
 			}
 			d = demand.Union(d, exprDemand)
 		}

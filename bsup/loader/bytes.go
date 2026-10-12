@@ -68,3 +68,11 @@ func loadBytesTable(loader *FrameLoader, offsets, bytes bsup.Segment) vector.Byt
 	}
 	return vector.NewBytesTable(offs, b)
 }
+
+func (b *bytes) strings(c *collector) {
+	if b.meta.Typ.ID() != super.IDString {
+		return
+	}
+	table := b.load(c.loader)
+	c.append(table.RawBytes())
+}

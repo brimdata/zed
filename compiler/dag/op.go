@@ -318,6 +318,7 @@ type (
 		Projection    []field.Path `json:"projection"`
 		DataFilter    *ScanFilter  `json:"data_filter"`
 		MetaFilter    *ScanFilter  `json:"meta_filter"`
+		SearchFilter  *ScanFilter  `json:"search_filter"`
 		Unordered     bool         `json:"unordered"`
 	}
 	ScanFilter struct {

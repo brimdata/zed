@@ -131,17 +131,19 @@ type reader struct {
 	ctx  context.Context
 	sctx *super.Context
 
-	dispatcher *dispatcher
-	metaFilter *vio.ValueFilter
-	dataFilter *vio.Filter
-	pushdown   vio.Pushdown
-	progress   *vio.Progress
-	q          []vector.Any
+	dispatcher   *dispatcher
+	metaFilter   *vio.ValueFilter
+	dataFilter   *vio.Filter
+	searchFilter vio.SearchExpr
+	pushdown     vio.Pushdown
+	progress     *vio.Progress
+	q            []vector.Any
 }
 
 func newReader(ctx context.Context, sctx *super.Context, d *dispatcher, pushdown vio.Pushdown, progress *vio.Progress) (reader, error) {
 	var metaFilter *vio.ValueFilter
 	var dataFilter *vio.Filter
+	var searchFilter vio.SearchExpr
 	if pushdown != nil {
 		var err error
 		metaFilter, err = pushdown.MetaFilter()
@@ -152,15 +154,20 @@ func newReader(ctx context.Context, sctx *super.Context, d *dispatcher, pushdown
 		if err != nil {
 			return reader{}, err
 		}
+		searchFilter, err = pushdown.SearchFilter()
+		if err != nil {
+			return reader{}, err
+		}
 	}
 	return reader{
-		ctx:        ctx,
-		sctx:       sctx,
-		dispatcher: d,
-		metaFilter: metaFilter,
-		dataFilter: dataFilter,
-		pushdown:   pushdown,
-		progress:   progress,
+		ctx:          ctx,
+		sctx:         sctx,
+		dispatcher:   d,
+		metaFilter:   metaFilter,
+		dataFilter:   dataFilter,
+		searchFilter: searchFilter,
+		pushdown:     pushdown,
+		progress:     progress,
 	}, nil
 }
 
@@ -207,8 +214,17 @@ func (r *reader) Pull(done bool) (vector.Any, error) {
 				atomic.AddInt64(&r.progress.FramesSkippedMetaFilter, 1)
 				continue
 			}
+
 			var pick []uint32
 			loader := loader.NewFrameLoader(r.sctx, frame)
+			if r.searchFilter != nil {
+				if ok, err := loader.Search(r.searchFilter); err != nil {
+					return nil, err
+				} else if !ok {
+					atomic.AddInt64(&r.progress.FramesSkippedSearchFilter, 1)
+					continue
+				}
+			}
 			if r.dataFilter != nil && len(r.dataFilter.Projection) != 0 {
 				skip, idx, err := r.evalDataFilter(loader)
 				if err != nil {

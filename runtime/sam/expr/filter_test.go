@@ -1,6 +1,7 @@
 package expr_test
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,7 +28,7 @@ func runCases(t *testing.T, record string, cases []testcase) {
 	runCasesHelper(t, record, cases, false)
 }
 
-func runCasesExpectBufferFilterFalsePositives(t *testing.T, record string, cases []testcase) {
+func runCasesExpectSearchFalsePositives(t *testing.T, record string, cases []testcase) {
 	t.Helper()
 	runCasesHelper(t, record, cases, true)
 }
@@ -79,18 +80,14 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 				assert.Equal(t, c.expected, filter(sctx, rec, f.Expr),
 					"filter: %q\nrecord: %s", c.filter, sup.FormatValue(rec))
 			}
-			// XXX in a subsequent PR, we will bring this test back when we
-			// add BufferFilter to vio.Pushdown
-			/*
-				bf, err := filterMaker.BSUPFilter()
-				assert.NoError(t, err, "filter: %q", c.filter)
-				if bf != nil {
-					expected := expectBufferFilterFalsePositives || c.expected
-					buf := rec.Bytes()
-					assert.Equal(t, expected, bf.Eval(sctx, buf),
-						"filter: %q\nvalues:%s\nbuffer:\n%s", c.filter, sup.FormatValue(rec), hex.Dump(buf))
-				}
-			*/
+			sf, err := filterMaker.SearchFilter()
+			assert.NoError(t, err, "filter: %q", c.filter)
+			if sf != nil {
+				expected := expectBufferFilterFalsePositives || c.expected
+				buf := rec.Bytes()
+				assert.Equal(t, expected, sf.Eval([]string{string(buf)}),
+					"filter: %q\nvalues:%s\nbuffer:\n%s", c.filter, sup.FormatValue(rec), hex.Dump(buf))
+			}
 		})
 	}
 }
@@ -156,10 +153,10 @@ func TestFilters(t *testing.T) {
 
 	// Test comparing fields in nested records
 	//
-	// We expect false positives from BufferFilter here because it looks for
+	// We expect false positives from SearchFilter here because it looks for
 	// values without regard to field name, returning true as long as some
 	// field matches the literal to the right of the equal sign.
-	runCasesExpectBufferFilterFalsePositives(t, `{nested:{field:"test"}}`, []testcase{
+	runCasesExpectSearchFalsePositives(t, `{nested:{field:"test"}}`, []testcase{
 		{`nested.field == "test"`, true},
 		{`bogus.field == "test"`, false},
 		{`nested.bogus == "test"`, false},

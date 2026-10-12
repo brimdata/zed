@@ -32,15 +32,11 @@ func (p *pushdown) DataFilter() (*vio.Filter, error) {
 	return &vio.Filter{Expr: e, Projection: p.dataFilter.projection}, nil
 }
 
-func (p *pushdown) SearchFilter() (vio.Searcher, error) {
-	// XXX coming soon
-	/*
-		if p.dataFilter == nil {
-			return nil, nil
-		}
-		return CompileBufferFilter(p.builder.sctx(), p.dataFilter)
-	*/
-	return nil, nil
+func (p *pushdown) SearchFilter() (vio.SearchExpr, error) {
+	if p.searchFilter == nil {
+		return nil, nil
+	}
+	return CompileSearch(p.builder.sctx(), p.searchFilter.expr)
 }
 
 func (p *pushdown) MetaFilter() (*vio.ValueFilter, error) {
