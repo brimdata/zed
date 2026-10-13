@@ -24,7 +24,7 @@ import (
 type Lister struct {
 	ctx       context.Context
 	sctx      *super.Context
-	pool      *db.Pool
+	table     *db.Table
 	pruner    *pruner
 	group     *errgroup.Group
 	marshaler *super.Marshaler
@@ -33,16 +33,16 @@ type Lister struct {
 	err       error
 }
 
-func NewLister(ctx context.Context, sctx *super.Context, pool *db.Pool, commit uuid.UUID, pruner expr.Evaluator) (*Lister, error) {
-	snap, err := pool.Snapshot(ctx, commit)
+func NewLister(ctx context.Context, sctx *super.Context, table *db.Table, commit uuid.UUID, pruner expr.Evaluator) (*Lister, error) {
+	snap, err := table.Snapshot(ctx, commit)
 	if err != nil {
 		return nil, err
 	}
-	objects := snap.Select(nil, poolOrder(pool))
-	return NewListerFromObjects(ctx, sctx, pool, objects, pruner), nil
+	objects := snap.Select(nil, tableOrder(table))
+	return NewListerFromObjects(ctx, sctx, table, objects, pruner), nil
 }
 
-func poolOrder(p *db.Pool) order.Which {
+func tableOrder(p *db.Table) order.Which {
 	sortKey, ok := p.SortKeys.Primary()
 	if !ok {
 		return order.Asc
@@ -50,8 +50,8 @@ func poolOrder(p *db.Pool) order.Which {
 	return sortKey.Order
 }
 
-func NewListerFromObjects(ctx context.Context, sctx *super.Context, pool *db.Pool, objects []*data.Object, pruner expr.Evaluator) *Lister {
-	if sortKey, ok := pool.SortKeys.Primary(); ok {
+func NewListerFromObjects(ctx context.Context, sctx *super.Context, table *db.Table, objects []*data.Object, pruner expr.Evaluator) *Lister {
+	if sortKey, ok := table.SortKeys.Primary(); ok {
 		sortObjects(objects, sortKey.Order)
 	}
 	m := super.NewMarshaler(sctx)
@@ -59,7 +59,7 @@ func NewListerFromObjects(ctx context.Context, sctx *super.Context, pool *db.Poo
 	l := &Lister{
 		ctx:       ctx,
 		sctx:      sctx,
-		pool:      pool,
+		table:     table,
 		objects:   objects,
 		group:     &errgroup.Group{},
 		marshaler: m,
@@ -105,7 +105,7 @@ func sortObjects(objects []*data.Object, o order.Which) {
 			return false
 		}
 		if bytes.Equal(aTo.Bytes(), bTo.Bytes()) {
-			// If the pool keys are equal for both the first and last values
+			// If the sort keys are equal for both the first and last values
 			// in the object, we return false here so that the stable sort preserves
 			// the commit order of the objects in the log. XXX we might want to
 			// simply sort by commit timestamp for a more robust API that does not

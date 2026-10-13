@@ -8,23 +8,23 @@
 
 ## Endpoints
 
-### Pools
+### Tables
 
-#### Create pool
+#### Create table
 
-Create a new lake pool.
+Create a new database table.
 
 ```
-POST /pool
+POST /table
 ```
 
 **Params**
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| name | string | body | **Required.** Name of the pool. Must be unique to lake. |
-| layout.order | string | body | Order of storage by primary key(s) in pool. Possible values: desc, asc. Default: asc. |
-| layout.keys | [[string]] | body | Primary key(s) of pool. The element of each inner string array should reflect the hierarchical ordering of named fields within indexed records. Default: [[ts]]. |
+| name | string | body | **Required.** Name of the table. Must be unique. |
+| layout.order | string | body | Order of storage by sort key(s) in table. Possible values: desc, asc. Default: asc. |
+| layout.keys | [[string]] | body | Sort key(s) of table. The element of each inner string array should reflect the hierarchical ordering of named fields within indexed records. Default: [[ts]]. |
 | Content-Type | string | header | [MIME type](#mime-types) of the request payload. |
 | Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
 
@@ -35,14 +35,14 @@ curl -X POST \
      -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
      -d '{"name": "inventory", "layout": {"keys": [["product","serial_number"]]}}' \
-     http://localhost:9867/pool
+     http://localhost:9867/table
 ```
 
 **Example Response**
 
 ```
 {
-  "pool": {
+  "table": {
     "ts": "2022-07-13T21:23:05.323016Z",
     "name": "inventory",
     "id": "0x0f5ce9b9b6202f3883c9db8ff58d8721a075d1e4",
@@ -68,20 +68,20 @@ curl -X POST \
 
 ---
 
-#### Rename pool
+#### Rename table
 
-Change a pool's name.
+Change a table's name.
 
 ```
-PUT /pool/{pool}
+PUT /table/{table}
 ```
 
 **Params**
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| pool | string | path | **Required.** ID or name of the requested pool. |
-| name | string | body | **Required.** The desired new name of the pool. Must be unique to lake. |
+| table | string | path | **Required.** ID or name of the requested table. |
+| name | string | body | **Required.** The desired new name of the table. Must be unique. |
 | Content-Type | string | header | [MIME type](#mime-types) of the request payload. |
 
 **Example Request**
@@ -90,52 +90,52 @@ PUT /pool/{pool}
 curl -X PUT \
      -H 'Content-Type: application/json' \
      -d '{"name": "catalog"}' \
-     http://localhost:9867/pool/inventory
+     http://localhost:9867/table/inventory
 ```
 
 On success, HTTP 204 is returned with no response payload.
 
 ---
 
-#### Delete pool
+#### Delete table
 
-Permanently delete a pool.
+Permanently delete a table.
 
 ```
-DELETE /pool/{pool}
+DELETE /table/{table}
 ```
 
 **Params**
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| pool | string | path | **Required.** ID or name of the requested pool. |
+| table | string | path | **Required.** ID or name of the requested table. |
 
 **Example Request**
 
 ```
 curl -X DELETE \
-     http://localhost:9867/pool/inventory
+     http://localhost:9867/table/inventory
 ```
 
 On success, HTTP 204 is returned with no response payload.
 
 ---
 
-#### Vacuum pool
+#### Vacuum table
 
 Free storage space by permanently removing underlying data objects that have
 previously been subject to a delete operation.
 
 ```
-POST /pool/{pool}/revision/{revision}/vacuum
+POST /table/{table}/revision/{revision}/vacuum
 ```
 
 **Params**
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| pool | string | path | **Required.** ID or name of the requested pool. |
+| table | string | path | **Required.** ID or name of the requested table. |
 | revision | string | path | **Required.** The starting point for locating objects that can be vacuumed. Can be the name of a branch (whose tip would be used) or a commit ID. |
 | dryrun | string | query | Set to "T" to return the list of objects that could be vacuumed, but don't actually remove them. Defaults to "F". |
 
@@ -144,7 +144,7 @@ POST /pool/{pool}/revision/{revision}/vacuum
 ```
 curl -X POST \
      -H 'Accept: application/json' \
-     http://localhost:9867/pool/inventory/revision/main/vacuum
+     http://localhost:9867/table/inventory/revision/main/vacuum
 ```
 
 **Example Response**
@@ -159,17 +159,17 @@ curl -X POST \
 
 #### Load Data
 
-Add data to a pool and return a reference commit ID.
+Add data to a table and return a reference commit ID.
 
 ```
-POST /pool/{pool}/branch/{branch}
+POST /table/{table}/branch/{branch}
 ```
 
 **Params**
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| pool | string | path | **Required.** ID or name of the pool. |
+| table | string | path | **Required.** ID or name of the table. |
 | branch | string | path | **Required.** Name of branch to which data will be loaded. |
 |   | various | body | **Required.** Contents of the posted data. |
 | csv.delim | string | query | Exactly one character specifying the field delimiter for CSV data. Defaults to ",". |
@@ -185,7 +185,7 @@ curl -X POST \
      -d '{"product": {"serial_number": 12345, "name": "widget"}, "warehouse": "chicago"}
          {"product": {"serial_number": 12345, "name": "widget"}, "warehouse": "miami"}
          {"product": {"serial_number": 12346, "name": "gadget"}, "warehouse": "chicago"}' \
-     http://localhost:9867/pool/inventory/branch/main
+     http://localhost:9867/table/inventory/branch/main
 ```
 
 **Example Response**
@@ -201,14 +201,14 @@ curl -X POST \
 Get information about a branch.
 
 ```
-GET /pool/{pool}/branch/{branch}
+GET /table/{table}/branch/{branch}
 ```
 
 **Params**
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| pool | string | path | **Required.** ID or name of the pool. |
+| table | string | path | **Required.** ID or name of the table. |
 | branch | string | path | **Required.** Name of branch. |
 | Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
 
@@ -217,7 +217,7 @@ GET /pool/{pool}/branch/{branch}
 ```
 curl -X GET \
      -H 'Accept: application/json' \
-     http://localhost:9867/pool/inventory/branch/main
+     http://localhost:9867/table/inventory/branch/main
 ```
 
 **Example Response**
@@ -233,21 +233,21 @@ curl -X GET \
 Delete a branch.
 
 ```
-DELETE /pool/{pool}/branch/{branch}
+DELETE /table/{table}/branch/{branch}
 ```
 
 **Params**
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| pool | string | path | **Required.** ID or name of the pool. |
+| table | string | path | **Required.** ID or name of the table. |
 | branch | string | path | **Required.** Name of branch. |
 
 **Example Request**
 
 ```
 curl -X DELETE \
-     http://localhost:9867/pool/inventory/branch/staging
+     http://localhost:9867/table/inventory/branch/staging
 ```
 
 On success, HTTP 204 is returned with no response payload.
@@ -264,17 +264,17 @@ This simply removes the data from the branch without actually removing the
 underlying data objects thereby allowing [time travel](intro.md#time-travel)
 to work in the face
 of deletes. Permanent removal of underlying data objects is handled by a
-separate [vacuum](#vacuum-pool) operation.
+separate [vacuum](#vacuum-table) operation.
 
 ```
-POST /pool/{pool}/branch/{branch}/delete
+POST /table/{table}/branch/{branch}/delete
 ```
 
 **Params**
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| pool | string | path | **Required.** ID of the pool. |
+| table | string | path | **Required.** ID of the table. |
 | branch | string | path | **Required.** Name of branch. |
 | object_ids | [string] | body | Object IDs to be deleted. |
 | where | string | body | Filter expression (see [limitations](../command/db.md#super-db-delete)). |
@@ -288,7 +288,7 @@ curl -X POST \
      -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
      -d '{"object_ids": ["274Eb1Kn8MTM6qxPyBpVTvYhLLa", "274EavbXt546VNelRLNXrzWShNh"]}' \
-     http://localhost:9867/pool/inventory/branch/main/delete
+     http://localhost:9867/table/inventory/branch/main/delete
 ```
 
 **Example Response**
@@ -304,7 +304,7 @@ curl -X POST \
      -H 'Accept: application/json' \
      -H 'Content-Type: application/json' \
      -d '{"where": "product.serial_number > 12345"}' \
-     http://localhost:9867/pool/inventory/branch/main/delete
+     http://localhost:9867/table/inventory/branch/main/delete
 ```
 
 **Example Response**
@@ -321,14 +321,14 @@ Create a commit with the difference of the child branch added to the selected
 branch.
 
 ```
-POST /pool/{pool}/branch/{branch}/merge/{child}
+POST /table/{table}/branch/{branch}/merge/{child}
 ```
 
 **Params**
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| pool | string | path | **Required.** ID of the pool. |
+| table | string | path | **Required.** ID of the table. |
 | branch | string | path | **Required.** Name of branch selected as merge destination. |
 | child | string | path | **Required.** Name of child branch selected as source of merge. |
 | Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
@@ -338,7 +338,7 @@ POST /pool/{pool}/branch/{branch}/merge/{child}
 ```
 curl -X POST \
      -H 'Accept: application/json' \
-     http://localhost:9867/pool/inventory/branch/main/merge/staging
+     http://localhost:9867/table/inventory/branch/main/merge/staging
 ```
 
 **Example Response**
@@ -354,14 +354,14 @@ curl -X POST \
 Create a revert commit of the specified commit.
 
 ```
-POST /pool/{pool}/branch/{branch}/revert/{commit}
+POST /table/{table}/branch/{branch}/revert/{commit}
 ```
 
 **Params**
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| pool | string | path | **Required.** ID of the pool. |
+| table | string | path | **Required.** ID of the table. |
 | branch | string | path | **Required.** Name of branch on which to revert commit. |
 | commit | string | path | **Required.** ID of commit to be reverted. |
 | Accept | string | header | Preferred [MIME type](#mime-types) of the response. |
@@ -371,7 +371,7 @@ POST /pool/{pool}/branch/{branch}/revert/{commit}
 ```
 curl -X POST \
      -H 'Accept: application/json' \
-     http://localhost:9867/pool/inventory/branch/main/revert/27D22ifDw3Ms2NMzo8jXpDfpgjc
+     http://localhost:9867/table/inventory/branch/main/revert/27D22ifDw3Ms2NMzo8jXpDfpgjc
 ```
 
 **Example Response**
@@ -386,7 +386,7 @@ curl -X POST \
 
 #### Query
 
-Execute a Zed query against data in a data lake.
+Execute a query on a database.
 
 ```
 POST /query
@@ -397,7 +397,7 @@ POST /query
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
 | query | string | body | Zed query to execute. All data is returned if not specified. ||
-| head.pool | string | body | Pool to query against Not required if pool is specified in query. |
+| head.table | string | body | Table to query against Not required if table is specified in query. |
 | head.branch | string | body | Branch to query against. Defaults to "main". |
 | ctrl | string | query | Set to "T" to include control messages in BSUP or ZJSON responses. Defaults to "F". |
 | Content-Type | string | header | [MIME type](#mime-types) of the request payload. |
@@ -495,17 +495,17 @@ curl -X GET \
 **Example Response**
 
 ```
-event: pool-new
-data: {"pool_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz"}
+event: table-new
+data: {"table_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz"}
 
-event: pool-update
-data: {"pool_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz"}
+event: table-update
+data: {"table_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz"}
 
-event: pool-commit
-data: {"pool_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz", "commit_id": "1tisISpHoWI7MAZdFBiMERXeA2X"}
+event: table-commit
+data: {"table_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz", "commit_id": "1tisISpHoWI7MAZdFBiMERXeA2X"}
 
-event: pool-delete
-data: {"pool_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz"}
+event: table-delete
+data: {"table_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz"}
 ```
 
 ---

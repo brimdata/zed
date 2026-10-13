@@ -33,21 +33,21 @@ var (
 
 type Branch struct {
 	branches.Config
-	pool   *Pool
+	table  *Table
 	engine storage.Engine
 	//base   commits.View
 }
 
-func OpenBranch(ctx context.Context, config *branches.Config, engine storage.Engine, poolPath *storage.URI, pool *Pool) (*Branch, error) {
+func OpenBranch(ctx context.Context, config *branches.Config, engine storage.Engine, table *Table) (*Branch, error) {
 	return &Branch{
 		Config: *config,
-		pool:   pool,
+		table:  table,
 		engine: engine,
 	}, nil
 }
 
 func (b *Branch) Load(ctx context.Context, sctx *super.Context, r vio.Puller, author, message, meta string) (uuid.UUID, error) {
-	w, err := NewWriter(ctx, sctx, b.pool)
+	w, err := NewWriter(ctx, sctx, b.table)
 	if err != nil {
 		return uuid.Nil(), err
 	}
@@ -105,7 +105,7 @@ func loadMeta(sctx *super.Context, meta string) (super.Value, error) {
 
 func (b *Branch) Delete(ctx context.Context, ids []uuid.UUID, author, message string) (uuid.UUID, error) {
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
-		snap, err := b.pool.commits.Snapshot(ctx, parent.Commit)
+		snap, err := b.table.commits.Snapshot(ctx, parent.Commit)
 		if err != nil {
 			return nil, err
 		}
@@ -141,7 +141,7 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, ast *parse
 		// anyways. Unfortunately there's quite a few layers of plumbing needed
 		// to get this working in compiler.
 		committish := &dbid.Committish{
-			Pool:   b.pool.Name,
+			Table:  b.table.Name,
 			Branch: parent.Commit.String(),
 		}
 		query, err := c.NewDeleteQuery(rctx, ast, committish)
@@ -149,7 +149,7 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, ast *parse
 			return nil, err
 		}
 		defer query.Pull(true)
-		w, err := NewWriter(ctx, sctx, b.pool)
+		w, err := NewWriter(ctx, sctx, b.table)
 		if err != nil {
 			return nil, err
 		}
@@ -160,7 +160,7 @@ func (b *Branch) DeleteWhere(ctx context.Context, c runtime.Compiler, ast *parse
 		if err != nil {
 			return nil, err
 		}
-		base, err := b.pool.commits.Snapshot(ctx, parent.Commit)
+		base, err := b.table.commits.Snapshot(ctx, parent.Commit)
 		if err != nil {
 			return nil, err
 		}
@@ -213,11 +213,11 @@ func printObjects(b *strings.Builder, objects []*data.Object, maxMessageObjects 
 
 func (b *Branch) Revert(ctx context.Context, commit uuid.UUID, author, message string) (uuid.UUID, error) {
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
-		patch, err := b.pool.commits.PatchOfCommit(ctx, commit)
+		patch, err := b.table.commits.PatchOfCommit(ctx, commit)
 		if err != nil {
 			return nil, fmt.Errorf("commit not found: %s", commit)
 		}
-		tip, err := b.pool.commits.Snapshot(ctx, parent.Commit)
+		tip, err := b.table.commits.Snapshot(ctx, parent.Commit)
 		if err != nil {
 			return nil, err
 		}
@@ -241,7 +241,7 @@ func (b *Branch) Compact(ctx context.Context, c runtime.Compiler, objectIDs []uu
 	if err != nil {
 		return uuid.Nil(), err
 	}
-	base, err := b.pool.Snapshot(ctx, b.Commit)
+	base, err := b.table.Snapshot(ctx, b.Commit)
 	if err != nil {
 		return uuid.Nil(), err
 	}
@@ -254,13 +254,13 @@ func (b *Branch) Compact(ctx context.Context, c runtime.Compiler, objectIDs []uu
 		compact.AddDataObject(o)
 	}
 	// Set up a query to scan the objects for compaction and write them
-	// back to the pool to generate new IDs from the write process.
+	// back to the tabe to generate new IDs from the write process.
 	original := compact.SelectAll()
-	q, err := c.NewObjectScanner(runtime.NewContext(ctx, sctx), b.pool.ID, original)
+	q, err := c.NewObjectScanner(runtime.NewContext(ctx, sctx), b.table.ID, original)
 	if err != nil {
 		return uuid.Nil(), err
 	}
-	w, err := NewWriter(ctx, sctx, b.pool)
+	w, err := NewWriter(ctx, sctx, b.table)
 	if err != nil {
 		return uuid.Nil(), err
 	}
@@ -276,7 +276,7 @@ func (b *Branch) Compact(ctx context.Context, c runtime.Compiler, objectIDs []uu
 		return uuid.Nil(), errors.New("compact: one or more rollup objects required")
 	}
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
-		base, err := b.pool.commits.Snapshot(ctx, parent.Commit)
+		base, err := b.table.commits.Snapshot(ctx, parent.Commit)
 		if err != nil {
 			return nil, err
 		}
@@ -327,11 +327,11 @@ func (b *Branch) mergeInto(ctx context.Context, parent *Branch, author, message 
 }
 
 func (b *Branch) buildMergeObject(ctx context.Context, parent *branches.Config, retries int, author, message string) (*commits.Object, error) {
-	childPath, err := b.pool.commits.Path(ctx, b.Commit)
+	childPath, err := b.table.commits.Path(ctx, b.Commit)
 	if err != nil {
 		return nil, err
 	}
-	parentPath, err := b.pool.commits.Path(ctx, parent.Commit)
+	parentPath, err := b.table.commits.Path(ctx, parent.Commit)
 	if err != nil {
 		return nil, err
 	}
@@ -347,15 +347,15 @@ func (b *Branch) buildMergeObject(ctx context.Context, parent *branches.Config, 
 	// along each branch and make sure the two patches do not have a
 	// delete conflict.  For now, this is the only kind of merge update
 	// conflict we detect.
-	base, err := b.pool.commits.Snapshot(ctx, baseID)
+	base, err := b.table.commits.Snapshot(ctx, baseID)
 	if err != nil {
 		return nil, err
 	}
-	childPatch, err := b.pool.commits.PatchOfPath(ctx, base, baseID, b.Commit)
+	childPatch, err := b.table.commits.PatchOfPath(ctx, base, baseID, b.Commit)
 	if err != nil {
 		return nil, err
 	}
-	parentPatch, err := b.pool.commits.PatchOfPath(ctx, base, baseID, parent.Commit)
+	parentPatch, err := b.table.commits.PatchOfPath(ctx, base, baseID, parent.Commit)
 	if err != nil {
 		return nil, err
 	}
@@ -401,7 +401,7 @@ func (b *Branch) commit(ctx context.Context, create constructor) (uuid.UUID, err
 	// with the branch update.  If the contraint, fails will loop a number
 	// of times till it succeeds, or we give up.
 	for retries := range maxCommitRetries {
-		config, err := b.pool.branches.LookupByName(ctx, b.Name)
+		config, err := b.table.branches.LookupByName(ctx, b.Name)
 		if err != nil {
 			return uuid.Nil(), err
 		}
@@ -409,7 +409,7 @@ func (b *Branch) commit(ctx context.Context, create constructor) (uuid.UUID, err
 		if err != nil {
 			return uuid.Nil(), err
 		}
-		if err := b.pool.commits.Put(ctx, object); err != nil {
+		if err := b.table.commits.Put(ctx, object); err != nil {
 			return uuid.Nil(), fmt.Errorf("branch %q failed to write commit object: %w", b.Name, err)
 		}
 		// Set the branch pointer to point to this commit object
@@ -423,9 +423,9 @@ func (b *Branch) commit(ctx context.Context, create constructor) (uuid.UUID, err
 			}
 			return false
 		}
-		if err := b.pool.branches.Update(ctx, config, parentCheck); err != nil {
+		if err := b.table.branches.Update(ctx, config, parentCheck); err != nil {
 			// Branch update failed so remove commit.
-			rmerr := b.pool.commits.Remove(ctx, object)
+			rmerr := b.table.commits.Remove(ctx, object)
 			if err == journal.ErrConstraint {
 				// Parent check failed so try again.
 				if rmerr != nil {
@@ -443,7 +443,7 @@ func (b *Branch) commit(ctx context.Context, create constructor) (uuid.UUID, err
 func (b *Branch) LookupTags(ctx context.Context, tags []uuid.UUID) ([]uuid.UUID, error) {
 	var ids []uuid.UUID
 	for _, tag := range tags {
-		ok, err := b.pool.ObjectExists(ctx, tag)
+		ok, err := b.table.ObjectExists(ctx, tag)
 		if err != nil {
 			return nil, err
 		}
@@ -451,7 +451,7 @@ func (b *Branch) LookupTags(ctx context.Context, tags []uuid.UUID) ([]uuid.UUID,
 			ids = append(ids, tag)
 			continue
 		}
-		patch, err := b.pool.commits.PatchOfCommit(ctx, tag)
+		patch, err := b.table.commits.PatchOfCommit(ctx, tag)
 		if err != nil {
 			continue
 		}
@@ -460,6 +460,6 @@ func (b *Branch) LookupTags(ctx context.Context, tags []uuid.UUID) ([]uuid.UUID,
 	return ids, nil
 }
 
-func (b *Branch) Pool() *Pool {
-	return b.pool
+func (b *Branch) Table() *Table {
+	return b.table
 }

@@ -65,7 +65,7 @@ func (d *dagen) op(op sem.Op) dag.Op {
 	case *sem.CommitMetaScan:
 		return &dag.CommitMetaScan{
 			Kind:   "CommitMetaScan",
-			Pool:   op.Pool,
+			Table:  op.Table,
 			Commit: op.Commit,
 			Meta:   op.Meta,
 			Tap:    op.Tap,
@@ -105,24 +105,25 @@ func (d *dagen) op(op sem.Op) dag.Op {
 		return &dag.NullScan{
 			Kind: "NullScan",
 		}
-	case *sem.PoolMetaScan:
-		return &dag.PoolMetaScan{
-			Kind: "PoolMetaScan",
-			ID:   op.ID,
-			Meta: op.Meta,
-		}
-	case *sem.PoolScan:
-		return &dag.PoolScan{
-			Kind:   "PoolScan",
-			ID:     op.ID,
-			Commit: op.Commit,
-		}
 	case *sem.RobotScan:
 		return &dag.RobotScan{
 			Kind:   "RobotScan",
 			Expr:   d.expr(op.Expr),
 			Format: op.Format,
 		}
+	case *sem.TableMetaScan:
+		return &dag.TableMetaScan{
+			Kind: "TableMetaScan",
+			ID:   op.ID,
+			Meta: op.Meta,
+		}
+	case *sem.TableScan:
+		return &dag.TableScan{
+			Kind:   "TableScan",
+			ID:     op.ID,
+			Commit: op.Commit,
+		}
+
 	//
 	// Ops in alphabetical order
 	//
@@ -200,7 +201,7 @@ func (d *dagen) op(op sem.Op) dag.Op {
 	case *sem.LoadOp:
 		return &dag.LoadOp{
 			Kind:    "LoadOp",
-			Pool:    op.Pool,
+			Table:   op.Table,
 			Branch:  op.Branch,
 			Author:  op.Author,
 			Message: op.Message,

@@ -20,7 +20,7 @@ type Deleter struct {
 	where       expr.Evaluator
 	pruner      samexpr.Evaluator
 	rctx        *runtime.Context
-	pool        *db.Pool
+	table       *db.Table
 	progress    *vio.Progress
 	unmarshaler *super.Unmarshaler
 	done        bool
@@ -28,13 +28,13 @@ type Deleter struct {
 	deletes     *sync.Map
 }
 
-func NewDeleter(rctx *runtime.Context, parent sbuf.Puller, pool *db.Pool, where expr.Evaluator, pruner samexpr.Evaluator, progress *vio.Progress, deletes *sync.Map) *Deleter {
+func NewDeleter(rctx *runtime.Context, parent sbuf.Puller, table *db.Table, where expr.Evaluator, pruner samexpr.Evaluator, progress *vio.Progress, deletes *sync.Map) *Deleter {
 	return &Deleter{
 		parent:      parent,
 		where:       where,
 		pruner:      pruner,
 		rctx:        rctx,
-		pool:        pool,
+		table:       table,
 		progress:    progress,
 		unmarshaler: super.NewUnmarshaler(),
 		deletes:     deletes,
@@ -94,7 +94,7 @@ func (d *Deleter) nextDeletion() (vio.Puller, error) {
 		}
 		// Use a no-op progress so stats are not inflated.
 		var progress vio.Progress
-		scanner, object, err := newScanner(d.rctx.Context, d.rctx.Sctx, d.pool, d.unmarshaler, d.pruner, d.where, &progress, vals[0])
+		scanner, object, err := newScanner(d.rctx.Context, d.rctx.Sctx, d.table, d.unmarshaler, d.pruner, d.where, &progress, vals[0])
 		if err != nil {
 			return nil, err
 		}
@@ -104,7 +104,7 @@ func (d *Deleter) nextDeletion() (vio.Puller, error) {
 }
 
 func (d *Deleter) hasDeletes(val super.Value) (bool, error) {
-	scanner, object, err := newScanner(d.rctx.Context, d.rctx.Sctx, d.pool, d.unmarshaler, d.pruner, d.where, d.progress, val)
+	scanner, object, err := newScanner(d.rctx.Context, d.rctx.Sctx, d.table, d.unmarshaler, d.pruner, d.where, d.progress, val)
 	if err != nil {
 		return false, err
 	}

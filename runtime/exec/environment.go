@@ -57,13 +57,13 @@ func (e *Environment) DB() *db.Root {
 	return e.db
 }
 
-func (e *Environment) PoolID(ctx context.Context, name string) (uuid.UUID, error) {
+func (e *Environment) TableID(ctx context.Context, name string) (uuid.UUID, error) {
 	if id, err := dbid.ParseID(name); err == nil {
-		if _, err := e.db.OpenPool(ctx, id); err == nil {
+		if _, err := e.db.OpenTable(ctx, id); err == nil {
 			return id, nil
 		}
 	}
-	return e.db.PoolID(ctx, name)
+	return e.db.TableID(ctx, name)
 }
 
 func (e *Environment) CommitObject(ctx context.Context, id uuid.UUID, name string) (uuid.UUID, error) {

@@ -150,12 +150,12 @@ func (b *Builder) newPushdown(projection field.Projection, metaFilter, searchFil
 	}
 }
 
-func (b *Builder) lookupPool(id uuid.UUID) (*db.Pool, error) {
+func (b *Builder) lookupTable(id uuid.UUID) (*db.Table, error) {
 	if b.env == nil || b.env.DB() == nil {
 		return nil, errors.New("internal error: database operation requires database operating context")
 	}
-	// This is fast because of the pool cache in the database.
-	return b.env.DB().OpenPool(b.rctx.Context, id)
+	// This is fast because of the tablea cache in the database.
+	return b.env.DB().OpenTable(b.rctx.Context, id)
 }
 
 func (b *Builder) evalAtCompileTime(in dag.Expr) (val super.Value, err error) {
@@ -207,7 +207,7 @@ func isEntry(seq dag.Seq, fileScanIsEntry bool) bool {
 		return false
 	}
 	switch op := seq[0].(type) {
-	case *dag.ListerScan, *dag.HTTPScan, *dag.PoolScan, *dag.DBMetaScan, *dag.PoolMetaScan, *dag.CommitMetaScan, *dag.NullScan:
+	case *dag.ListerScan, *dag.HTTPScan, *dag.TableScan, *dag.DBMetaScan, *dag.TableMetaScan, *dag.CommitMetaScan, *dag.NullScan:
 		return true
 	case *dag.FileScan:
 		return fileScanIsEntry

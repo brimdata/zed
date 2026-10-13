@@ -61,44 +61,44 @@ func (l *local) Root() *db.Root {
 	return l.db
 }
 
-func (l *local) CreatePool(ctx context.Context, name string, sortKeys order.SortKeys, objectCap, frameCap uint64) (uuid.UUID, error) {
+func (l *local) CreateTable(ctx context.Context, name string, sortKeys order.SortKeys, objectCap, frameCap uint64) (uuid.UUID, error) {
 	if name == "" {
-		return uuid.Nil(), errors.New("no pool name provided")
+		return uuid.Nil(), errors.New("no table name provided")
 	}
-	pool, err := l.db.CreatePool(ctx, name, sortKeys, objectCap, frameCap)
+	table, err := l.db.CreateTable(ctx, name, sortKeys, objectCap, frameCap)
 	if err != nil {
 		return uuid.Nil(), err
 	}
-	return pool.ID, nil
+	return table.ID, nil
 }
 
-func (l *local) RemovePool(ctx context.Context, id uuid.UUID) error {
-	return l.db.RemovePool(ctx, id)
+func (l *local) RemoveTable(ctx context.Context, id uuid.UUID) error {
+	return l.db.RemoveTable(ctx, id)
 
 }
 
-func (l *local) RenamePool(ctx context.Context, id uuid.UUID, name string) error {
+func (l *local) RenameTable(ctx context.Context, id uuid.UUID, name string) error {
 	if name == "" {
-		return errors.New("no pool name provided")
+		return errors.New("no table provided")
 	}
-	return l.db.RenamePool(ctx, id, name)
+	return l.db.RenameTable(ctx, id, name)
 }
 
-func (l *local) CreateBranch(ctx context.Context, poolID uuid.UUID, name string, parent uuid.UUID) error {
-	_, err := l.db.CreateBranch(ctx, poolID, name, parent)
+func (l *local) CreateBranch(ctx context.Context, tableID uuid.UUID, name string, parent uuid.UUID) error {
+	_, err := l.db.CreateBranch(ctx, tableID, name, parent)
 	return err
 }
 
-func (l *local) RemoveBranch(ctx context.Context, poolID uuid.UUID, branchName string) error {
-	return l.db.RemoveBranch(ctx, poolID, branchName)
+func (l *local) RemoveBranch(ctx context.Context, tableID uuid.UUID, branchName string) error {
+	return l.db.RemoveBranch(ctx, tableID, branchName)
 }
 
-func (l *local) MergeBranch(ctx context.Context, poolID uuid.UUID, childBranch, parentBranch string, message api.CommitMessage) (uuid.UUID, error) {
-	return l.db.MergeBranch(ctx, poolID, childBranch, parentBranch, message.Author, message.Body)
+func (l *local) MergeBranch(ctx context.Context, tableID uuid.UUID, childBranch, parentBranch string, message api.CommitMessage) (uuid.UUID, error) {
+	return l.db.MergeBranch(ctx, tableID, childBranch, parentBranch, message.Author, message.Body)
 }
 
-func (l *local) Compact(ctx context.Context, poolID uuid.UUID, branchName string, objects []uuid.UUID, commit api.CommitMessage) (uuid.UUID, error) {
-	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
+func (l *local) Compact(ctx context.Context, tableID uuid.UUID, branchName string, objects []uuid.UUID, commit api.CommitMessage) (uuid.UUID, error) {
+	_, branch, err := l.lookupBranch(ctx, tableID, branchName)
 	if err != nil {
 		return uuid.Nil(), err
 	}
@@ -117,44 +117,44 @@ func (l *local) Query(ctx context.Context, inputs []srcfiles.Input) (vio.Scanner
 	return q, nil
 }
 
-func (l *local) PoolID(ctx context.Context, poolName string) (uuid.UUID, error) {
-	if poolName == "" {
-		return uuid.Nil(), errors.New("no pool name provided")
+func (l *local) TableID(ctx context.Context, tableName string) (uuid.UUID, error) {
+	if tableName == "" {
+		return uuid.Nil(), errors.New("no table name provided")
 	}
-	if id, err := dbid.ParseID(poolName); err == nil {
-		if _, err := l.db.OpenPool(ctx, id); err == nil {
+	if id, err := dbid.ParseID(tableName); err == nil {
+		if _, err := l.db.OpenTable(ctx, id); err == nil {
 			return id, nil
 		}
 	}
-	return l.db.PoolID(ctx, poolName)
+	return l.db.TableID(ctx, tableName)
 }
 
-func (l *local) CommitObject(ctx context.Context, poolID uuid.UUID, branchName string) (uuid.UUID, error) {
-	return l.db.CommitObject(ctx, poolID, branchName)
+func (l *local) CommitObject(ctx context.Context, tableID uuid.UUID, branchName string) (uuid.UUID, error) {
+	return l.db.CommitObject(ctx, tableID, branchName)
 }
 
-func (l *local) lookupBranch(ctx context.Context, poolID uuid.UUID, branchName string) (*db.Pool, *db.Branch, error) {
-	pool, err := l.db.OpenPool(ctx, poolID)
+func (l *local) lookupBranch(ctx context.Context, tableID uuid.UUID, branchName string) (*db.Table, *db.Branch, error) {
+	t, err := l.db.OpenTable(ctx, tableID)
 	if err != nil {
 		return nil, nil, err
 	}
-	branch, err := pool.OpenBranchByName(ctx, branchName)
+	branch, err := t.OpenBranchByName(ctx, branchName)
 	if err != nil {
 		return nil, nil, err
 	}
-	return pool, branch, nil
+	return t, branch, nil
 }
 
-func (l *local) Load(ctx context.Context, ztcx *super.Context, poolID uuid.UUID, branchName string, r vio.Puller, message api.CommitMessage) (uuid.UUID, error) {
-	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
+func (l *local) Load(ctx context.Context, ztcx *super.Context, tableID uuid.UUID, branchName string, r vio.Puller, message api.CommitMessage) (uuid.UUID, error) {
+	_, branch, err := l.lookupBranch(ctx, tableID, branchName)
 	if err != nil {
 		return uuid.Nil(), err
 	}
 	return branch.Load(ctx, ztcx, r, message.Author, message.Body, message.Meta)
 }
 
-func (l *local) Delete(ctx context.Context, poolID uuid.UUID, branchName string, ids []uuid.UUID, message api.CommitMessage) (uuid.UUID, error) {
-	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
+func (l *local) Delete(ctx context.Context, tableID uuid.UUID, branchName string, ids []uuid.UUID, message api.CommitMessage) (uuid.UUID, error) {
+	_, branch, err := l.lookupBranch(ctx, tableID, branchName)
 	if err != nil {
 		return uuid.Nil(), err
 	}
@@ -165,46 +165,46 @@ func (l *local) Delete(ctx context.Context, poolID uuid.UUID, branchName string,
 	return commitID, nil
 }
 
-func (l *local) DeleteWhere(ctx context.Context, poolID uuid.UUID, branchName, src string, commit api.CommitMessage) (uuid.UUID, error) {
+func (l *local) DeleteWhere(ctx context.Context, tableID uuid.UUID, branchName, src string, commit api.CommitMessage) (uuid.UUID, error) {
 	ast, err := parser.ParseFiles(srcfiles.Plain(src))
 	if err != nil {
 		return uuid.Nil(), err
 	}
-	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
+	_, branch, err := l.lookupBranch(ctx, tableID, branchName)
 	if err != nil {
 		return uuid.Nil(), err
 	}
 	return branch.DeleteWhere(ctx, l.compiler, ast, commit.Author, commit.Body, commit.Meta)
 }
 
-func (l *local) Revert(ctx context.Context, poolID uuid.UUID, branchName string, commitID uuid.UUID, message api.CommitMessage) (uuid.UUID, error) {
-	return l.db.Revert(ctx, poolID, branchName, commitID, message.Author, message.Body)
+func (l *local) Revert(ctx context.Context, tableID uuid.UUID, branchName string, commitID uuid.UUID, message api.CommitMessage) (uuid.UUID, error) {
+	return l.db.Revert(ctx, tableID, branchName, commitID, message.Author, message.Body)
 }
 
-func (l *local) Vacate(ctx context.Context, pool string, ts nano.Ts, dryrun bool) ([]uuid.UUID, error) {
-	poolID, err := l.PoolID(ctx, pool)
+func (l *local) Vacate(ctx context.Context, tableName string, ts nano.Ts, dryrun bool) ([]uuid.UUID, error) {
+	tableID, err := l.TableID(ctx, tableName)
 	if err != nil {
 		return nil, err
 	}
-	p, err := l.db.OpenPool(ctx, poolID)
+	t, err := l.db.OpenTable(ctx, tableID)
 	if err != nil {
 		return nil, err
 	}
-	return p.Vacate(ctx, ts, dryrun)
+	return t.Vacate(ctx, ts, dryrun)
 }
 
-func (l *local) Vacuum(ctx context.Context, pool, revision string, dryrun bool) ([]uuid.UUID, error) {
-	poolID, err := l.PoolID(ctx, pool)
+func (l *local) Vacuum(ctx context.Context, tableName, revision string, dryrun bool) ([]uuid.UUID, error) {
+	tableID, err := l.TableID(ctx, tableName)
 	if err != nil {
 		return nil, err
 	}
-	p, err := l.db.OpenPool(ctx, poolID)
+	t, err := l.db.OpenTable(ctx, tableID)
 	if err != nil {
 		return nil, err
 	}
-	commit, err := p.ResolveRevision(ctx, revision)
+	commit, err := t.ResolveRevision(ctx, revision)
 	if err != nil {
 		return nil, err
 	}
-	return p.Vacuum(ctx, commit, dryrun)
+	return t.Vacuum(ctx, commit, dryrun)
 }

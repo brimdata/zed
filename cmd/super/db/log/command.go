@@ -5,7 +5,7 @@ import (
 	"flag"
 
 	"github.com/superdb/super/cli/outputflags"
-	"github.com/superdb/super/cli/poolflags"
+	"github.com/superdb/super/cli/tableflags"
 	"github.com/superdb/super/cmd/super/db"
 	"github.com/superdb/super/compiler/srcfiles"
 	"github.com/superdb/super/pkg/charm"
@@ -30,14 +30,14 @@ func init() {
 type Command struct {
 	*db.Command
 	outputFlags outputflags.Flags
-	poolFlags   poolflags.Flags
+	tableFlags  tableflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*db.Command)}
 	c.outputFlags.Format = "db"
 	c.outputFlags.SetFlags(f)
-	c.poolFlags.SetFlags(f)
+	c.tableFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -54,7 +54,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, err := c.poolFlags.HEAD()
+	head, err := c.tableFlags.HEAD()
 	if err != nil {
 		return err
 	}

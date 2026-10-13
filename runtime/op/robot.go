@@ -137,17 +137,17 @@ func (o *Robot) nextVec() (vector.Any, error) {
 func (o *Robot) open(path string) (vio.Puller, error) {
 	if o.env.IsAttached() {
 		// XXX we should support committish values
-		id, err := o.env.PoolID(o.rctx, path)
+		id, err := o.env.TableID(o.rctx, path)
 		if err == nil {
-			return o.openPool(id)
+			return o.openTable(id)
 		}
 	}
 	return o.env.Open(o.rctx.Context, o.rctx.Sctx, path, o.format, o.pushdown, o.progress, 1)
 }
 
-func (r *Robot) openPool(id uuid.UUID) (vio.Puller, error) {
+func (r *Robot) openTable(id uuid.UUID) (vio.Puller, error) {
 	ctx := r.rctx.Context
-	pool, err := r.env.DB().OpenPool(ctx, id)
+	table, err := r.env.DB().OpenTable(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -155,11 +155,11 @@ func (r *Robot) openPool(id uuid.UUID) (vio.Puller, error) {
 	if err != nil {
 		return nil, err
 	}
-	l, err := NewLister(ctx, r.rctx.Sctx, pool, branch, nil)
+	l, err := NewLister(ctx, r.rctx.Sctx, table, branch, nil)
 	if err != nil {
 		return nil, err
 	}
 	// XXX We're passing nil for pushdown here.  In a subsequent PR, we will
 	// work out vector pushdown and put this back.
-	return NewPoolScanner(r.rctx, l, pool, nil, nil, nil), nil
+	return NewTableScanner(r.rctx, l, table, nil, nil, nil), nil
 }

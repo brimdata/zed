@@ -39,7 +39,7 @@ super db init -db scratch
 super db serve -db scratch
 ```
 
-Then, in another shell, use Python to create a pool, load some data,
+Then, in another shell, use Python to create a table, load some data,
 and run a query:
 ```sh
 python3 <<EOF
@@ -50,22 +50,22 @@ import superdb
 # variable or as an argument here.
 client = superdb.Client()
 
-client.create_pool('TestPool')
+client.create_table('TestTable')
 
 # Load some SUP records from a string.  A file-like object also works.
 # Most data formats are detected automatically.
-client.load('TestPool', '{s:"hello"} {s:"world"}')
+client.load('TestTable', '{s:"hello"} {s:"world"}')
 
-# Begin executing a SuperDB query for all values in TestPool.
+# Begin executing a SuperDB query for all values in TestTable.
 # This returns an iterator, not a container.
-values = client.query('from TestPool')
+values = client.query('from TestTable')
 
 # Stream values from the server.
 for val in values:
     print(val)
 
 # Clean up after ourselves.
-client.delete_pool('TestPool')
+client.delete_table('TestTable')
 EOF
 ```
 
@@ -89,9 +89,9 @@ operations:
 - **`query_raw(query)`** — like `query()`, but returns the raw HTTP response
   (Apache Arrow IPC stream format) for callers that want to handle decoding
   themselves.
-- **`create_pool(name, ...)`** — create a new data pool.
-- **`load(pool_name_or_id, data, ...)`** — load data into a pool branch.
-- **`delete_pool(pool_name_or_id)`** — delete a pool by name or ID.
+- **`create_table(name, ...)`** — create a new table.
+- **`load(table_name_or_id, data, ...)`** — load data into a table branch.
+- **`delete_table(table_name_or_id)`** — delete a table by name or ID.
 
 ## Type mapping and limitations
 
@@ -153,19 +153,19 @@ is stored in a list, and the list has an arbitrary order.
   way to work around this is append the [blend](../../super-sql/operators/blend.md)
   operator to your query to merge all types into a single type:
   ```
-  from mypool | ... | blend
+  from mytable | ... | blend
   ```
   If you know your data is homogeneous and want to avoid the extra round trip,
   pass `safe=False` — but results will be silently truncated if mixed types are
   encountered.
 - **Non-record top-level values.** The client's use of Arrow requires every
-  top-level value in a result to be a record. If a pool contains non-record
+  top-level value in a result to be a record. If a table contains non-record
   values (e.g., strings loaded with line format), `query()` raises
   `NonRecordError` (with a `kinds` attribute listing the non-record
   [kinds](../../super-sql/functions/types/kind.md) found). Pass `safe=False`
   to skip the check — the result will be silently empty.
 - **Empty records** (records with no fields) are not supported by Arrow. A
-  pool containing only empty records will return no results rather than an
+  table containing only empty records will return no results rather than an
   error.
 - **Unions with more than 255 fields** are not supported.
 
@@ -201,5 +201,5 @@ intentionally excluded from auto-detection.
 
 ```python
 with open('data.parquet', 'rb') as f:
-    client.load('MyPool', f, mime_type='application/x-parquet')
+    client.load('MyTable', f, mime_type='application/x-parquet')
 ```

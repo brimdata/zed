@@ -1,4 +1,4 @@
-package poolflags
+package tableflags
 
 import (
 	"fmt"
@@ -28,8 +28,8 @@ func readHead() (string, error) {
 	return strings.TrimSpace(string(b)), nil
 }
 
-func WriteHead(pool, branch string) error {
-	head := fmt.Sprintf("%s@%s\n", pool, branch)
+func WriteHead(table, branch string) error {
+	head := fmt.Sprintf("%s@%s\n", table, branch)
 	err := os.WriteFile(headPath(), []byte(head), 0644)
 	if err != nil {
 		err = fmt.Errorf("%q: failed to write HEAD: %w", headFile, err)

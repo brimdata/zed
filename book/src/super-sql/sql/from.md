@@ -5,7 +5,7 @@ The `FROM` clause of a [SELECT](select.md) has the form
 FROM <table-expr>
 ```
 where a `<table-expr>` represents data sources (like files,
-API endpoints, or database pools), table subqueries, pipe queries,
+API endpoints, or database tables), table subqueries, pipe queries,
 or joins.
 
 ## Table Expressions
@@ -21,10 +21,10 @@ A table expression `<table-expr>` has one of the following forms:
 ```
 
 `<entity>` is defined as in the pipe form of [from](../operators/from.md), namely one of
-* a [text entity](../queries.md#text-entity) representing a file, URL, or   pool name,
-* an [f-string](../expressions/f-strings.md) representing a file, URL, or pool name,
-* a [glob](../queries.md#glob) matching files in the local file system or pool names in a database, or
-* a [regular expression](../queries.md#regular-expression) matching pool names
+* a [text entity](../queries.md#text-entity) representing a file, URL, or table,
+* an [f-string](../expressions/f-strings.md) representing a file, URL, or table,
+* a [glob](../queries.md#glob) matching files in the local file system or tables in a database, or
+* a [regular expression](../queries.md#regular-expression) matching tables
 
 `<options>` are the [entity options](../operators/from.md#options)
    as in pipe `from`.

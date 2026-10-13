@@ -19,8 +19,8 @@ func NewDBMetaScanner(ctx context.Context, sctx *super.Context, r *db.Root, meta
 	var vals []super.Value
 	var err error
 	switch meta {
-	case "pools":
-		vals, err = r.BatchifyPools(ctx, sctx, nil)
+	case "tables":
+		vals, err = r.BatchifyTables(ctx, sctx, nil)
 	case "branches":
 		vals, err = r.BatchifyBranches(ctx, sctx, nil)
 	default:
@@ -32,8 +32,8 @@ func NewDBMetaScanner(ctx context.Context, sctx *super.Context, r *db.Root, meta
 	return vio.NewPuller(sbuf.Dematerialize(sctx, vals...)), nil
 }
 
-func NewPoolMetaScanner(ctx context.Context, sctx *super.Context, r *db.Root, poolID uuid.UUID, meta string) (vio.Puller, error) {
-	p, err := r.OpenPool(ctx, poolID)
+func NewTableMetaScanner(ctx context.Context, sctx *super.Context, r *db.Root, tableID uuid.UUID, meta string) (vio.Puller, error) {
+	t, err := r.OpenTable(ctx, tableID)
 	if err != nil {
 		return nil, err
 	}
@@ -42,30 +42,30 @@ func NewPoolMetaScanner(ctx context.Context, sctx *super.Context, r *db.Root, po
 	case "branches":
 		m := super.NewMarshaler(sctx)
 		m.Decorate(super.StylePackage)
-		vals, err = p.BatchifyBranches(ctx, sctx, nil, m, nil)
+		vals, err = t.BatchifyBranches(ctx, sctx, nil, m, nil)
 		if err != nil {
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("unknown pool metadata type: %q", meta)
+		return nil, fmt.Errorf("unknown table metadata type: %q", meta)
 	}
 	return vio.NewPuller(sbuf.Dematerialize(sctx, vals...)), nil
 }
 
-func NewCommitMetaScanner(ctx context.Context, sctx *super.Context, r *db.Root, poolID, commit uuid.UUID, meta string, pruner samexpr.Evaluator) (vio.Puller, error) {
-	p, err := r.OpenPool(ctx, poolID)
+func NewCommitMetaScanner(ctx context.Context, sctx *super.Context, r *db.Root, tableID, commit uuid.UUID, meta string, pruner samexpr.Evaluator) (vio.Puller, error) {
+	t, err := r.OpenTable(ctx, tableID)
 	if err != nil {
 		return nil, err
 	}
 	switch meta {
 	case "objects":
-		lister, err := NewLister(ctx, sctx, p, commit, pruner)
+		lister, err := NewLister(ctx, sctx, t, commit, pruner)
 		if err != nil {
 			return nil, err
 		}
 		return lister, nil
 	case "partitions":
-		lister, err := NewLister(ctx, sctx, p, commit, pruner)
+		lister, err := NewLister(ctx, sctx, t, commit, pruner)
 		if err != nil {
 			return nil, err
 		}
@@ -75,16 +75,16 @@ func NewCommitMetaScanner(ctx context.Context, sctx *super.Context, r *db.Root, 
 		}
 		return slicer, nil
 	case "log":
-		tips, err := p.BatchifyBranchTips(ctx, sctx, nil)
+		tips, err := t.BatchifyBranchTips(ctx, sctx, nil)
 		if err != nil {
 			return nil, err
 		}
 		tipsPuller := vio.NewPuller(sbuf.Dematerialize(sctx, tips...))
-		log := p.OpenCommitLog(ctx, sctx, commit)
+		log := t.OpenCommitLog(ctx, sctx, commit)
 		logPuller := sbuf.NewDematerializer(sctx, sbuf.NewPuller(log))
 		return vio.ConcatPuller(tipsPuller, logPuller), nil
 	case "rawlog":
-		reader, err := p.OpenCommitLogAsBSUP(ctx, sctx, commit)
+		reader, err := t.OpenCommitLogAsBSUP(ctx, sctx, commit)
 		if err != nil {
 			return nil, err
 		}

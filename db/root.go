@@ -15,7 +15,7 @@ import (
 	"github.com/superdb/super/compiler/dag"
 	"github.com/superdb/super/db/branches"
 	"github.com/superdb/super/db/data"
-	"github.com/superdb/super/db/pools"
+	"github.com/superdb/super/db/tables"
 	"github.com/superdb/super/order"
 	"github.com/superdb/super/pkg/storage"
 	"github.com/superdb/super/runtime/sam/expr"
@@ -29,7 +29,7 @@ import (
 
 const (
 	Version     = 6
-	PoolsTag    = "pools"
+	TablesTag   = "tables"
 	MagicFile   = "superdb.bsup"
 	MagicString = "SUPERDB"
 )
@@ -40,15 +40,15 @@ var (
 )
 
 // The Root of the database represents the path prefix and configuration state
-// for all of the data pools in the database.
+// for all of the tables in the database.
 type Root struct {
 	engine storage.Engine
 	logger *zap.Logger
 	path   *storage.URI
 
-	poolCache *arc.ARCCache[uuid.UUID, *Pool]
-	pools     *pools.Store
-	vCache    *vcache.Cache
+	tableCache *arc.ARCCache[uuid.UUID, *Table]
+	tables     *tables.Store
+	vCache     *vcache.Cache
 }
 
 type Magic struct {
@@ -57,7 +57,7 @@ type Magic struct {
 }
 
 func newRoot(engine storage.Engine, logger *zap.Logger, path *storage.URI) *Root {
-	poolCache, err := arc.NewARC[uuid.UUID, *Pool](1024)
+	tableCache, err := arc.NewARC[uuid.UUID, *Table](1024)
 	if err != nil {
 		panic(err)
 	}
@@ -65,11 +65,11 @@ func newRoot(engine storage.Engine, logger *zap.Logger, path *storage.URI) *Root
 		logger = zap.NewNop()
 	}
 	return &Root{
-		engine:    engine,
-		logger:    logger,
-		path:      path,
-		poolCache: poolCache,
-		vCache:    vcache.NewCache(engine),
+		engine:     engine,
+		logger:     logger,
+		path:       path,
+		tableCache: tableCache,
+		vCache:     vcache.NewCache(engine),
 	}
 }
 
@@ -104,9 +104,9 @@ func CreateOrOpen(ctx context.Context, engine storage.Engine, logger *zap.Logger
 }
 
 func (r *Root) createConfig(ctx context.Context) error {
-	poolPath := r.path.JoinPath(PoolsTag)
+	tablePath := r.path.JoinPath(TablesTag)
 	var err error
-	r.pools, err = pools.CreateStore(ctx, r.engine, r.logger, poolPath)
+	r.tables, err = tables.CreateStore(ctx, r.engine, r.logger, tablePath)
 	if err != nil {
 		return err
 	}
@@ -117,9 +117,9 @@ func (r *Root) loadConfig(ctx context.Context) error {
 	if err := r.readMagic(ctx); err != nil {
 		return err
 	}
-	poolPath := r.path.JoinPath(PoolsTag)
+	tablePath := r.path.JoinPath(TablesTag)
 	var err error
-	r.pools, err = pools.OpenStore(ctx, r.engine, r.logger, poolPath)
+	r.tables, err = tables.OpenStore(ctx, r.engine, r.logger, tablePath)
 	if err != nil {
 		return err
 	}
@@ -186,16 +186,16 @@ func (r *Root) readMagic(ctx context.Context) error {
 	return nil
 }
 
-func (r *Root) BatchifyPools(ctx context.Context, sctx *super.Context, f expr.Evaluator) ([]super.Value, error) {
+func (r *Root) BatchifyTables(ctx context.Context, sctx *super.Context, f expr.Evaluator) ([]super.Value, error) {
 	m := super.NewMarshaler(sctx)
 	m.Decorate(super.StylePackage)
-	pools, err := r.ListPools(ctx)
+	tables, err := r.ListTables(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var vals []super.Value
-	for k := range pools {
-		rec, err := m.Marshal(&pools[k])
+	for k := range tables {
+		rec, err := m.Marshal(&tables[k])
 		if err != nil {
 			return nil, err
 		}
@@ -209,22 +209,22 @@ func (r *Root) BatchifyPools(ctx context.Context, sctx *super.Context, f expr.Ev
 func (r *Root) BatchifyBranches(ctx context.Context, sctx *super.Context, f expr.Evaluator) ([]super.Value, error) {
 	m := super.NewMarshaler(sctx)
 	m.Decorate(super.StylePackage)
-	poolRefs, err := r.ListPools(ctx)
+	tableRefs, err := r.ListTables(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var vals []super.Value
-	for k := range poolRefs {
-		pool, err := r.openPool(ctx, &poolRefs[k])
+	for k := range tableRefs {
+		table, err := r.openTable(ctx, &tableRefs[k])
 		if err != nil {
-			// We could have race here because a pool got deleted
+			// We could have race here because a table got deleted
 			// while we looped so we check and continue.
-			if errors.Is(err, pools.ErrNotFound) {
+			if errors.Is(err, tables.ErrNotFound) {
 				continue
 			}
 			return nil, err
 		}
-		vals, err = pool.BatchifyBranches(ctx, sctx, vals, m, f)
+		vals, err = table.BatchifyBranches(ctx, sctx, vals, m, f)
 		if err != nil {
 			return nil, err
 		}
@@ -233,31 +233,31 @@ func (r *Root) BatchifyBranches(ctx context.Context, sctx *super.Context, f expr
 }
 
 type BranchMeta struct {
-	Pool   pools.Config    `super:"pool"`
+	Table  tables.Config   `super:"table"`
 	Branch branches.Config `super:"branch"`
 }
 
-func (r *Root) ListPools(ctx context.Context) ([]pools.Config, error) {
-	return r.pools.All(ctx)
+func (r *Root) ListTables(ctx context.Context) ([]tables.Config, error) {
+	return r.tables.All(ctx)
 }
 
-func (r *Root) PoolID(ctx context.Context, poolName string) (uuid.UUID, error) {
-	if poolName == "" {
-		return uuid.Nil(), errors.New("no pool name given")
+func (r *Root) TableID(ctx context.Context, tableName string) (uuid.UUID, error) {
+	if tableName == "" {
+		return uuid.Nil(), errors.New("no table name given")
 	}
-	poolRef := r.pools.LookupByName(ctx, poolName)
-	if poolRef == nil {
-		return uuid.Nil(), fmt.Errorf("%s: %w", poolName, pools.ErrNotFound)
+	tableRef := r.tables.LookupByName(ctx, tableName)
+	if tableRef == nil {
+		return uuid.Nil(), fmt.Errorf("%s: %w", tableName, tables.ErrNotFound)
 	}
-	return poolRef.ID, nil
+	return tableRef.ID, nil
 }
 
-func (r *Root) CommitObject(ctx context.Context, poolID uuid.UUID, branchName string) (uuid.UUID, error) {
-	pool, err := r.OpenPool(ctx, poolID)
+func (r *Root) CommitObject(ctx context.Context, tableID uuid.UUID, branchName string) (uuid.UUID, error) {
+	table, err := r.OpenTable(ctx, tableID)
 	if err != nil {
 		return uuid.Nil(), err
 	}
-	branchRef, err := pool.LookupBranchByName(ctx, branchName)
+	branchRef, err := table.LookupBranchByName(ctx, branchName)
 	if err != nil {
 		return uuid.Nil(), err
 	}
@@ -268,61 +268,61 @@ func (r *Root) SortKeys(ctx context.Context, src dag.Op) order.SortKeys {
 	switch src := src.(type) {
 	case *dag.CommitMetaScan:
 		if src.Tap {
-			if config, err := r.pools.LookupByID(ctx, src.Pool); err == nil {
+			if config, err := r.tables.LookupByID(ctx, src.Table); err == nil {
 				return config.SortKeys
 			}
 		}
 	case *dag.ListerScan:
-		if config, err := r.pools.LookupByID(ctx, src.Pool); err == nil {
-			return config.SortKeys
-		}
-	case *dag.PoolScan:
-		if config, err := r.pools.LookupByID(ctx, src.ID); err == nil {
+		if config, err := r.tables.LookupByID(ctx, src.Table); err == nil {
 			return config.SortKeys
 		}
 	case *dag.SeqScan:
-		if config, err := r.pools.LookupByID(ctx, src.Pool); err == nil {
+		if config, err := r.tables.LookupByID(ctx, src.Table); err == nil {
+			return config.SortKeys
+		}
+	case *dag.TableScan:
+		if config, err := r.tables.LookupByID(ctx, src.ID); err == nil {
 			return config.SortKeys
 		}
 	}
 	return nil
 }
 
-func (r *Root) OpenPool(ctx context.Context, id uuid.UUID) (*Pool, error) {
-	config, err := r.pools.LookupByID(ctx, id)
+func (r *Root) OpenTable(ctx context.Context, id uuid.UUID) (*Table, error) {
+	config, err := r.tables.LookupByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return r.openPool(ctx, config)
+	return r.openTable(ctx, config)
 }
 
-func (r *Root) openPool(ctx context.Context, config *pools.Config) (*Pool, error) {
-	if p, ok := r.poolCache.Get(config.ID); ok {
-		// The cached pool's config may be outdated, so rather than
-		// return the pool directly, we return a copy whose config we
+func (r *Root) openTable(ctx context.Context, config *tables.Config) (*Table, error) {
+	if p, ok := r.tableCache.Get(config.ID); ok {
+		// The cached table's config may be outdated, so rather than
+		// return the table directly, we return a copy whose config we
 		// can safely update without locking.
 		p := *p
 		p.Config = *config
 		return &p, nil
 	}
-	p, err := OpenPool(ctx, r.engine, r.logger, r.path, config)
+	p, err := OpenTable(ctx, r.engine, r.logger, r.path, config)
 	if err != nil {
 		return nil, err
 	}
-	r.poolCache.Add(config.ID, p)
+	r.tableCache.Add(config.ID, p)
 	return p, nil
 }
 
-func (r *Root) RenamePool(ctx context.Context, id uuid.UUID, newName string) error {
-	return r.pools.Rename(ctx, id, newName)
+func (r *Root) RenameTable(ctx context.Context, id uuid.UUID, newName string) error {
+	return r.tables.Rename(ctx, id, newName)
 }
 
-func (r *Root) CreatePool(ctx context.Context, name string, sortKeys order.SortKeys, objectCap, frameCap uint64) (*Pool, error) {
+func (r *Root) CreateTable(ctx context.Context, name string, sortKeys order.SortKeys, objectCap, frameCap uint64) (*Table, error) {
 	if name == "HEAD" {
-		return nil, fmt.Errorf("pool cannot be named %q", name)
+		return nil, fmt.Errorf("table cannot be named %q", name)
 	}
-	if r.pools.LookupByName(ctx, name) != nil {
-		return nil, fmt.Errorf("%s: %w", name, pools.ErrExists)
+	if r.tables.LookupByName(ctx, name) != nil {
+		return nil, fmt.Errorf("%s: %w", name, tables.ErrExists)
 	}
 	if len(sortKeys) > 1 {
 		return nil, errors.New("secondary sort keys not yet supported")
@@ -333,79 +333,79 @@ func (r *Root) CreatePool(ctx context.Context, name string, sortKeys order.SortK
 	if frameCap == 0 {
 		frameCap = bsup.DefaultFrameCap
 	}
-	config := pools.NewConfig(name, sortKeys, objectCap, frameCap)
-	if err := CreatePool(ctx, r.engine, r.logger, r.path, config); err != nil {
+	config := tables.NewConfig(name, sortKeys, objectCap, frameCap)
+	if err := CreateTable(ctx, r.engine, r.logger, r.path, config); err != nil {
 		return nil, err
 	}
-	pool, err := r.openPool(ctx, config)
+	table, err := r.openTable(ctx, config)
 	if err != nil {
-		RemovePool(ctx, r.engine, r.path, config)
+		RemoveTable(ctx, r.engine, r.path, config)
 		return nil, err
 	}
-	if err := r.pools.Add(ctx, config); err != nil {
-		RemovePool(ctx, r.engine, r.path, config)
+	if err := r.tables.Add(ctx, config); err != nil {
+		RemoveTable(ctx, r.engine, r.path, config)
 		return nil, err
 	}
-	return pool, nil
+	return table, nil
 }
 
-// RemovePool deletes a pool from the configuration journal and deletes all
-// data associated with the pool.
-func (r *Root) RemovePool(ctx context.Context, id uuid.UUID) error {
-	config, err := r.pools.LookupByID(ctx, id)
+// RemoveTable deletes a table from the configuration journal and deletes all
+// data associated with the table.
+func (r *Root) RemoveTable(ctx context.Context, id uuid.UUID) error {
+	config, err := r.tables.LookupByID(ctx, id)
 	if err != nil {
 		return err
 	}
-	if err := r.pools.Remove(ctx, *config); err != nil {
+	if err := r.tables.Remove(ctx, *config); err != nil {
 		return err
 	}
-	// This pool might be cached on other cluster nodes, but that's fine.
-	// With no entry in the pool store, it will be inaccessible and
+	// This table might be cached on other cluster nodes, but that's fine.
+	// With no entry in the table store, it will be inaccessible and
 	// eventually evicted by the cache's LRU algorithm.
-	r.poolCache.Remove(config.ID)
-	return RemovePool(ctx, r.engine, r.path, config)
+	r.tableCache.Remove(config.ID)
+	return RemoveTable(ctx, r.engine, r.path, config)
 }
 
-func (r *Root) CreateBranch(ctx context.Context, poolID uuid.UUID, name string, parent uuid.UUID) (*branches.Config, error) {
-	config, err := r.pools.LookupByID(ctx, poolID)
+func (r *Root) CreateBranch(ctx context.Context, tableID uuid.UUID, name string, parent uuid.UUID) (*branches.Config, error) {
+	config, err := r.tables.LookupByID(ctx, tableID)
 	if err != nil {
 		return nil, err
 	}
 	return CreateBranch(ctx, r.engine, r.logger, r.path, config, name, parent)
 }
 
-func (r *Root) RemoveBranch(ctx context.Context, poolID uuid.UUID, name string) error {
-	pool, err := r.OpenPool(ctx, poolID)
+func (r *Root) RemoveBranch(ctx context.Context, tableID uuid.UUID, name string) error {
+	table, err := r.OpenTable(ctx, tableID)
 	if err != nil {
 		return err
 	}
-	return pool.removeBranch(ctx, name)
+	return table.removeBranch(ctx, name)
 }
 
 // MergeBranch merges the indicated branch into its parent returning the
 // commit tag of the new commit into the parent branch.
-func (r *Root) MergeBranch(ctx context.Context, poolID uuid.UUID, childBranch, parentBranch, author, message string) (uuid.UUID, error) {
-	pool, err := r.OpenPool(ctx, poolID)
+func (r *Root) MergeBranch(ctx context.Context, tableID uuid.UUID, childBranch, parentBranch, author, message string) (uuid.UUID, error) {
+	table, err := r.OpenTable(ctx, tableID)
 	if err != nil {
 		return uuid.Nil(), err
 	}
-	child, err := pool.OpenBranchByName(ctx, childBranch)
+	child, err := table.OpenBranchByName(ctx, childBranch)
 	if err != nil {
 		return uuid.Nil(), err
 	}
-	parent, err := pool.OpenBranchByName(ctx, parentBranch)
+	parent, err := table.OpenBranchByName(ctx, parentBranch)
 	if err != nil {
 		return uuid.Nil(), err
 	}
 	return child.mergeInto(ctx, parent, author, message)
 }
 
-func (r *Root) Revert(ctx context.Context, poolID uuid.UUID, branchName string, commitID uuid.UUID, author, message string) (uuid.UUID, error) {
-	pool, err := r.OpenPool(ctx, poolID)
+func (r *Root) Revert(ctx context.Context, tableID uuid.UUID, branchName string, commitID uuid.UUID, author, message string) (uuid.UUID, error) {
+	table, err := r.OpenTable(ctx, tableID)
 	if err != nil {
 		return uuid.Nil(), err
 	}
-	branch, err := pool.OpenBranchByName(ctx, branchName)
+	branch, err := table.OpenBranchByName(ctx, branchName)
 	if err != nil {
 		return uuid.Nil(), err
 	}

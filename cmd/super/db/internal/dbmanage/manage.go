@@ -10,7 +10,7 @@ import (
 
 	"github.com/superdb/super/api/client"
 	"github.com/superdb/super/db/api"
-	"github.com/superdb/super/db/pools"
+	"github.com/superdb/super/db/tables"
 	"github.com/superdb/super/dbid"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -26,7 +26,7 @@ func Update(ctx context.Context, db api.Interface, conf Config, logger *zap.Logg
 	}
 	group, ctx := errgroup.WithContext(ctx)
 	for _, branch := range branches {
-		branch.logger.Info("updating pool")
+		branch.logger.Info("updating table")
 		if err := branch.run(ctx); err != nil {
 			branch.logger.Error("update error", zap.Error(err))
 		}
@@ -70,36 +70,36 @@ func monitor(ctx context.Context, db api.Interface, conf Config, logger *zap.Log
 }
 
 func getBranches(ctx context.Context, conf Config, db api.Interface, logger *zap.Logger) ([]*branch, error) {
-	pools, err := getPools(ctx, conf, db)
+	tables, err := getTables(ctx, conf, db)
 	if err != nil {
 		return nil, err
 	}
 	var branches []*branch
-	for _, pool := range pools {
-		if b := newBranch(conf, pool, db, logger); b != nil {
+	for _, table := range tables {
+		if b := newBranch(conf, table, db, logger); b != nil {
 			branches = append(branches, b)
 		}
 	}
 	return branches, nil
 }
 
-func getPools(ctx context.Context, conf Config, db api.Interface) ([]*pools.Config, error) {
-	pls, err := api.GetPools(ctx, db)
+func getTables(ctx context.Context, conf Config, db api.Interface) ([]*tables.Config, error) {
+	tabs, err := api.GetTables(ctx, db)
 	if err != nil {
 		return nil, err
 	}
-	if len(conf.Pools) == 0 {
-		return pls, nil
+	if len(conf.Tables) == 0 {
+		return tabs, nil
 	}
 	m := map[uuid.UUID]struct{}{}
-	var out []*pools.Config
-	for _, c := range conf.Pools {
-		p := selectPool(c, pls)
+	var out []*tables.Config
+	for _, c := range conf.Tables {
+		p := selectTable(c, tabs)
 		if p == nil {
-			return nil, fmt.Errorf("pool %q not found", c.Pool)
+			return nil, fmt.Errorf("table %q not found", c.Table)
 		}
 		if _, ok := m[p.ID]; ok {
-			return nil, fmt.Errorf("duplicate pool in configuration: %q", c.Pool)
+			return nil, fmt.Errorf("duplicate table in configuration: %q", c.Table)
 		}
 		m[p.ID] = struct{}{}
 		out = append(out, p)
@@ -107,11 +107,11 @@ func getPools(ctx context.Context, conf Config, db api.Interface) ([]*pools.Conf
 	return out, nil
 }
 
-func selectPool(c PoolConfig, pools []*pools.Config) *pools.Config {
-	id, _ := dbid.ParseID(c.Pool)
-	for _, p := range pools {
-		if id == p.ID || c.Pool == p.Name {
-			return p
+func selectTable(c TableConfig, tables []*tables.Config) *tables.Config {
+	id, _ := dbid.ParseID(c.Table)
+	for _, t := range tables {
+		if id == t.ID || c.Table == t.Name {
+			return t
 		}
 	}
 	return nil

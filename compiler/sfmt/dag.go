@@ -296,7 +296,7 @@ func (c *canonDAG) op(p dag.Op) {
 	//
 	case *dag.CommitMetaScan:
 		c.next()
-		c.write("pool %s@%s:%s", p.Pool, p.Commit, p.Meta)
+		c.write("table %s@%s:%s", p.Table, p.Commit, p.Meta)
 		if p.Tap {
 			c.write(" tap")
 		}
@@ -329,7 +329,7 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.ListerScan:
 		c.next()
 		c.open("lister")
-		c.write(" pool %s commit %s", p.Pool, p.Commit)
+		c.write(" table %s commit %s", p.Table, p.Commit)
 		if p.KeyPruner != nil {
 			c.write(" pruner (")
 			c.expr(p.KeyPruner, "")
@@ -339,12 +339,6 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.NullScan:
 		c.next()
 		c.write("null")
-	case *dag.PoolScan:
-		c.next()
-		c.write("pool %s", p.ID)
-	case *dag.PoolMetaScan:
-		c.next()
-		c.write("pool %s:%s", p.ID, p.Meta)
 	case *dag.RobotScan:
 		c.next()
 		c.write("robot ")
@@ -360,7 +354,7 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.SeqScan:
 		c.next()
 		c.open("seqscan")
-		c.write(" pool %s", p.Pool)
+		c.write(" table %s", p.Table)
 		if p.KeyPruner != nil {
 			c.write(" pruner (")
 			c.expr(p.KeyPruner, "")
@@ -375,6 +369,12 @@ func (c *canonDAG) op(p dag.Op) {
 			c.write(")")
 		}
 		c.close()
+	case *dag.TableScan:
+		c.next()
+		c.write("table %s", p.ID)
+	case *dag.TableMetaScan:
+		c.next()
+		c.write("table %s:%s", p.ID, p.Meta)
 	//
 	// Operators in alphabeticl order.
 	//
@@ -474,7 +474,7 @@ func (c *canonDAG) op(p dag.Op) {
 		c.close()
 	case *dag.LoadOp:
 		c.next()
-		c.write("load %s", p.Pool)
+		c.write("load %s", p.Table)
 		if p.Branch != "" {
 			c.write("@%s", p.Branch)
 		}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/superdb/super/bsup"
-	"github.com/superdb/super/cli/poolflags"
+	"github.com/superdb/super/cli/tableflags"
 	"github.com/superdb/super/cmd/super/db"
 	"github.com/superdb/super/db/data"
 	"github.com/superdb/super/order"
@@ -16,7 +16,7 @@ import (
 var spec = &charm.Spec{
 	Name:  "create",
 	Usage: "create [-orderby key[:asc|:desc]] name",
-	Short: "create a new data pool",
+	Short: "create a new data table",
 	Long: `
 See https://superdb.org/command/db.html#super-db-create
 `,
@@ -38,9 +38,9 @@ func init() {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*db.Command)}
 	f.Uint64Var(&c.frameCap, "framecap", bsup.DefaultFrameCap, "target number of values BSUP frames")
-	f.Uint64Var(&c.objectCap, "objectcap", data.DefaultObjectCap, "target number of values in pool data objects")
-	f.BoolVar(&c.use, "use", false, "set created pool as the current pool")
-	f.StringVar(&c.sortKey, "orderby", "", "pool key with optional :asc or :desc suffix to organize data in pool (cannot be changed)")
+	f.Uint64Var(&c.objectCap, "objectcap", data.DefaultObjectCap, "target number of values in table data objects")
+	f.BoolVar(&c.use, "use", false, "configure new table as the current table")
+	f.StringVar(&c.sortKey, "orderby", "", "sort key with optional :asc or :desc suffix to organize data in a table (cannot be changed)")
 	return c, nil
 }
 
@@ -61,20 +61,20 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	poolName := args[0]
-	id, err := db.CreatePool(ctx, poolName, sortKey, c.objectCap, c.frameCap)
+	tableName := args[0]
+	id, err := db.CreateTable(ctx, tableName, sortKey, c.objectCap, c.frameCap)
 	if err != nil {
 		return err
 	}
 	if !c.DBFlags.Quiet {
-		fmt.Printf("pool created: %s %s\n", poolName, id)
+		fmt.Printf("table created: %s %s\n", tableName, id)
 	}
 	if c.use {
-		if err := poolflags.WriteHead(poolName, "main"); err != nil {
+		if err := tableflags.WriteHead(tableName, "main"); err != nil {
 			return err
 		}
 		if !c.DBFlags.Quiet {
-			fmt.Printf("Switched to branch \"main\" on pool %q\n", poolName)
+			fmt.Printf("Switched to branch \"main\" on table %q\n", tableName)
 		}
 	}
 	return nil

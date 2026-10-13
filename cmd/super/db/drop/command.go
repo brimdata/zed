@@ -12,8 +12,8 @@ import (
 
 var spec = &charm.Spec{
 	Name:  "drop",
-	Usage: "drop pool",
-	Short: "delete a data pool from a database",
+	Usage: "drop table",
+	Short: "delete a table from a database",
 	Long: `
 See https://superdb.org/command/db.html#super-db-drop
 `,
@@ -42,25 +42,25 @@ func (c *Command) Run(args []string) error {
 	}
 	defer cleanup()
 	if len(args) != 1 {
-		return errors.New("a single pool name must be specified")
+		return errors.New("a single table name must be specified")
 	}
 	db, err := c.DBFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
-	poolName := args[0]
-	poolID, err := db.PoolID(ctx, poolName)
+	tableName := args[0]
+	tableID, err := db.TableID(ctx, tableName)
 	if err != nil {
 		return err
 	}
-	if err := c.confirm(poolName); err != nil {
+	if err := c.confirm(tableName); err != nil {
 		return err
 	}
-	if err := db.RemovePool(ctx, poolID); err != nil {
+	if err := db.RemoveTable(ctx, tableID); err != nil {
 		return err
 	}
 	if !c.DBFlags.Quiet {
-		fmt.Printf("pool deleted: %s\n", poolName)
+		fmt.Printf("table deleted: %s\n", tableName)
 	}
 	return nil
 }
@@ -69,7 +69,7 @@ func (c *Command) confirm(name string) error {
 	if c.force {
 		return nil
 	}
-	fmt.Printf("Are you sure you want to delete pool %q? There is no going back... [y|n]\n", name)
+	fmt.Printf("Are you sure you want to delete table %q? There is no going back... [y|n]\n", name)
 	var input string
 	if _, err := fmt.Scanln(&input); err != nil {
 		return err

@@ -15,7 +15,7 @@ import (
 	"github.com/superdb/super/cli/commitflags"
 	"github.com/superdb/super/cli/dbflags"
 	"github.com/superdb/super/cli/inputflags"
-	"github.com/superdb/super/cli/poolflags"
+	"github.com/superdb/super/cli/tableflags"
 	"github.com/superdb/super/cli/runtimeflags"
 	"github.com/superdb/super/cmd/super/db"
 	"github.com/superdb/super/pkg/charm"
@@ -45,7 +45,7 @@ type Command struct {
 	*db.Command
 	commitFlags  commitflags.Flags
 	inputFlags   inputflags.Flags
-	poolFlags    poolflags.Flags
+	tableFlags   tableflags.Flags
 	runtimeFlags runtimeflags.Flags
 
 	// status output
@@ -59,7 +59,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*db.Command)}
 	c.commitFlags.SetFlags(f)
 	c.inputFlags.SetFlags(f)
-	c.poolFlags.SetFlags(f)
+	c.tableFlags.SetFlags(f)
 	c.runtimeFlags.SetFlags(f)
 	return c, nil
 }
@@ -85,14 +85,14 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer vio.CloseReaders(readers)
-	head, err := c.poolFlags.HEAD()
+	head, err := c.tableFlags.HEAD()
 	if err != nil {
 		return err
 	}
-	if head.Pool == "" {
+	if head.Table == "" {
 		return dbflags.ErrNoHEAD
 	}
-	poolID, err := db.PoolID(ctx, head.Pool)
+	tableID, err := db.TableID(ctx, head.Table)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (c *Command) Run(args []string) error {
 	for _, r := range readers {
 		pullers = append(pullers, r)
 	}
-	commitID, err := db.Load(ctx, sctx, poolID, head.Branch, vio.ConcatPuller(pullers...), message)
+	commitID, err := db.Load(ctx, sctx, tableID, head.Branch, vio.ConcatPuller(pullers...), message)
 	if d != nil {
 		d.Close()
 	}

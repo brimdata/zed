@@ -19,7 +19,7 @@ On the contrary, we believe a better approach for organizing modern, eclectic
 data is based on a type system rather than a collection of tables
 and relational schemas.  Since relations, tables, schemas, data frames,
 Parquet files, Avro files, JSON, CSV, XML, and so forth are all subsets of the
-SuperDB's super-structured type system, a data lake based on SuperDB holds the promise
+SuperDB's super-structured type system, SuperDB holds the promise
 to provide a universal data representation for all of these different approaches to data.
 
 > **TODO: update this to emphasize tables are just a special case... not that they
@@ -41,7 +41,7 @@ Every data element in a database is either of two fundamental object types:
 
 ### Immutable Objects
 
-All imported data in a data pool is composed of immutable objects, which are organized
+All imported table data is composed of immutable objects, which are organized
 around a primary data object.  Each data object is composed of one or more immutable objects
 all of which share a common, globally unique identifier,
 which is referred to below generically as `<id>` below.
@@ -89,15 +89,14 @@ Immutable objects are named as follows:
 
 |object type|name|
 |-----------|----|
-|vector data|`<pool-id>/data/<id>.csup`|
-|sequence data|`<pool-id>/data/<id>.bsup`|
+|sequence data|`<table-id>/data/<id>.bsup`|
 
 `<id>` is the KSUID of the data object.
 
 #### Commit History
 
 A branch's commit history is the definitive record of the evolution of data in
-that pool in a transactionally consistent fashion.
+that table in a transactionally consistent fashion.
 
 Each commit object entry is identified with its `commit ID`.
 Objects are immutable and uniquely named so there is never a concurrent write
@@ -109,12 +108,12 @@ in a commit object.  All of the operations that belong to a commit are
 identified with a commit identifier (ID).
 
 As each commit object points to its parent (except for the initial commit
-in main), the collection of commit objects in a pool forms a tree.
+in main), the collection of commit objects in a table forms a tree.
 
 Each commit object contains a sequence of _actions_:
 
-* `Add` to add a data object reference to a pool,
-* `Delete` to delete a data object reference from a pool,
+* `Add` to add a data object reference to a table,
+* `Delete` to delete a data object reference from a table,
 * `Commit` for providing metadata about each commit.
 
 The actions are not grouped directly by their commit ID but instead each
@@ -141,8 +140,8 @@ controls are included (see [Journal Concurrency Control](#journal-concurrency-co
 below) to provide atomic updates.
 
 A journal entry simply contains actions that modify the visible "state" of
-the pool by changing branch name to commit object mappings.  Note that
-adding a commit object to a pool changes nothing until a branch pointer
+the table by changing branch name to commit object mappings.  Note that
+adding a commit object to a table changes nothing until a branch pointer
 is mutated to point at that object.
 
 Each atomic journal commit object is a BSUP file numbered 1 to the end of journal (HEAD),
@@ -154,12 +153,12 @@ Once created, a journal entry is never modified but it may be deleted and
 never again allocated.
 There may be 1 or more entries in each commit object.
 
-Each journal entry implies a snapshot of the data in a pool.  A snapshot
+Each journal entry implies a snapshot of the data in a table.  A snapshot
 is computed by applying the transactions in sequence from entry TAIL to
 the journal entry in question, up to HEAD.  This gives the set of commit IDs
 that comprise a snapshot.
 
-The set of branch pointers in a pool is assembled at any point in the journal's history
+The set of branch pointers in a table is assembled at any point in the journal's history
 by scanning a journal that includes ADD, UPDATE, and DELETE actions for the
 mapping of a branch name to a commit object.  A timestamp is recorded in
 each action to provide for time travel.
@@ -196,13 +195,13 @@ can be used to implement transactional journal updates as follows:
 Finally, since the above algorithm requires many round trips to the storage
 system and such round trips can be tens of milliseconds, another approach
 is to simply run a lock service as part of a cloud deployment that manages
-a mutex lock for each pool's journal.
+a mutex lock for each table's journal.
 
 #### Configuration State
 
-Configuration state describing a lake or pool is also stored in mutable objects.
+Configuration state describing a database or table is also stored in mutable objects.
 The database uses a commit journal to store configuration like the
-list of pools and pool attributes.
+list of tables and tablea attributes.
 Here, a generic interface to a commit journal manages any configuration
 state simply as a key-value store of snapshots providing time travel over
 the configuration history.
@@ -210,7 +209,7 @@ the configuration history.
 ### Merge on Read
 
 To support _sorted scans_,
-data objects are store in a sorted order defined by the pool's sort key.
+data objects are stored in an (optionally) sorted order defined by the table's sort key.
 The sort key may be a composite key compised of primary, secondary, etc
 component keys.
 
@@ -222,7 +221,7 @@ If many overlapping data objects arise, performing a merge scan
 on every read can be inefficient.
 This can arise when
 many random data `load` operations involving perhaps "late" data
-(e.g., the pool key is a timestamp and records with old timestamp values regularly
+(e.g., the sort key is a timestamp and records with old timestamp values regularly
 show up and need to be inserted into the past).  The data layout can become
 fragmented and less efficient to scan, requiring a scan to merge data
 from a potentially large number of different objects.
@@ -231,22 +230,22 @@ To solve this problem, the database format follows the
 [LSM](https://en.wikipedia.org/wiki/Log-structured_merge-tree) design pattern.
 Since records in each data object are stored in sorted order, a total order over
 a collection of objects (e.g., the collection coming from a specific set of commits)
-can be produced by executing a sorted scan and rewriting the results back to the pool
+can be produced by executing a sorted scan and rewriting the results back to the table
 in a new commit.  In addition, the objects comprising the total order
 do not overlap.  This is just the basic LSM algorithm at work.
 
 ### Object Naming
 
 ```
-<lake-path>/
-  lake.bsup
-  pools/
+<database-path>/
+  superdb.bsup
+  tables/
     HEAD
     TAIL
     1.bsup
     2.bsup
     ...
-  <pool-id-1>/
+  <table-id-1>/
     branches/
       HEAD
       TAIL
@@ -258,9 +257,9 @@ do not overlap.  This is just the basic LSM algorithm at work.
       <id2>.bsup
       ...
     data/
-      <id1>.{bsup,csup}
-      <id2>.{bsup,csup}
+      <id1>.bsup
+      <id2>.bsup
       ...
-  <pool-id-2>/
+  <table-id-2>/
   ...
 ```

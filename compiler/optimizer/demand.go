@@ -147,7 +147,7 @@ func demandForSimpleOp(op dag.Op, downstream demand.Demand) demand.Demand {
 		op.Pushdown.Projection = demand.Fields(d)
 		op.Pushdown.HasProjection = len(op.Pushdown.Projection) != 0 || demand.IsNone(d)
 		return demand.None()
-	case *dag.HTTPScan, *dag.ListerScan, *dag.NullScan, *dag.PoolMetaScan, *dag.PoolScan:
+	case *dag.HTTPScan, *dag.ListerScan, *dag.NullScan, *dag.TableMetaScan, *dag.TableScan:
 		return demand.None()
 	case *dag.RobotScan:
 		return demandForExpr(op.Expr)

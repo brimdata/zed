@@ -163,22 +163,22 @@ produces
 {name:"avocado",color:"green",flavor:"savory"}
 ```
 
-### Inputs from Pools
+### Inputs from Tables
 
 > **TODO: no more file operator**
 
 In the examples above, we used the
 [`file` operator](../super-sql/operators/from.md) to read our respective inputs
-from named file sources.  However, if the inputs are stored in pools in a [SuperDB data lake](../command/db.md),
-we would instead specify the sources as data pools using the
+from named file sources.  However, if the inputs are stored in tables in a [SuperDB database](../command/db.md),
+we would instead specify the sources as tables using the
 [`from` operator](../super-sql/operators/from.md).
 
-Here we'll load our input data to pools in a temporary data lake, then execute
+Here we'll load our input data to tables in a temporary database, then execute
 our inner join using `super db`.
 
-The query `inner-join-pools.spq`:
+The query `inner-join-tables.spq`:
 
-```mdtest-input inner-join-pools.spq
+```mdtest-input inner-join-tables.spq
 from fruit
 | inner join (
   from people
@@ -187,16 +187,16 @@ from fruit
 | sort flavor, name
 ```
 
-Populating the pools, then executing the query:
+Populating the tables, then executing the query:
 
 ```mdtest-command
-export SUPER_DB=lake
+export SUPER_DB=demo
 super db init -q
 super db create -q -orderby flavor:asc fruit
 super db create -q -orderby likes:asc people
 super db load -q -use fruit fruit.json
 super db load -q -use people people.json
-super db -s -I inner-join-pools.spq
+super db -s -I inner-join-tables.spq
 ```
 produces
 ```mdtest-output
@@ -245,7 +245,7 @@ produces
 
 ### Self Joins
 
-In addition to the named files and pools like we've used in the prior examples,
+In addition to the named files and tables like we've used in the prior examples,
 SuperSQL also works on a single sequence of data that is split and
 joined to itself.  Here we'll combine our file sources into a stream that we'll
 pipe into `super` via stdin.  Because `join` requires two separate inputs, here

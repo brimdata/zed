@@ -30,7 +30,7 @@ func eqOp(aop, bop sem.Op) bool {
 		if !ok {
 			return false
 		}
-		return ok && a.Pool == b.Pool && a.Commit == b.Commit && a.Meta == b.Meta && a.Tap == b.Tap
+		return ok && a.Table == b.Table && a.Commit == b.Commit && a.Meta == b.Meta && a.Tap == b.Tap
 	case *sem.DeleteScan:
 		b, ok := bop.(*sem.DeleteScan)
 		return ok && a.ID == b.ID && a.Commit == b.Commit
@@ -46,15 +46,15 @@ func eqOp(aop, bop sem.Op) bool {
 	case *sem.NullScan:
 		_, ok := bop.(*sem.NullScan)
 		return ok
-	case *sem.PoolMetaScan:
-		b, ok := bop.(*sem.PoolMetaScan)
-		return ok && a.ID == b.ID && a.Meta == b.Meta
-	case *sem.PoolScan:
-		b, ok := bop.(*sem.PoolScan)
-		return ok && a.ID == b.ID && a.Commit == b.Commit
 	case *sem.RobotScan:
 		b, ok := bop.(*sem.RobotScan)
 		return ok && a.Format == b.Format && eqExpr(a.Expr, b.Expr)
+	case *sem.TableMetaScan:
+		b, ok := bop.(*sem.TableMetaScan)
+		return ok && a.ID == b.ID && a.Meta == b.Meta
+	case *sem.TableScan:
+		b, ok := bop.(*sem.TableScan)
+		return ok && a.ID == b.ID && a.Commit == b.Commit
 	//
 	// Ops in alphabetical order
 	//
@@ -100,7 +100,7 @@ func eqOp(aop, bop sem.Op) bool {
 		return ok && a.Style == b.Style && a.LeftAlias == b.LeftAlias && a.RightAlias == b.RightAlias && eqExpr(a.Cond, b.Cond)
 	case *sem.LoadOp:
 		b, ok := bop.(*sem.LoadOp)
-		return ok && a.Pool == b.Pool && a.Branch == b.Branch && a.Author == b.Author && a.Message == b.Message && a.Meta == b.Meta
+		return ok && a.Table == b.Table && a.Branch == b.Branch && a.Author == b.Author && a.Message == b.Message && a.Meta == b.Meta
 	case *sem.MergeOp:
 		b, ok := bop.(*sem.MergeOp)
 		return ok && eqSortExprs(a.Exprs, b.Exprs)

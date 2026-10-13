@@ -23,7 +23,7 @@ import (
 )
 
 type Writer struct {
-	pool        *Pool
+	table       *Table
 	objects     []data.Object
 	inputSorted bool
 	ctx         context.Context
@@ -35,9 +35,9 @@ type Writer struct {
 
 var _ vio.PushCloser = (*Writer)(nil)
 
-func NewWriter(ctx context.Context, sctx *super.Context, pool *Pool) (*Writer, error) {
+func NewWriter(ctx context.Context, sctx *super.Context, table *Table) (*Writer, error) {
 	return &Writer{
-		pool:    pool,
+		table:   table,
 		ctx:     ctx,
 		sctx:    sctx,
 		builder: vbuild.NewDynamicBuilder(),
@@ -51,7 +51,7 @@ func (w *Writer) newObject() *data.Object {
 
 func (w *Writer) Push(vec vector.Any) error {
 	w.builder.Write(vec)
-	if uint64(w.builder.Len()) >= w.pool.ObjectCap {
+	if uint64(w.builder.Len()) >= w.table.ObjectCap {
 		return w.flush()
 	}
 	return nil
@@ -66,11 +66,11 @@ func (w *Writer) flush() error {
 		return nil
 	}
 	object := w.newObject()
-	out, err := w.pool.engine.Put(w.ctx, object.URI(w.pool.DataPath))
+	out, err := w.table.engine.Put(w.ctx, object.URI(w.table.DataPath))
 	if err != nil {
 		return err
 	}
-	if sortkey, ok := w.pool.SortKeys.Primary(); ok {
+	if sortkey, ok := w.table.SortKeys.Primary(); ok {
 		var minVal, maxVal super.Value
 		vec, minVal, maxVal = w.sort(vec)
 		if sortkey.Order == order.Desc {
@@ -79,7 +79,7 @@ func (w *Writer) flush() error {
 		object.Min = minVal
 		object.Max = maxVal
 	}
-	writer := bsup.NewColumnWriterWithCap(out, w.pool.FrameCap)
+	writer := bsup.NewColumnWriterWithCap(out, w.table.FrameCap)
 	size, err := writer.WriteSuperFrame(vec)
 	if err != nil {
 		out.Close()
@@ -124,13 +124,13 @@ func (s *ImportStats) Copy() ImportStats {
 	}
 }
 
-func ImportComparator(sctx *super.Context, pool *Pool) *samexpr.Comparator {
+func ImportComparator(sctx *super.Context, table *Table) *samexpr.Comparator {
 	var exprs []samexpr.SortExpr
-	for _, s := range pool.SortKeys {
+	for _, s := range table.SortKeys {
 		exprs = append(exprs, samexpr.NewSortExpr(samexpr.NewDottedExpr(sctx, s.Path), s.Order, s.Order.NullsMax(true)))
 	}
 	var o order.Which
-	if sortKey, ok := pool.SortKeys.Primary(); ok {
+	if sortKey, ok := table.SortKeys.Primary(); ok {
 		o = sortKey.Order
 	}
 	// valueAsBytes establishes a total order.
@@ -148,10 +148,10 @@ func (w *Writer) sort(vec vector.Any) (vector.Any, super.Value, super.Value) {
 	if vec, minVal, maxVal := w.fastSort(vec); vec != nil {
 		return vec, minVal, maxVal
 	}
-	c := ImportComparator(w.sctx, w.pool)
-	sortKey, ok := w.pool.SortKeys.Primary()
+	c := ImportComparator(w.sctx, w.table)
+	sortKey, ok := w.table.SortKeys.Primary()
 	if !ok {
-		panic(w.pool)
+		panic(w.table)
 	}
 	primaryKey := samexpr.NewDottedExpr(w.sctx, sortKey.Path)
 	reader := c.SortStableReader(sbuf.Materialize(vec).Values())
@@ -178,10 +178,10 @@ func (w *Writer) sort(vec vector.Any) (vector.Any, super.Value, super.Value) {
 }
 
 func (w *Writer) fastSort(vec vector.Any) (vector.Any, super.Value, super.Value) {
-	if len(w.pool.SortKeys) != 1 {
+	if len(w.table.SortKeys) != 1 {
 		return nil, super.Value{}, super.Value{}
 	}
-	sortKey := w.pool.SortKeys[0]
+	sortKey := w.table.SortKeys[0]
 	return w.fastSortWithKey(vec, w.deref(vec, sortKey.Path), sortKey.Order)
 }
 

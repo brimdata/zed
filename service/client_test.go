@@ -14,7 +14,7 @@ import (
 	"github.com/superdb/super/db"
 	dbapi "github.com/superdb/super/db/api"
 	"github.com/superdb/super/db/branches"
-	"github.com/superdb/super/db/pools"
+	"github.com/superdb/super/db/tables"
 	"github.com/superdb/super/runtime/exec"
 	"github.com/superdb/super/sbuf"
 	"github.com/superdb/super/sio"
@@ -27,17 +27,17 @@ type testClient struct {
 	*client.Connection
 }
 
-func (c *testClient) TestPoolStats(id uuid.UUID) exec.PoolStats {
-	r, err := c.Connection.PoolStats(c.Context(), id)
+func (c *testClient) TestTableStats(id uuid.UUID) exec.TableStats {
+	r, err := c.Connection.TableStats(c.Context(), id)
 	require.NoError(c, err)
 	return r
 }
 
-func (c *testClient) TestPoolGet(id uuid.UUID) (config pools.Config) {
+func (c *testClient) TestTableGet(id uuid.UUID) (config tables.Config) {
 	remote := dbapi.NewRemoteDB(c.Connection)
-	pool, err := dbapi.LookupPoolByID(c.Context(), remote, id)
+	table, err := dbapi.LookupTableByID(c.Context(), remote, id)
 	require.NoError(c, err)
-	return *pool
+	return *table
 }
 
 func (c *testClient) TestBranchGet(id uuid.UUID) (config db.BranchMeta) {
@@ -47,11 +47,11 @@ func (c *testClient) TestBranchGet(id uuid.UUID) (config db.BranchMeta) {
 	return *branch
 }
 
-func (c *testClient) TestPoolList() []pools.Config {
-	r, err := c.Query(c.Context(), srcfiles.Plain("from :pools"))
+func (c *testClient) TestTableList() []tables.Config {
+	r, err := c.Query(c.Context(), srcfiles.Plain("from :tables"))
 	require.NoError(c, err)
 	defer r.Body.Close()
-	var confs []pools.Config
+	var configs []tables.Config
 	puller, err := bsupio.NewReader(c.Context(), super.NewContext(), r.Body, nil, nil, 1)
 	require.NoError(c, err)
 	reader := sbuf.PullerReader(sbuf.NewMaterializer(puller))
@@ -59,23 +59,23 @@ func (c *testClient) TestPoolList() []pools.Config {
 		rec, err := reader.Read()
 		require.NoError(c, err)
 		if rec == nil {
-			return confs
+			return configs
 		}
-		var pool pools.Config
-		err = super.Unmarshal(*rec, &pool)
+		var config tables.Config
+		err = super.Unmarshal(*rec, &config)
 		require.NoError(c, err)
-		confs = append(confs, pool)
+		configs = append(configs, config)
 	}
 }
 
-func (c *testClient) TestPoolPost(payload api.PoolPostRequest) uuid.UUID {
-	r, err := c.Connection.CreatePool(c.Context(), payload)
+func (c *testClient) TestTablePost(payload api.TablePostRequest) uuid.UUID {
+	r, err := c.Connection.CreateTable(c.Context(), payload)
 	require.NoError(c, err)
-	return r.Pool.ID
+	return r.Table.ID
 }
 
-func (c *testClient) TestBranchPost(poolID uuid.UUID, payload api.BranchPostRequest) branches.Config {
-	r, err := c.Connection.CreateBranch(c.Context(), poolID, payload)
+func (c *testClient) TestBranchPost(tableID uuid.UUID, payload api.BranchPostRequest) branches.Config {
+	r, err := c.Connection.CreateBranch(c.Context(), tableID, payload)
 	require.NoError(c, err)
 	return r
 }
@@ -92,8 +92,8 @@ func (c *testClient) TestQuery(query string) string {
 	return buf.String()
 }
 
-func (c *testClient) TestLoad(poolID uuid.UUID, branchName string, r io.Reader) uuid.UUID {
-	commit, err := c.Connection.Load(c.Context(), poolID, branchName, "", r, api.CommitMessage{})
+func (c *testClient) TestLoad(tableID uuid.UUID, branchName string, r io.Reader) uuid.UUID {
+	commit, err := c.Connection.Load(c.Context(), tableID, branchName, "", r, api.CommitMessage{})
 	require.NoError(c, err)
 	return commit.Commit
 }

@@ -1,5 +1,5 @@
 # Test ensures that super db manage merges objects with the same key into one object 
-# even if the object is greater than pool threshold.
+# even if the object is greater than objectcap threshold.
 
 skip: need to address defusion of any values
 

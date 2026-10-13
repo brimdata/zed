@@ -19,7 +19,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      test: pool created
+      test: table created
       ===
       test
         name: test

@@ -13,7 +13,7 @@ import (
 	"github.com/superdb/super/compiler/srcfiles"
 	"github.com/superdb/super/db"
 	"github.com/superdb/super/db/commits"
-	"github.com/superdb/super/db/pools"
+	"github.com/superdb/super/db/tables"
 	"github.com/superdb/super/dbid"
 	"github.com/superdb/super/order"
 	"github.com/superdb/super/pkg/nano"
@@ -27,21 +27,21 @@ import (
 type Interface interface {
 	Root() *db.Root
 	Query(ctx context.Context, query []srcfiles.Input) (vio.Scanner, error)
-	PoolID(ctx context.Context, poolName string) (uuid.UUID, error)
-	CommitObject(ctx context.Context, poolID uuid.UUID, branchName string) (uuid.UUID, error)
-	CreatePool(context.Context, string, order.SortKeys, uint64, uint64) (uuid.UUID, error)
-	RemovePool(context.Context, uuid.UUID) error
-	RenamePool(context.Context, uuid.UUID, string) error
-	CreateBranch(ctx context.Context, pool uuid.UUID, name string, parent uuid.UUID) error
-	RemoveBranch(ctx context.Context, pool uuid.UUID, branchName string) error
-	MergeBranch(ctx context.Context, pool uuid.UUID, childBranch, parentBranch string, message api.CommitMessage) (uuid.UUID, error)
-	Compact(ctx context.Context, pool uuid.UUID, branch string, objects []uuid.UUID, message api.CommitMessage) (uuid.UUID, error)
-	Load(ctx context.Context, sctx *super.Context, pool uuid.UUID, branch string, r vio.Puller, message api.CommitMessage) (uuid.UUID, error)
-	Delete(ctx context.Context, poolID uuid.UUID, branchName string, tags []uuid.UUID, message api.CommitMessage) (uuid.UUID, error)
-	DeleteWhere(ctx context.Context, poolID uuid.UUID, branchName, src string, commit api.CommitMessage) (uuid.UUID, error)
-	Revert(ctx context.Context, poolID uuid.UUID, branch string, commitID uuid.UUID, commit api.CommitMessage) (uuid.UUID, error)
-	Vacate(ctx context.Context, pool string, time nano.Ts, dryrun bool) ([]uuid.UUID, error)
-	Vacuum(ctx context.Context, pool, revision string, dryrun bool) ([]uuid.UUID, error)
+	TableID(ctx context.Context, tableName string) (uuid.UUID, error)
+	CommitObject(ctx context.Context, tableID uuid.UUID, branchName string) (uuid.UUID, error)
+	CreateTable(context.Context, string, order.SortKeys, uint64, uint64) (uuid.UUID, error)
+	RemoveTable(context.Context, uuid.UUID) error
+	RenameTable(context.Context, uuid.UUID, string) error
+	CreateBranch(ctx context.Context, tableID uuid.UUID, name string, parent uuid.UUID) error
+	RemoveBranch(ctx context.Context, tableID uuid.UUID, branchName string) error
+	MergeBranch(ctx context.Context, tableID uuid.UUID, childBranch, parentBranch string, message api.CommitMessage) (uuid.UUID, error)
+	Compact(ctx context.Context, tableID uuid.UUID, branch string, objects []uuid.UUID, message api.CommitMessage) (uuid.UUID, error)
+	Load(ctx context.Context, sctx *super.Context, tableID uuid.UUID, branch string, r vio.Puller, message api.CommitMessage) (uuid.UUID, error)
+	Delete(ctx context.Context, tableID uuid.UUID, branchName string, tags []uuid.UUID, message api.CommitMessage) (uuid.UUID, error)
+	DeleteWhere(ctx context.Context, tableID uuid.UUID, branchName, src string, commit api.CommitMessage) (uuid.UUID, error)
+	Revert(ctx context.Context, tableID uuid.UUID, branch string, commitID uuid.UUID, commit api.CommitMessage) (uuid.UUID, error)
+	Vacate(ctx context.Context, table string, time nano.Ts, dryrun bool) ([]uuid.UUID, error)
+	Vacuum(ctx context.Context, table, revision string, dryrun bool) ([]uuid.UUID, error)
 }
 
 func Connect(ctx context.Context, logger *zap.Logger, u string) (Interface, error) {
@@ -55,9 +55,9 @@ func IsRemote(u string) bool {
 	return strings.HasPrefix(u, "http://") || strings.HasPrefix(u, "https://")
 }
 
-func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.Config, error) {
-	b := newBuffer(pools.Config{})
-	query := fmt.Sprintf("from :pools | name == '%s'", name)
+func LookupTableByName(ctx context.Context, api Interface, name string) (*tables.Config, error) {
+	b := newBuffer(tables.Config{})
+	query := fmt.Sprintf("from :tables | name == '%s'", name)
 	q, err := api.Query(ctx, srcfiles.Plain(query))
 	if err != nil {
 		return nil, err
@@ -68,21 +68,21 @@ func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.C
 	}
 	switch len(b.results) {
 	case 0:
-		return nil, fmt.Errorf("%q: pool not found", name)
+		return nil, fmt.Errorf("%q: table not found", name)
 	case 1:
-		pool, ok := b.results[0].(*pools.Config)
+		table, ok := b.results[0].(*tables.Config)
 		if !ok {
-			return nil, fmt.Errorf("internal error: pool record has wrong type: %T", b.results[0])
+			return nil, fmt.Errorf("internal error: table record has wrong type: %T", b.results[0])
 		}
-		return pool, nil
+		return table, nil
 	default:
-		return nil, fmt.Errorf("internal error: multiple pools found with same name: %s", name)
+		return nil, fmt.Errorf("internal error: multiple tables found with same name: %s", name)
 	}
 }
 
-func GetPools(ctx context.Context, api Interface) ([]*pools.Config, error) {
-	b := newBuffer(pools.Config{})
-	q, err := api.Query(ctx, srcfiles.Plain("from :pools"))
+func GetTables(ctx context.Context, api Interface) ([]*tables.Config, error) {
+	b := newBuffer(tables.Config{})
+	q, err := api.Query(ctx, srcfiles.Plain("from :tables"))
 	if err != nil {
 		return nil, err
 	}
@@ -90,16 +90,16 @@ func GetPools(ctx context.Context, api Interface) ([]*pools.Config, error) {
 	if err := vio.Copy(b, q); err != nil {
 		return nil, err
 	}
-	var pls []*pools.Config
+	var pls []*tables.Config
 	for _, r := range b.results {
-		pls = append(pls, r.(*pools.Config))
+		pls = append(pls, r.(*tables.Config))
 	}
 	return pls, nil
 }
 
-func LookupPoolByID(ctx context.Context, api Interface, id uuid.UUID) (*pools.Config, error) {
-	b := newBuffer(pools.Config{})
-	query := fmt.Sprintf("from :pools | id == hex('%s')", idToHex(id))
+func LookupTableByID(ctx context.Context, api Interface, id uuid.UUID) (*tables.Config, error) {
+	b := newBuffer(tables.Config{})
+	query := fmt.Sprintf("from :tables | id == hex('%s')", idToHex(id))
 	q, err := api.Query(ctx, srcfiles.Plain(query))
 	if err != nil {
 		return nil, err
@@ -110,21 +110,21 @@ func LookupPoolByID(ctx context.Context, api Interface, id uuid.UUID) (*pools.Co
 	}
 	switch len(b.results) {
 	case 0:
-		return nil, fmt.Errorf("%s: pool not found", id)
+		return nil, fmt.Errorf("%s: table not found", id)
 	case 1:
-		pool, ok := b.results[0].(*pools.Config)
+		table, ok := b.results[0].(*tables.Config)
 		if !ok {
-			return nil, fmt.Errorf("internal error: pool record has wrong type: %T", b.results[0])
+			return nil, fmt.Errorf("internal error: table record has wrong type: %T", b.results[0])
 		}
-		return pool, nil
+		return table, nil
 	default:
-		return nil, fmt.Errorf("internal error: multiple pools found with same id: %s", id)
+		return nil, fmt.Errorf("internal error: multiple tabled found with same id: %s", id)
 	}
 }
 
-func LookupBranchByName(ctx context.Context, api Interface, poolName, branchName string) (*db.BranchMeta, error) {
+func LookupBranchByName(ctx context.Context, api Interface, tableName, branchName string) (*db.BranchMeta, error) {
 	b := newBuffer(db.BranchMeta{})
-	query := fmt.Sprintf("from :branches | pool.name == '%s' branch.name == '%s'", poolName, branchName)
+	query := fmt.Sprintf("from :branches | table.name == '%s' branch.name == '%s'", tableName, branchName)
 	q, err := api.Query(ctx, srcfiles.Plain(query))
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func LookupBranchByName(ctx context.Context, api Interface, poolName, branchName
 	}
 	switch len(b.results) {
 	case 0:
-		return nil, fmt.Errorf("%q: branch not found", poolName+"/"+branchName)
+		return nil, fmt.Errorf("%q: branch not found", tableName+"/"+branchName)
 	case 1:
 		branch, ok := b.results[0].(*db.BranchMeta)
 		if !ok {
@@ -143,7 +143,7 @@ func LookupBranchByName(ctx context.Context, api Interface, poolName, branchName
 		}
 		return branch, nil
 	default:
-		return nil, fmt.Errorf("internal error: multiple branches found with same name: %s", poolName+"/"+branchName)
+		return nil, fmt.Errorf("internal error: multiple branches found with same name: %s", tableName+"/"+branchName)
 	}
 }
 
@@ -172,20 +172,20 @@ func LookupBranchByID(ctx context.Context, api Interface, id uuid.UUID) (*db.Bra
 	}
 }
 
-func GetCommit(ctx context.Context, api Interface, pool, revision string) (*commits.Commit, error) {
-	poolID, err := api.PoolID(ctx, pool)
+func GetCommit(ctx context.Context, api Interface, tableName, revision string) (*commits.Commit, error) {
+	tableID, err := api.TableID(ctx, tableName)
 	if err != nil {
 		return nil, err
 	}
 	commit, err := dbid.ParseID(revision)
 	if err != nil {
 		// LookupBranchByName(ctx
-		if commit, err = api.CommitObject(ctx, poolID, revision); err != nil {
+		if commit, err = api.CommitObject(ctx, tableID, revision); err != nil {
 			return nil, err
 		}
 	}
 	b := newBuffer(commits.Commit{})
-	query := fmt.Sprintf("from %q:log | where id == 0x%s", poolID, idToHex(commit))
+	query := fmt.Sprintf("from %q:log | where id == 0x%s", tableID, idToHex(commit))
 	q, err := api.Query(ctx, srcfiles.Plain(query))
 	if err != nil {
 		return nil, err

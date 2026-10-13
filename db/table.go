@@ -16,7 +16,7 @@ import (
 	"github.com/superdb/super/db/branches"
 	"github.com/superdb/super/db/commits"
 	"github.com/superdb/super/db/data"
-	"github.com/superdb/super/db/pools"
+	"github.com/superdb/super/db/tables"
 	"github.com/superdb/super/dbid"
 	"github.com/superdb/super/pkg/nano"
 	"github.com/superdb/super/pkg/storage"
@@ -34,8 +34,8 @@ const (
 	CommitsTag  = "commits"
 )
 
-type Pool struct {
-	pools.Config
+type Table struct {
+	tables.Config
 	engine   storage.Engine
 	Path     *storage.URI
 	DataPath *storage.URI
@@ -43,11 +43,11 @@ type Pool struct {
 	commits  *commits.Store
 }
 
-func CreatePool(ctx context.Context, engine storage.Engine, logger *zap.Logger, root *storage.URI, config *pools.Config) error {
-	poolPath := config.Path(root)
+func CreateTable(ctx context.Context, engine storage.Engine, logger *zap.Logger, root *storage.URI, config *tables.Config) error {
+	tablePath := config.Path(root)
 	// branchesPath is the path to the kvs journal of BranchConfigs
-	// for the pool while the commit log is stored in <pool-id>/<branch-id>.
-	branchesPath := poolPath.JoinPath(BranchesTag)
+	// for the table while the commit log is stored in <table-id>/<branch-id>.
+	branchesPath := tablePath.JoinPath(BranchesTag)
 	// create the branches journal store
 	_, err := branches.CreateStore(ctx, engine, logger, branchesPath)
 	if err != nil {
@@ -59,15 +59,15 @@ func CreatePool(ctx context.Context, engine storage.Engine, logger *zap.Logger, 
 	return err
 }
 
-func CreateBranch(ctx context.Context, engine storage.Engine, logger *zap.Logger, root *storage.URI, poolConfig *pools.Config, name string, parent uuid.UUID) (*branches.Config, error) {
-	poolPath := poolConfig.Path(root)
-	branchesPath := poolPath.JoinPath(BranchesTag)
+func CreateBranch(ctx context.Context, engine storage.Engine, logger *zap.Logger, root *storage.URI, tableConfig *tables.Config, name string, parent uuid.UUID) (*branches.Config, error) {
+	tablePath := tableConfig.Path(root)
+	branchesPath := tablePath.JoinPath(BranchesTag)
 	store, err := branches.OpenStore(ctx, engine, logger, branchesPath)
 	if err != nil {
 		return nil, err
 	}
 	if _, err := store.LookupByName(ctx, name); err == nil {
-		return nil, fmt.Errorf("%s/%s: %w", poolConfig.Name, name, branches.ErrExists)
+		return nil, fmt.Errorf("%s/%s: %w", tableConfig.Name, name, branches.ErrExists)
 	}
 	branchConfig := branches.NewConfig(name, parent)
 	if err := store.Add(ctx, branchConfig); err != nil {
@@ -76,7 +76,7 @@ func CreateBranch(ctx context.Context, engine storage.Engine, logger *zap.Logger
 	return branchConfig, err
 }
 
-func OpenPool(ctx context.Context, engine storage.Engine, logger *zap.Logger, root *storage.URI, config *pools.Config) (*Pool, error) {
+func OpenTable(ctx context.Context, engine storage.Engine, logger *zap.Logger, root *storage.URI, config *tables.Config) (*Table, error) {
 	path := config.Path(root)
 	branchesPath := path.JoinPath(BranchesTag)
 	branches, err := branches.OpenStore(ctx, engine, logger, branchesPath)
@@ -88,7 +88,7 @@ func OpenPool(ctx context.Context, engine storage.Engine, logger *zap.Logger, ro
 	if err != nil {
 		return nil, err
 	}
-	return &Pool{
+	return &Table{
 		Config:   *config,
 		engine:   engine,
 		Path:     path,
@@ -98,60 +98,60 @@ func OpenPool(ctx context.Context, engine storage.Engine, logger *zap.Logger, ro
 	}, nil
 }
 
-func RemovePool(ctx context.Context, engine storage.Engine, root *storage.URI, config *pools.Config) error {
+func RemoveTable(ctx context.Context, engine storage.Engine, root *storage.URI, config *tables.Config) error {
 	return engine.DeleteByPrefix(ctx, config.Path(root))
 }
 
-func (p *Pool) removeBranch(ctx context.Context, name string) error {
-	config, err := p.branches.LookupByName(ctx, name)
+func (t *Table) removeBranch(ctx context.Context, name string) error {
+	config, err := t.branches.LookupByName(ctx, name)
 	if err != nil {
 		return err
 	}
-	return p.branches.Remove(ctx, *config)
+	return t.branches.Remove(ctx, *config)
 }
 
-func (p *Pool) Snapshot(ctx context.Context, commit uuid.UUID) (commits.View, error) {
-	return p.commits.Snapshot(ctx, commit)
+func (t *Table) Snapshot(ctx context.Context, commit uuid.UUID) (commits.View, error) {
+	return t.commits.Snapshot(ctx, commit)
 }
 
-func (p *Pool) OpenCommitLog(ctx context.Context, sctx *super.Context, commit uuid.UUID) sio.Reader {
-	return p.commits.OpenCommitLog(ctx, sctx, commit, uuid.Nil())
+func (t *Table) OpenCommitLog(ctx context.Context, sctx *super.Context, commit uuid.UUID) sio.Reader {
+	return t.commits.OpenCommitLog(ctx, sctx, commit, uuid.Nil())
 }
 
-func (p *Pool) OpenCommitLogAsBSUP(ctx context.Context, sctx *super.Context, commit uuid.UUID) (sio.Reader, error) {
-	return p.commits.OpenAsBSUP(ctx, sctx, commit, uuid.Nil())
+func (t *Table) OpenCommitLogAsBSUP(ctx context.Context, sctx *super.Context, commit uuid.UUID) (sio.Reader, error) {
+	return t.commits.OpenAsBSUP(ctx, sctx, commit, uuid.Nil())
 }
 
-func (p *Pool) Storage() storage.Engine {
-	return p.engine
+func (t *Table) Storage() storage.Engine {
+	return t.engine
 }
 
-func (p *Pool) ListBranches(ctx context.Context) ([]branches.Config, error) {
-	return p.branches.All(ctx)
+func (t *Table) ListBranches(ctx context.Context) ([]branches.Config, error) {
+	return t.branches.All(ctx)
 }
 
-func (p *Pool) LookupBranchByName(ctx context.Context, name string) (*branches.Config, error) {
-	return p.branches.LookupByName(ctx, name)
+func (t *Table) LookupBranchByName(ctx context.Context, name string) (*branches.Config, error) {
+	return t.branches.LookupByName(ctx, name)
 }
 
-func (p *Pool) openBranch(ctx context.Context, config *branches.Config) (*Branch, error) {
-	return OpenBranch(ctx, config, p.engine, p.Path, p)
+func (t *Table) openBranch(ctx context.Context, config *branches.Config) (*Branch, error) {
+	return OpenBranch(ctx, config, t.engine, t)
 }
 
-func (p *Pool) OpenBranchByName(ctx context.Context, name string) (*Branch, error) {
-	branchRef, err := p.LookupBranchByName(ctx, name)
+func (t *Table) OpenBranchByName(ctx context.Context, name string) (*Branch, error) {
+	branchRef, err := t.LookupBranchByName(ctx, name)
 	if err != nil {
 		return nil, err
 	}
-	return p.openBranch(ctx, branchRef)
+	return t.openBranch(ctx, branchRef)
 }
 
 // ResolveRevision returns the commit id for revision. revision can be either a
 // commit ID in string form or a branch name.
-func (p *Pool) ResolveRevision(ctx context.Context, revision string) (uuid.UUID, error) {
+func (t *Table) ResolveRevision(ctx context.Context, revision string) (uuid.UUID, error) {
 	id, err := dbid.ParseID(revision)
 	if err != nil {
-		branch, err := p.LookupBranchByName(ctx, revision)
+		branch, err := t.LookupBranchByName(ctx, revision)
 		if err != nil {
 			return uuid.Nil(), err
 		}
@@ -160,13 +160,13 @@ func (p *Pool) ResolveRevision(ctx context.Context, revision string) (uuid.UUID,
 	return id, nil
 }
 
-func (p *Pool) BatchifyBranches(ctx context.Context, sctx *super.Context, recs []super.Value, m *super.Marshaler, f expr.Evaluator) ([]super.Value, error) {
-	branches, err := p.ListBranches(ctx)
+func (t *Table) BatchifyBranches(ctx context.Context, sctx *super.Context, recs []super.Value, m *super.Marshaler, f expr.Evaluator) ([]super.Value, error) {
+	branches, err := t.ListBranches(ctx)
 	if err != nil {
 		return nil, err
 	}
 	for _, branchRef := range branches {
-		meta := BranchMeta{p.Config, branchRef}
+		meta := BranchMeta{t.Config, branchRef}
 		rec, err := m.Marshal(&meta)
 		if err != nil {
 			return nil, err
@@ -190,8 +190,8 @@ type BranchTip struct {
 	Commit uuid.UUID
 }
 
-func (p *Pool) BatchifyBranchTips(ctx context.Context, sctx *super.Context, f expr.Evaluator) ([]super.Value, error) {
-	branches, err := p.ListBranches(ctx)
+func (t *Table) BatchifyBranchTips(ctx context.Context, sctx *super.Context, f expr.Evaluator) ([]super.Value, error) {
+	branches, err := t.ListBranches(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -211,29 +211,29 @@ func (p *Pool) BatchifyBranchTips(ctx context.Context, sctx *super.Context, f ex
 }
 
 // XXX this is inefficient but is only meant for interactive queries...?
-func (p *Pool) ObjectExists(ctx context.Context, id uuid.UUID) (bool, error) {
-	return p.engine.Exists(ctx, data.URI(p.DataPath, id))
+func (t *Table) ObjectExists(ctx context.Context, id uuid.UUID) (bool, error) {
+	return t.engine.Exists(ctx, data.URI(t.DataPath, id))
 }
 
-func (p *Pool) Vacate(ctx context.Context, ts nano.Ts, dryrun bool) ([]uuid.UUID, error) {
+func (t *Table) Vacate(ctx context.Context, ts nano.Ts, dryrun bool) ([]uuid.UUID, error) {
 	if !dryrun {
-		if err := p.vacateBranchStore(ctx, ts, dryrun); err != nil {
+		if err := t.vacateBranchStore(ctx, ts, dryrun); err != nil {
 			return nil, err
 		}
 	}
-	return p.vacateCommits(ctx, ts, dryrun)
+	return t.vacateCommits(ctx, ts, dryrun)
 }
 
-func (p *Pool) vacateCommits(ctx context.Context, ts nano.Ts, dryrun bool) ([]uuid.UUID, error) {
-	main, err := p.Main(ctx)
+func (t *Table) vacateCommits(ctx context.Context, ts nano.Ts, dryrun bool) ([]uuid.UUID, error) {
+	main, err := t.Main(ctx)
 	if err != nil {
 		return nil, err
 	}
-	commit, err := p.commits.FindNearestToTs(ctx, main.Branch.Commit, ts)
+	commit, err := t.commits.FindNearestToTs(ctx, main.Branch.Commit, ts)
 	if err != nil {
 		return nil, err
 	}
-	branches, err := p.branches.All(ctx)
+	branches, err := t.branches.All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +241,7 @@ func (p *Pool) vacateCommits(ctx context.Context, ts nano.Ts, dryrun bool) ([]uu
 	for _, b := range branches {
 		// Find any branches whose history does not include commit and if any
 		// are found fail.
-		path, err := p.commits.Path(ctx, b.Commit)
+		path, err := t.commits.Path(ctx, b.Commit)
 		if err != nil {
 			return nil, err
 		}
@@ -258,38 +258,38 @@ func (p *Pool) vacateCommits(ctx context.Context, ts nano.Ts, dryrun bool) ([]uu
 		return nil, fmt.Errorf("cannot vacate at selected time: %s in the deletion path: %s", v, strings.Join(conflicts, ", "))
 	}
 	if dryrun {
-		path, err := p.commits.Path(ctx, commit)
+		path, err := t.commits.Path(ctx, commit)
 		if err != nil {
 			return nil, err
 		}
 		return path[1:], nil
 	}
-	return p.commits.SetBase(ctx, commit)
+	return t.commits.SetBase(ctx, commit)
 }
 
-func (p *Pool) vacateBranchStore(ctx context.Context, ts nano.Ts, dryrun bool) error {
+func (t *Table) vacateBranchStore(ctx context.Context, ts nano.Ts, dryrun bool) error {
 	var werr error
-	at, err := p.branches.EntryWhere(ctx, func(config *branches.Config) bool {
+	at, err := t.branches.EntryWhere(ctx, func(config *branches.Config) bool {
 		if config.Commit == uuid.Nil() {
 			return false
 		}
 		var c *commits.Commit
-		_, c, werr = p.commits.GetBytes(ctx, config.Commit)
+		_, c, werr = t.commits.GetBytes(ctx, config.Commit)
 		return werr != nil || ts >= c.Date
 	})
 	if err = errors.Join(err, werr); err != nil {
 		return err
 	}
-	return p.branches.TruncateHistory(ctx, at)
+	return t.branches.TruncateHistory(ctx, at)
 }
 
-func (p *Pool) Vacuum(ctx context.Context, commit uuid.UUID, dryrun bool) ([]uuid.UUID, error) {
+func (t *Table) Vacuum(ctx context.Context, commit uuid.UUID, dryrun bool) ([]uuid.UUID, error) {
 	group, ctx := errgroup.WithContext(ctx)
 	group.SetLimit(runtime.GOMAXPROCS(0))
 	ch := make(chan *data.Object)
 	group.Go(func() error {
 		defer close(ch)
-		return p.commits.Vacuumable(ctx, commit, ch)
+		return t.commits.Vacuumable(ctx, commit, ch)
 	})
 	var vacuumed []uuid.UUID
 	var mu sync.Mutex
@@ -298,7 +298,7 @@ func (p *Pool) Vacuum(ctx context.Context, commit uuid.UUID, dryrun bool) ([]uui
 			// For dryrun just check if the object exists and append existing
 			// objects to list of results.
 			group.Go(func() error {
-				ok, err := p.engine.Exists(ctx, data.URI(p.DataPath, o.ID))
+				ok, err := t.engine.Exists(ctx, data.URI(t.DataPath, o.ID))
 				if ok {
 					mu.Lock()
 					vacuumed = append(vacuumed, o.ID)
@@ -309,7 +309,7 @@ func (p *Pool) Vacuum(ctx context.Context, commit uuid.UUID, dryrun bool) ([]uui
 			continue
 		}
 		group.Go(func() error {
-			err := p.engine.Delete(ctx, data.URI(p.DataPath, o.ID))
+			err := t.engine.Delete(ctx, data.URI(t.DataPath, o.ID))
 			if err == nil {
 				mu.Lock()
 				vacuumed = append(vacuumed, o.ID)
@@ -327,17 +327,17 @@ func (p *Pool) Vacuum(ctx context.Context, commit uuid.UUID, dryrun bool) ([]uui
 	return vacuumed, nil
 }
 
-func (p *Pool) Main(ctx context.Context) (BranchMeta, error) {
-	branch, err := p.OpenBranchByName(ctx, "main")
+func (t *Table) Main(ctx context.Context) (BranchMeta, error) {
+	branch, err := t.OpenBranchByName(ctx, "main")
 	if err != nil {
 		return BranchMeta{}, err
 	}
-	return BranchMeta{p.Config, branch.Config}, nil
+	return BranchMeta{t.Config, branch.Config}, nil
 }
 
-func (p *Pool) NewReader(ctx context.Context, sctx *super.Context, object *data.Object, pushdown vio.Pushdown, progress *vio.Progress, concurrency int) (vio.PullCloser, error) {
-	uri := object.URI(p.DataPath)
-	r, err := p.engine.Get(ctx, uri)
+func (t *Table) NewReader(ctx context.Context, sctx *super.Context, object *data.Object, pushdown vio.Pushdown, progress *vio.Progress, concurrency int) (vio.PullCloser, error) {
+	uri := object.URI(t.DataPath)
+	r, err := t.engine.Get(ctx, uri)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", uri, err)
 	}
@@ -357,6 +357,6 @@ func (p *Pool) NewReader(ctx context.Context, sctx *super.Context, object *data.
 	}, nil
 }
 
-func DataPath(poolPath *storage.URI) *storage.URI {
-	return poolPath.JoinPath(DataTag)
+func DataPath(tablePath *storage.URI) *storage.URI {
+	return tablePath.JoinPath(DataTag)
 }

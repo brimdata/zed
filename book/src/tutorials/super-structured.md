@@ -126,7 +126,7 @@ Here, the record type
 of such a collection corresponds to a well-defined schema consisting
 of field names (i.e., column names) where each field has a specific type.
 [Named types](../formats/model.md#3-named-type) are also available, so by simply naming a particular record type
-(i.e., a schema), a relational table can be projected from a pool of data
+(i.e., a schema), a relational table can be projected from a super-structured data
 with a simple query for that named type.
 
 But unlike traditional relational tables, these tables based on super-structured data can have arbitrary

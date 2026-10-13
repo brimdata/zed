@@ -81,10 +81,10 @@ func (e *evaluator) op(op sem.Op) bool {
 	//
 	case *sem.FileScan,
 		*sem.HTTPScan,
-		*sem.PoolScan,
+		*sem.TableScan,
 		*sem.RobotScan,
 		*sem.DBMetaScan,
-		*sem.PoolMetaScan,
+		*sem.TableMetaScan,
 		*sem.CommitMetaScan,
 		*sem.DeleteScan:
 		e.errs.error(op, errors.New("cannot read data in constant expression"))

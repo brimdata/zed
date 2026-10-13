@@ -12,5 +12,5 @@ inputs:
 outputs:
   - name: stdout
     regexp: |
-      pool created: test [0-9a-f-]{36}
+      table created: test [0-9a-f-]{36}
       ===

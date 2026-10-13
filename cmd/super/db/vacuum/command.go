@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/superdb/super/cli/poolflags"
+	"github.com/superdb/super/cli/tableflags"
 	"github.com/superdb/super/cmd/super/db"
 	"github.com/superdb/super/pkg/charm"
 	"github.com/superdb/super/pkg/plural"
@@ -28,14 +28,14 @@ func init() {
 
 type Command struct {
 	*db.Command
-	poolFlags poolflags.Flags
-	dryrun    bool
-	force     bool
+	tableFlags tableflags.Flags
+	dryrun     bool
+	force      bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*db.Command)}
-	c.poolFlags.SetFlags(f)
+	c.tableFlags.SetFlags(f)
 	f.BoolVar(&c.dryrun, "dryrun", false, "vacuum without deleting objects")
 	f.BoolVar(&c.force, "f", false, "do not prompt for confirmation")
 	return c, nil
@@ -47,7 +47,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	at, err := c.poolFlags.HEAD()
+	at, err := c.tableFlags.HEAD()
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 	}
-	oids, err := db.Vacuum(ctx, at.Pool, at.Branch, c.dryrun)
+	oids, err := db.Vacuum(ctx, at.Table, at.Branch, c.dryrun)
 	if err != nil {
 		return err
 	}

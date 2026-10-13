@@ -6,7 +6,7 @@ script: |
   super db load -q people.sup
   super db create -q -use -orderby flavor:desc fruits
   super db load -q fruits.sup
-  super db -s -I pool.spq > pool.sup
+  super db -s -I table.spq > table.sup
 
 inputs:
   - name: people.sup
@@ -28,7 +28,7 @@ inputs:
       from fruits.sup | sort -r flavor
       | join (from people.sup | sort -r likes) on left.flavor=right.likes 
       | values {...left,eater:right.name}
-  - name: pool.spq
+  - name: table.spq
     data: |
       from fruits
       | join (from people) on left.flavor=right.likes
@@ -46,7 +46,7 @@ outputs:
       {name:"strawberry",color:"red",flavor:"sweet",eater:"quinn"}
       {name:"dates",color:"brown",flavor:"sweet",note:"in season",eater:"quinn"}
       {name:"figs",color:"brown",flavor:"plain",eater:"jessie"}
-  - name: pool.sup
+  - name: table.sup
     data: |
       {name:"apple",color:"red",flavor:"tart",eater:"morgan"}
       {name:"apple",color:"red",flavor:"tart",eater:"chris"}

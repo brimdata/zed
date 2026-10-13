@@ -17,7 +17,7 @@ type EventsClient struct {
 func newEventsClient(resp *Response) *EventsClient {
 	unmarshaler := super.NewUnmarshaler()
 	unmarshaler.Bind(
-		api.EventPool{},
+		api.EventTable{},
 		api.EventBranch{},
 		api.EventBranchCommit{},
 	)

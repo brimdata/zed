@@ -37,13 +37,13 @@ func TestAuthIdentity(t *testing.T) {
 	core, conn := newCoreWithConfig(t, service.Config{
 		Auth: authConfig,
 	})
-	_, err := conn.Query(t.Context(), srcfiles.Plain("from [pools]"))
+	_, err := conn.Query(t.Context(), srcfiles.Plain("from [tables]"))
 	require.Error(t, err)
 	require.Equal(t, 1.0, promCounterValue(core.Registry(), "request_errors_unauthorized_total"))
 
-	var poolErr *client.ErrorResponse
-	require.True(t, errors.As(err, &poolErr))
-	require.Equal(t, http.StatusUnauthorized, poolErr.StatusCode)
+	var tableErr *client.ErrorResponse
+	require.True(t, errors.As(err, &tableErr))
+	require.Equal(t, http.StatusUnauthorized, tableErr.StatusCode)
 
 	var identErr *client.ErrorResponse
 	_, err = conn.AuthIdentity(t.Context())
@@ -59,7 +59,7 @@ func TestAuthIdentity(t *testing.T) {
 		UserID:   "test_user_id",
 	}, res)
 
-	_, err = conn.Query(t.Context(), srcfiles.Plain("from :pools"))
+	_, err = conn.Query(t.Context(), srcfiles.Plain("from :tables"))
 	require.NoError(t, err)
 }
 

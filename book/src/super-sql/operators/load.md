@@ -1,11 +1,11 @@
 # load
 
-[✅](../intro.md#data-order)&ensp; add and commit data to a pool
+[✅](../intro.md#data-order)&ensp; add and commit data to a table
 
 ## Synopsis
 
 ```
-load <pool>[@<branch>] [ ( [author <author>] [message <message>] [meta <meta>] ) ]
+load <table>[@<branch>] [ ( [author <author>] [message <message>] [meta <meta>] ) ]
 ```
 
 >[!NOTE]
@@ -15,12 +15,12 @@ load <pool>[@<branch>] [ ( [author <author>] [message <message>] [meta <meta>] )
 
 ## Description
 
-The `load` operator populates the specified `<pool>` with the values it
+The `load` operator populates the specified `<table>` with the values it
 receives as input. Much like how [`super db load`](../../command/db.md#super-db-load)
-is used at the command line to populate a pool with data from files, streams,
+is used at the command line to populate a table with data from files, streams,
 and URIs, the `load` operator is used to save query results from your SuperSQL
-query to a pool in the same database. `<pool>` is a string indicating the
-name or ID of the destination pool.
+query to a table in the same database. `<table>` is a string indicating the
+name or ID of the destination table.
 If the optional `@<branch>` string is included then the data will be committed
 to an existing branch of that name, otherwise the `main` branch is assumed.
 The `author`, `message`, and `meta` strings may also be provided to further
@@ -41,11 +41,11 @@ echo '{flip:1,result:"heads"} {flip:2,result:"tails"}' |
 super db -q create -orderby flip:asc bigflips
 super db -f line -c '
   from :branches
-  | values pool.name || "@" || branch.name
+  | values table.name || "@" || branch.name
   | sort'
 ```
 
-The database then contains the two pools:
+The database then contains the two tables:
 
 ```mdtest-output
 bigflips@main
@@ -55,7 +55,7 @@ coinflips@onlytails
 
 ## Examples
 
-_Modify some values, load them into the `main` branch of our empty `bigflips` pool, and see what was loaded_
+_Modify some values, load them into the `main` branch of our empty `bigflips` table, and see what was loaded_
 ```mdtest-command
 super db -db example -c '
   from coinflips

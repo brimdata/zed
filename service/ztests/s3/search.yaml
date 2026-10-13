@@ -17,6 +17,6 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      test: pool created
+      test: table created
       ===
       {ts:2020-04-21T22:41:21.0613914Z,s:"harefoot-raucous",v:137}
