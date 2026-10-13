@@ -89,7 +89,7 @@ func FileType(ctx context.Context, sctx *super.Context, engine storage.Engine, p
 	if !static {
 		return nil, nil
 	}
-	fuser := super.NewFuser(sctx, false)
+	fuser := super.NewFuser(sctx, true)
 	for {
 		vec, err := f.Pull(false)
 		if vec == nil || err != nil {
