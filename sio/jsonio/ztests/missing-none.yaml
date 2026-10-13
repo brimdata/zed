@@ -1,0 +1,50 @@
+# This must go JSON -> BSUP -> query; don't rewrite it as an SPQ test.
+# 1. The JSON reader (jsonvec) builds its own fusion types instead of
+#    using the fuser, and that's where missing fields used to produce an
+#    invalid (none|T) union without its own fusion.
+# 2. Reading the BSUP file applies projection pushdown ("values a"
+#    projects [a]) through the fused value in the column loader, which is
+#    where the bad shape surfaced. In-memory or direct JSON input doesn't
+#    project, so it can't reproduce the bug.
+
+script: |
+  super -o test.bsup -i json test.json
+  super -s -c "values a" test.bsup
+
+inputs:
+  - name: test.json
+    data: |
+      {"a":{"b":1}}
+      {"c":{"d":2}}
+
+outputs:
+  - name: stdout
+    data: |
+      {b:1}
+      error({message:"no such field a",on:{}})
+
+---
+
+script: |
+  super -f bsup -o in.bsup in.json
+  super -s -I query.spq
+
+inputs:
+  - name: in.json
+    data: |
+      {"kind":"commit","commit":{"collection":"a"}}
+      {"kind":"identity","identity":{"handle":"x"}}
+  - name: query.spq
+    data: |
+      SELECT
+        commit.collection AS event,
+        count() AS count
+      FROM 'in.bsup'
+      GROUP BY event
+      ORDER BY count DESC, event
+
+outputs:
+  - name: stdout
+    data: |
+      {event:"a",count:1}
+      {event:null,count:1}

@@ -2,6 +2,7 @@ package jsonvec
 
 import (
 	"encoding/binary"
+	"slices"
 	"strings"
 
 	"github.com/superdb/super"
@@ -72,7 +73,7 @@ func (m *materializer) union(u *Union) (vector.Any, []uint32) {
 	}
 	utyp := m.sctx.MustLookupTypeUnion(super.UniqueTypes(types))
 	subtypes := m.makeUnionSubtypes(u.Tags, dynamic, fixed)
-	typ := m.sctx.LookupTypeFusion(utyp)
+	typ := m.sctx.MustLookupTypeFusion(utyp)
 	loader := &subtypesLoader{
 		defs:     m.defs,
 		subtypes: subtypes,
@@ -110,7 +111,7 @@ func (m *materializer) array(a *Array) (vector.Any, []uint32) {
 		id := m.arrayID(ids[a.Offsets[k]:a.Offsets[k+1]])
 		subtypes = append(subtypes, id)
 	}
-	fusionType := m.sctx.LookupTypeFusion(arrayType)
+	fusionType := m.sctx.MustLookupTypeFusion(arrayType)
 	loader := &subtypesLoader{
 		defs:     m.defs,
 		subtypes: subtypes,
@@ -149,7 +150,8 @@ func (m *materializer) unionArrayID(ids []uint32) uint32 {
 }
 
 func (m *materializer) record(r *Record) (vector.Any, []uint32) {
-	fuseHere := len(r.perm) > 1
+	fuseHere := !permsOrdered(r.perm)
+	needIDs := fuseHere
 	fieldNames := make([]string, len(r.LUT))
 	for name, id := range r.LUT {
 		fieldNames[id] = name
@@ -176,26 +178,89 @@ func (m *materializer) record(r *Record) (vector.Any, []uint32) {
 		if ids == nil {
 			fixed[i] = m.defs.LookupType(vec.Type())
 		} else {
-			fuseHere = true
+			needIDs = true
 		}
 		if len(rle) > 0 {
-			vec = vector.NewUnionOptionRLE(m.sctx, vec, n, rle)
+			needIDs = true
+			vec = m.missing(vec, ids, fixed[i], n, rle)
 		}
 		vecs = append(vecs, vec)
 		allFields = append(allFields, super.NewField(fieldNames[i], vec.Type()))
 	}
 	rtyp := m.sctx.MustLookupTypeRecord(allFields)
 	record := vector.NewRecord(rtyp, vecs, n)
-	if !fuseHere {
+	if !needIDs {
 		return record, nil
 	}
 	subtypes := m.makeRecordSubtypes(r.perm, allFields, dynamic, fixed, r.tags)
-	typ := m.sctx.LookupTypeFusion(rtyp)
+	if !fuseHere {
+		// Field order is consistent and varying fields carry their own
+		// fusions, so the record itself isn't fused. Enclosing fusions
+		// still need the per-row original types for their subtypes.
+		return record, subtypes
+	}
+	typ := m.sctx.MustLookupTypeFusion(rtyp)
 	loader := &subtypesLoader{
 		defs:     m.defs,
 		subtypes: subtypes,
 	}
 	return vector.NewFusionWithLoader(m.sctx, typ, loader, record), subtypes
+}
+
+// missing wraps a field that is absent in some rows (per rle) as
+// fusion((T|none)): a plain union with none, not option(T). Its subtypes
+// are none where the field is absent, so defuse removes the field there,
+// and otherwise the field's own subtype. The field doesn't depend on the
+// parent record's subtypes.
+func (m *materializer) missing(vec vector.Any, ids []uint32, fixed uint32, n uint32, rle []uint32) vector.Any {
+	if f, ok := vec.(*vector.Fusion); ok {
+		// Flatten to a single fusion((T1|...|none)) like the fuser does.
+		// ids already carry the child's per-value subtypes.
+		vec = f.Values
+	}
+	// This builds a *vector.Union of type (T|none) via sctx.UnionWithNone
+	// If vec is itself a union, its tags are kept and none is appended.
+	u := vector.NewUnionNoneRLE(m.sctx, vec, n, rle)
+	// Tags index the union's vectors, not Typ.Types, so find none there.
+	noneTag := uint32(slices.IndexFunc(u.Values(), func(v vector.Any) bool {
+		return v.Type() == super.TypeNone
+	}))
+	subtypes := make([]uint32, 0, n)
+	for _, tag := range u.Tags() {
+		switch {
+		case tag == noneTag:
+			subtypes = append(subtypes, super.IDNone)
+		case ids != nil:
+			subtypes = append(subtypes, ids[0])
+			ids = ids[1:]
+		default:
+			subtypes = append(subtypes, fixed)
+		}
+	}
+	typ := m.sctx.MustLookupTypeFusion(u.Typ)
+	loader := &subtypesLoader{defs: m.defs, subtypes: subtypes}
+	return vector.NewFusionWithLoader(m.sctx, typ, loader, u)
+}
+
+// permsOrdered reports whether every key permutation lists its columns in
+// increasing order, i.e., each row's fields appear in the same relative
+// order as the fused record, so no record-level fusion is needed.
+func permsOrdered(perm map[string]uint32) bool {
+	for desc := range perm {
+		r := strings.NewReader(desc)
+		prev := -1
+		for {
+			col, err := binary.ReadUvarint(r)
+			if err != nil {
+				break
+			}
+			if int(col) <= prev {
+				return false
+			}
+			prev = int(col)
+		}
+	}
+	return true
 }
 
 func (m *materializer) makeRecordSubtypes(perm map[string]uint32, fields []super.Field, dynamic [][]uint32, fixed []uint32, tags []uint32) []uint32 {

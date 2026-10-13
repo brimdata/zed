@@ -285,7 +285,9 @@ func (c *Context) LookupTypeNamed(name string, inner Type) (*TypeNamed, error) {
 	if patch < 0 {
 		return named, nil
 	}
-	c.BindTypeNamed(patch, named, inner)
+	if err := c.BindTypeNamed(patch, named, inner); err != nil {
+		return nil, err
+	}
 	return named, nil
 }
 
@@ -363,7 +365,7 @@ func (c *Context) declareBlock(compIDs []compID) []patch {
 	return patches
 }
 
-func (c *Context) BindTypeNamed(patch int, named *TypeNamed, inner Type) {
+func (c *Context) BindTypeNamed(patch int, named *TypeNamed, inner Type) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	named.mu.Lock()
@@ -376,6 +378,10 @@ func (c *Context) BindTypeNamed(patch int, named *TypeNamed, inner Type) {
 	named.Type = inner
 	c.typedefs.BindTypeNamed(patch, uint32(TypeID(inner)))
 	named.cond.Broadcast()
+	if containsFusion(inner) {
+		return fmt.Errorf("named type %q cannot contain a fusion", named.Name)
+	}
+	return nil
 }
 
 func (c *Context) LookupTypeError(inner Type) *TypeError {
@@ -393,15 +399,26 @@ func (c *Context) LookupTypeError(inner Type) *TypeError {
 	return typ
 }
 
-func (c *Context) LookupTypeFusion(inner Type) *TypeFusion {
+func (c *Context) LookupTypeFusion(inner Type) (*TypeFusion, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if !isValidFusionType(&TypeFusion{Type: inner}) {
+		return nil, errors.New("invalid fusion type")
+	}
 	id := c.typedefs.LookupTypeWrapped(TypeDefFusion, inner)
 	if typ, ok := c.byID[id]; ok {
-		return typ.(*TypeFusion)
+		return typ.(*TypeFusion), nil
 	}
 	typ := NewTypeFusion(int(id), inner)
 	c.byID[id] = typ
+	return typ, nil
+}
+
+func (c *Context) MustLookupTypeFusion(inner Type) *TypeFusion {
+	typ, err := c.LookupTypeFusion(inner)
+	if err != nil {
+		panic(err)
+	}
 	return typ
 }
 
@@ -494,13 +511,26 @@ func (c *Context) DecodeTypeValue(tv []byte) (Type, []byte) {
 			}
 			return named, tv
 		}
-		named, patch, _ := c.DeclareTypeNamed(name)
-		var inner Type
-		inner, tv = c.DecodeTypeValue(tv)
-		if tv == nil {
+		named, patch, err := c.DeclareTypeNamed(name)
+		if err != nil {
 			return nil, nil
 		}
-		c.BindTypeNamed(patch, named, inner)
+		var inner Type
+		inner, tv = c.DecodeTypeValue(tv)
+		if patch < 0 {
+			// Another thread defined it first; just check that it matches.
+			if tv == nil || inner != named.Type {
+				return nil, nil
+			}
+			return named, tv
+		}
+		if tv == nil {
+			c.BindTypeNamed(patch, named, TypeNone) // release waiters
+			return nil, nil
+		}
+		if err := c.BindTypeNamed(patch, named, inner); err != nil {
+			return nil, nil
+		}
 		return named, tv
 	case TypeValueNameRef:
 		name, tv := DecodeName(tv)
@@ -620,8 +650,8 @@ func (c *Context) DecodeTypeValue(tv []byte) (Type, []byte) {
 		if tv == nil {
 			return nil, nil
 		}
-		typ := c.LookupTypeFusion(inner)
-		if typ == nil {
+		typ, err := c.LookupTypeFusion(inner)
+		if typ == nil || err != nil {
 			return nil, nil
 		}
 		return typ, tv
@@ -1354,16 +1384,23 @@ func (t *TypeDefsMapper) lookupType(id uint32) Type {
 		// knowing that all named types are resolved to at least a placeholder
 		// type.
 		inner := t.LookupType(innerID)
-		if inner == nil {
-			return nil
-		}
 		// Now that LookupType was recursively called on in this inner type ID all
 		// of the connected components will have been declared so we can go through
 		// them all and do a lookup on the from-context inner ID and bind each one
 		// to the resolved inner type in to-context.
+		ok := inner != nil
 		for _, p := range patches {
-			inner := t.LookupType(p.inner)
-			t.sctx.BindTypeNamed(p.off, p.named, inner)
+			pinner := t.LookupType(p.inner)
+			if pinner == nil {
+				ok = false
+				pinner = TypeNone // release waiters; this lookup fails below
+			}
+			if err := t.sctx.BindTypeNamed(p.off, p.named, pinner); err != nil {
+				ok = false
+			}
+		}
+		if !ok {
+			return nil
 		}
 		// Finally we can lookup the named type now that it's inner type and all
 		// connected components have been resolved.
@@ -1480,7 +1517,11 @@ func (t *TypeDefsMapper) lookupType(id uint32) Type {
 		if inner == nil {
 			return nil
 		}
-		return t.sctx.LookupTypeFusion(inner)
+		typ, err := t.sctx.LookupTypeFusion(inner)
+		if err != nil {
+			return nil
+		}
+		return typ
 	case TypeDefOption:
 		id, b := DecodeID(b)
 		if b == nil {

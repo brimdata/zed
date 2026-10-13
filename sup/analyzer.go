@@ -145,7 +145,10 @@ func (a *Analyzer) BindTypeScope(decls []*ast.TypeDecl) ([]int, []error) {
 				// Avoid deadlock waiting for declared-but-not-resolved type
 				inner = super.TypeNone
 			}
-			a.sctx.BindTypeNamed(patches[k], nameds[k], inner)
+			if err := a.sctx.BindTypeNamed(patches[k], nameds[k], inner); err != nil {
+				errors[k] = err
+				haveErr = true
+			}
 			ids = append(ids, super.TypeID(nameds[k]))
 		}
 	}
@@ -236,14 +239,21 @@ func (a *Analyzer) bindTypeDecls(decls []ast.TypeDecl) error {
 	// The second pass converts types that we are not responsible for
 	// binding and checks that the type bound elsewhere is the same type
 	// as this declaration.
+	var bindingErr error
 	for k, decl := range decls {
 		if patch := patches[k]; patch >= 0 {
 			typ, err := a.convertType(decl.Type)
 			if err != nil {
-				return err
+				typ = super.TypeNone
+				bindingErr = err
 			}
-			a.sctx.BindTypeNamed(patch, nameds[k], typ)
+			if err := a.sctx.BindTypeNamed(patch, nameds[k], typ); err != nil {
+				bindingErr = err
+			}
 		}
+	}
+	if bindingErr != nil {
+		return bindingErr
 	}
 	for k, decl := range decls {
 		if patch := patches[k]; patch < 0 {
@@ -443,9 +453,13 @@ func (a Analyzer) convertFusion(val *ast.Fusion) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
+	typ, err := a.sctx.LookupTypeFusion(superVal.Type())
+	if err != nil {
+		return nil, err
+	}
 	return &Fusion{
 		value:   superVal,
-		typ:     a.sctx.LookupTypeFusion(superVal.Type()),
+		typ:     typ,
 		subtype: a.sctx.LookupTypeValue(subType.(*TypeValue).value).Bytes(),
 	}, nil
 }
@@ -572,9 +586,10 @@ func (a *Analyzer) createAny(val Value) Value {
 	if super.IsTypeAny(val.Type()) {
 		return val
 	}
+	typ := a.sctx.MustLookupTypeFusion(super.TypeAll)
 	return &Fusion{
 		value:   val,
-		typ:     a.sctx.LookupTypeFusion(super.TypeAll),
+		typ:     typ,
 		subtype: a.sctx.LookupTypeValue(val.Type()).Bytes(),
 	}
 }
@@ -803,7 +818,7 @@ func (a Analyzer) convertType(typ ast.Type) (super.Type, error) {
 		if err != nil {
 			return nil, err
 		}
-		return a.sctx.LookupTypeFusion(typ), nil
+		return a.sctx.LookupTypeFusion(typ)
 	case *ast.TypeOption:
 		typ, err := a.convertType(t.Type)
 		if err != nil {

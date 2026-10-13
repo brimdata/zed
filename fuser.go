@@ -254,7 +254,7 @@ func (f *Fuser) fusion(typ Type) Type {
 	if typ, ok := typ.(*TypeFusion); ok {
 		return typ
 	}
-	return f.sctx.LookupTypeFusion(typ)
+	return f.sctx.MustLookupTypeFusion(typ)
 }
 
 func orderPreserved(fused, child *TypeRecord) bool {
