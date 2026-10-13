@@ -19,10 +19,10 @@ type typevalue struct {
 	len  uint32
 }
 
-func newTypeValue(cctx *bsup.Context, meta *bsup.TypeValue) *typevalue {
+func newTypeValue(bctx *bsup.Context, meta *bsup.TypeValue) *typevalue {
 	return &typevalue{
 		meta: meta,
-		len:  meta.Len(cctx),
+		len:  meta.Len(bctx),
 	}
 }
 

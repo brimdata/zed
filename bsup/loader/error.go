@@ -15,21 +15,21 @@ type error_ struct {
 	values shadow
 }
 
-func newError(cctx *bsup.Context, meta *bsup.Error) *error_ {
-	return &error_{meta: meta, len: meta.Len(cctx)}
+func newError(bctx *bsup.Context, meta *bsup.Error) *error_ {
+	return &error_{meta: meta, len: meta.Len(bctx)}
 }
 
 func (e *error_) length() uint32 {
 	return e.len
 }
 
-func (e *error_) unmarshal(cctx *bsup.Context, projection field.Projection) {
+func (e *error_) unmarshal(bctx *bsup.Context, projection field.Projection) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if e.values == nil {
-		e.values = newShadow(cctx, e.meta.Values)
+		e.values = newShadow(bctx, e.meta.Values)
 	}
-	e.values.unmarshal(cctx, projection)
+	e.values.unmarshal(bctx, projection)
 }
 
 func (e *error_) project(loader *FrameLoader, projection field.Projection) vector.Any {

@@ -17,10 +17,10 @@ type option struct {
 	values shadow
 }
 
-func newOption(cctx *bsup.Context, meta *bsup.Option) *option {
+func newOption(bctx *bsup.Context, meta *bsup.Option) *option {
 	return &option{
 		meta: meta,
-		len:  meta.Len(cctx),
+		len:  meta.Len(bctx),
 	}
 }
 
@@ -28,13 +28,13 @@ func (o *option) length() uint32 {
 	return o.len
 }
 
-func (o *option) unmarshal(cctx *bsup.Context, projection field.Projection) {
+func (o *option) unmarshal(bctx *bsup.Context, projection field.Projection) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	if o.values == nil {
-		o.values = newShadow(cctx, o.meta.Values)
+		o.values = newShadow(bctx, o.meta.Values)
 	}
-	o.values.unmarshal(cctx, projection)
+	o.values.unmarshal(bctx, projection)
 }
 
 func (o *option) load(loader *FrameLoader) []uint32 {

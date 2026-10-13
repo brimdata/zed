@@ -17,8 +17,8 @@ type uint_ struct {
 	vals []uint64
 }
 
-func newUint(cctx *bsup.Context, meta *bsup.Uint) *uint_ {
-	return &uint_{meta: meta, len: meta.Len(cctx)}
+func newUint(bctx *bsup.Context, meta *bsup.Uint) *uint_ {
+	return &uint_{meta: meta, len: meta.Len(bctx)}
 }
 
 func (u *uint_) length() uint32 {

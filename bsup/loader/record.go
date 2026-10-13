@@ -19,9 +19,9 @@ type record struct {
 	fields []shadow
 }
 
-func newRecord(cctx *bsup.Context, meta *bsup.Record) *record {
+func newRecord(bctx *bsup.Context, meta *bsup.Record) *record {
 	fields := make([]shadow, len(meta.Fields))
-	len := meta.Len(cctx)
+	len := meta.Len(bctx)
 	return &record{
 		meta:   meta,
 		len:    len,
@@ -33,7 +33,7 @@ func (r *record) length() uint32 {
 	return r.len
 }
 
-func (r *record) unmarshal(cctx *bsup.Context, projection field.Projection) {
+func (r *record) unmarshal(bctx *bsup.Context, projection field.Projection) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if len(projection) == 0 {
@@ -41,18 +41,18 @@ func (r *record) unmarshal(cctx *bsup.Context, projection field.Projection) {
 		// or loading this record because it's referenced at the end of a projected path.
 		for k := range r.fields {
 			if r.fields[k] == nil {
-				r.fields[k] = newShadow(cctx, r.meta.Fields[k].Values)
+				r.fields[k] = newShadow(bctx, r.meta.Fields[k].Values)
 			}
-			r.fields[k].unmarshal(cctx, nil)
+			r.fields[k].unmarshal(bctx, nil)
 		}
 		return
 	}
 	for _, node := range projection {
 		if k := indexOfField(node.Name, r.meta); k >= 0 {
 			if r.fields[k] == nil {
-				r.fields[k] = newShadow(cctx, r.meta.Fields[k].Values)
+				r.fields[k] = newShadow(bctx, r.meta.Fields[k].Values)
 			}
-			r.fields[k].unmarshal(cctx, node.Proj)
+			r.fields[k].unmarshal(bctx, node.Proj)
 		}
 	}
 }

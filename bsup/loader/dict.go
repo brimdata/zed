@@ -17,21 +17,21 @@ type dict struct {
 	index  []byte   // dict offset of each value in vector
 }
 
-func newDict(cctx *bsup.Context, meta *bsup.Dict) *dict {
-	return &dict{meta: meta, len: meta.Len(cctx)}
+func newDict(bctx *bsup.Context, meta *bsup.Dict) *dict {
+	return &dict{meta: meta, len: meta.Len(bctx)}
 }
 
 func (d *dict) length() uint32 {
 	return d.len
 }
 
-func (d *dict) unmarshal(cctx *bsup.Context, projection field.Projection) {
+func (d *dict) unmarshal(bctx *bsup.Context, projection field.Projection) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.values == nil {
-		d.values = newShadow(cctx, d.meta.Values)
+		d.values = newShadow(bctx, d.meta.Values)
 	}
-	d.values.unmarshal(cctx, projection)
+	d.values.unmarshal(bctx, projection)
 }
 
 func (d *dict) project(loader *FrameLoader, projection field.Projection) vector.Any {

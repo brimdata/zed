@@ -51,9 +51,9 @@ func (n *NetEncoder) Encode(group *errgroup.Group) {
 	}
 }
 
-func (n *NetEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
+func (n *NetEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	off, bytesLoc, offsLoc := n.table.Segment(off)
-	return off, cctx.enter(&Net{
+	return off, bctx.enter(&Net{
 		Bytes:   bytesLoc,
 		Offsets: offsLoc,
 		Min:     n.min,

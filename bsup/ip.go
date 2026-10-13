@@ -51,9 +51,9 @@ func (i *IPEncoder) Encode(group *errgroup.Group) {
 	}
 }
 
-func (i *IPEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
+func (i *IPEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	off, bytesLoc, offsLoc := i.table.Segment(off)
-	return off, cctx.enter(&IP{
+	return off, bctx.enter(&IP{
 		Bytes:   bytesLoc,
 		Offsets: offsLoc,
 		Min:     i.min,

@@ -25,14 +25,14 @@ func (d *dynamic) length() uint32 {
 	return d.meta.Length
 }
 
-func (d *dynamic) unmarshal(cctx *bsup.Context, projection field.Projection) {
+func (d *dynamic) unmarshal(bctx *bsup.Context, projection field.Projection) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	for k := range d.values {
 		if d.values[k] == nil {
-			d.values[k] = newShadow(cctx, d.meta.Values[k])
+			d.values[k] = newShadow(bctx, d.meta.Values[k])
 		}
-		d.values[k].unmarshal(cctx, projection)
+		d.values[k].unmarshal(bctx, projection)
 	}
 }
 

@@ -22,8 +22,8 @@ func newNamed(meta *bsup.Named, values shadow) *named {
 	}
 }
 
-func (n *named) unmarshal(cctx *bsup.Context, projection field.Projection) {
-	n.values.unmarshal(cctx, projection)
+func (n *named) unmarshal(bctx *bsup.Context, projection field.Projection) {
+	n.values.unmarshal(bctx, projection)
 }
 
 func (n *named) project(loader *FrameLoader, projection field.Projection) vector.Any {

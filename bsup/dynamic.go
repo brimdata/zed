@@ -8,20 +8,20 @@ import (
 )
 
 type DynamicEncoder struct {
-	cctx   *Context
+	bctx   *Context
 	tags   *Uint32Encoder
 	values []Encoder
 	len    uint32
 }
 
 func NewDynamicEncoder(vec *vector.Dynamic) *DynamicEncoder {
-	cctx := NewContext()
+	bctx := NewContext()
 	values := make([]Encoder, len(vec.Values))
 	for i, val := range vec.Values {
-		values[i] = NewEncoder(cctx, val)
+		values[i] = NewEncoder(bctx, val)
 	}
 	return &DynamicEncoder{
-		cctx:   cctx,
+		bctx:   bctx,
 		tags:   NewUint32Encoder(vec.Tags),
 		values: values,
 		len:    vec.Len(),
@@ -40,17 +40,17 @@ func (d *DynamicEncoder) Encode() (ID, uint64, error) {
 		return 0, 0, err
 	}
 	if len(d.values) == 1 {
-		off, id := d.values[0].Metadata(d.cctx, 0)
+		off, id := d.values[0].Metadata(d.bctx, 0)
 		return id, off, nil
 	}
 	values := make([]ID, 0, len(d.values))
 	off, tags := d.tags.Segment(0)
 	for _, val := range d.values {
 		var id ID
-		off, id = val.Metadata(d.cctx, off)
+		off, id = val.Metadata(d.bctx, off)
 		values = append(values, id)
 	}
-	return d.cctx.enter(&Dynamic{
+	return d.bctx.enter(&Dynamic{
 		Tags:   tags,
 		Values: values,
 		Length: d.len,

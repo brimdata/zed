@@ -11,18 +11,18 @@ import (
 
 type _any struct {
 	mu       sync.Mutex
-	cctx     *bsup.Context
+	bctx     *bsup.Context
 	meta     *bsup.Any
 	len      uint32
 	values   shadow
 	subtypes *typevalue
 }
 
-func newAny(cctx *bsup.Context, meta *bsup.Any) *_any {
+func newAny(bctx *bsup.Context, meta *bsup.Any) *_any {
 	return &_any{
-		cctx: cctx,
+		bctx: bctx,
 		meta: meta,
-		len:  meta.Len(cctx),
+		len:  meta.Len(bctx),
 	}
 }
 
@@ -30,16 +30,16 @@ func (f *_any) length() uint32 {
 	return f.len
 }
 
-func (f *_any) unmarshal(cctx *bsup.Context, projection field.Projection) {
+func (f *_any) unmarshal(bctx *bsup.Context, projection field.Projection) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.values == nil {
-		f.values = newShadow(cctx, f.meta.Values)
+		f.values = newShadow(bctx, f.meta.Values)
 	}
 	if f.subtypes == nil {
-		f.subtypes = newTypeValue(cctx, cctx.Lookup(f.meta.Subtypes).(*bsup.TypeValue))
+		f.subtypes = newTypeValue(bctx, bctx.Lookup(f.meta.Subtypes).(*bsup.TypeValue))
 	}
-	f.values.unmarshal(cctx, projection)
+	f.values.unmarshal(bctx, projection)
 }
 
 func (f *_any) project(loader *FrameLoader, projection field.Projection) vector.Any {

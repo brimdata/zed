@@ -15,10 +15,10 @@ type UnionEncoder struct {
 
 var _ Encoder = (*UnionEncoder)(nil)
 
-func NewUnionEncoder(cctx *Context, vec *vector.Union) *UnionEncoder {
+func NewUnionEncoder(bctx *Context, vec *vector.Union) *UnionEncoder {
 	var values []Encoder
 	for _, val := range vec.Values() {
-		values = append(values, NewEncoder(cctx, val))
+		values = append(values, NewEncoder(bctx, val))
 	}
 	var rleOrTags []uint32
 	if len(vec.Typ.Types) == 2 {
@@ -52,15 +52,15 @@ func (u *UnionEncoder) Encode(group *errgroup.Group) {
 	}
 }
 
-func (u *UnionEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
+func (u *UnionEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	off, tags := u.rleOrTags.Segment(off)
 	values := make([]ID, 0, len(u.values))
 	for _, val := range u.values {
 		var id ID
-		off, id = val.Metadata(cctx, off)
+		off, id = val.Metadata(bctx, off)
 		values = append(values, id)
 	}
-	return off, cctx.enter(&Union{
+	return off, bctx.enter(&Union{
 		Tags:   tags,
 		Values: values,
 		Length: u.count,

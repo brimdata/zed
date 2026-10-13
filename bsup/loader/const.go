@@ -12,8 +12,8 @@ type const_ struct {
 	len  uint32
 }
 
-func newConst(cctx *bsup.Context, meta *bsup.Const) *const_ {
-	return &const_{meta: meta, len: meta.Len(cctx)}
+func newConst(bctx *bsup.Context, meta *bsup.Const) *const_ {
+	return &const_{meta: meta, len: meta.Len(bctx)}
 }
 
 func (c *const_) length() uint32 {

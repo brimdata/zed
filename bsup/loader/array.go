@@ -16,21 +16,21 @@ type array struct {
 	values shadow
 }
 
-func newArray(cctx *bsup.Context, meta *bsup.Array) *array {
-	return &array{meta: meta, len: meta.Len(cctx)}
+func newArray(bctx *bsup.Context, meta *bsup.Array) *array {
+	return &array{meta: meta, len: meta.Len(bctx)}
 }
 
 func (a *array) length() uint32 {
 	return a.len
 }
 
-func (a *array) unmarshal(cctx *bsup.Context, projection field.Projection) {
+func (a *array) unmarshal(bctx *bsup.Context, projection field.Projection) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.values == nil {
-		a.values = newShadow(cctx, a.meta.Values)
+		a.values = newShadow(bctx, a.meta.Values)
 	}
-	a.values.unmarshal(cctx, projection)
+	a.values.unmarshal(bctx, projection)
 }
 
 func (a *array) project(loader *FrameLoader, projection field.Projection) vector.Any {

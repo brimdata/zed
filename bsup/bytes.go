@@ -44,9 +44,9 @@ func (b *BytesEncoder) Encode(group *errgroup.Group) {
 	})
 }
 
-func (b *BytesEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
+func (b *BytesEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	off, bytesLoc, offsLoc := b.bytes.Segment(off)
-	return off, cctx.enter(&Bytes{
+	return off, bctx.enter(&Bytes{
 		Typ:     b.typ,
 		Bytes:   bytesLoc,
 		Offsets: offsLoc,

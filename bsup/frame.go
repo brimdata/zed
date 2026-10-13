@@ -38,7 +38,7 @@ func (*ColFrame) frameType() {}
 func (*RowFrame) frameType() {}
 
 type ColFrame struct {
-	cctx       *Context
+	bctx       *Context
 	readerAt   io.ReaderAt
 	dataReader io.ReaderAt
 	header     *ColumnHeader
@@ -47,27 +47,27 @@ type ColFrame struct {
 
 func newColFrame(r io.ReaderAt, header *ColumnHeader) (*ColFrame, error) {
 	c := &ColFrame{
-		cctx:     NewContext(),
+		bctx:     NewContext(),
 		readerAt: r,
 		header:   header,
 	}
 	off, size := header.MetadataSection()
-	if err := c.cctx.readMeta(io.NewSectionReader(r, off, size)); err != nil {
+	if err := c.bctx.readMeta(io.NewSectionReader(r, off, size)); err != nil {
 		return nil, err
 	}
-	if header.Root >= uint32(len(c.cctx.values)) {
-		return nil, fmt.Errorf("root ID %d larger than BSUP context table (len %d)", header.Root, len(c.cctx.values))
+	if header.Root >= uint32(len(c.bctx.values)) {
+		return nil, fmt.Errorf("root ID %d larger than BSUP context table (len %d)", header.Root, len(c.bctx.values))
 	}
 	off, size = header.TypedefsSection()
-	c.cctx.subtypesReader = io.NewSectionReader(r, off, size)
-	c.cctx.subtypesSize = size
+	c.bctx.subtypesReader = io.NewSectionReader(r, off, size)
+	c.bctx.subtypesSize = size
 	off, size = header.SegmentsSection()
 	c.dataReader = io.NewSectionReader(r, off, size)
 	return c, nil
 }
 
 func (c *ColFrame) Context() *Context {
-	return c.cctx
+	return c.bctx
 }
 
 func (c *ColFrame) Root() ID {
@@ -88,9 +88,9 @@ func (c *ColFrame) TypeSize() uint64 {
 
 func (c *ColFrame) LinkProgress(p *vio.Progress) {
 	c.progress = p
-	r := c.cctx.subtypesReader
+	r := c.bctx.subtypesReader
 	if r != nil {
-		c.cctx.subtypesReader = &typesReader{r, p}
+		c.bctx.subtypesReader = &typesReader{r, p}
 	}
 }
 
@@ -122,15 +122,15 @@ func (c *ColFrame) ReadAt(p []byte, off int64) (int, error) {
 func (c *ColFrame) ProjectMetadata(sctx *super.Context, projection field.Projection) []super.Value {
 	var b scode.Builder
 	var values []super.Value
-	root := c.cctx.Lookup(c.Root())
+	root := c.bctx.Lookup(c.Root())
 	if root, ok := root.(*Dynamic); ok {
 		for _, id := range root.Values {
 			b.Reset()
-			typ := metadataValue(c.cctx, sctx, &b, id, projection)
+			typ := metadataValue(c.bctx, sctx, &b, id, projection)
 			values = append(values, super.NewValue(typ, b.Bytes().Body()))
 		}
 	} else {
-		typ := metadataValue(c.cctx, sctx, &b, c.Root(), projection)
+		typ := metadataValue(c.bctx, sctx, &b, c.Root(), projection)
 		values = append(values, super.NewValue(typ, b.Bytes().Body()))
 	}
 	return values

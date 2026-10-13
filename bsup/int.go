@@ -41,7 +41,7 @@ func (i *IntEncoder) Encode(group *errgroup.Group) {
 	}
 }
 
-func (i *IntEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
+func (i *IntEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	loc := Segment{
 		Offset:            off,
 		MemLength:         uint64(len(i.out)),
@@ -49,7 +49,7 @@ func (i *IntEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
 		CompressionFormat: CompressionFormatNone,
 	}
 	off += loc.MemLength
-	return off, cctx.enter(&Int{
+	return off, bctx.enter(&Int{
 		Typ:      i.typ,
 		Location: loc,
 		Min:      i.min,
@@ -106,9 +106,9 @@ func (u *UintEncoder) Segment(off uint64) (uint64, Segment) {
 	return off + loc.MemLength, loc
 }
 
-func (u *UintEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
+func (u *UintEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	off, loc := u.Segment(off)
-	return off, cctx.enter(&Uint{
+	return off, bctx.enter(&Uint{
 		Typ:      u.typ,
 		Location: loc,
 		Min:      u.min,

@@ -17,9 +17,9 @@ func (d *DictEncoder) Encode(group *errgroup.Group) {
 	d.counts.Encode(group)
 }
 
-func (d *DictEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
+func (d *DictEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	meta := &Dict{Length: uint32(len(d.index))}
-	off, meta.Values = d.values.Metadata(cctx, off)
+	off, meta.Values = d.values.Metadata(bctx, off)
 	off, meta.Counts = d.counts.Segment(off)
 	len := uint64(len(d.index))
 	meta.Index = Segment{
@@ -27,7 +27,7 @@ func (d *DictEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
 		Length:    len,
 		MemLength: len,
 	}
-	return off + len, cctx.enter(meta)
+	return off + len, bctx.enter(meta)
 }
 
 func (d *DictEncoder) Emit(w io.Writer) error {

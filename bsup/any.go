@@ -12,10 +12,10 @@ type AnyEncoder struct {
 	subtypes Encoder
 }
 
-func NewAnyEncoder(cctx *Context, vec *vector.Fusion) *AnyEncoder {
+func NewAnyEncoder(bctx *Context, vec *vector.Fusion) *AnyEncoder {
 	return &AnyEncoder{
-		values:   NewPrimitiveEncoder(cctx, vec.Values, false),
-		subtypes: NewTypeValueEncoder(cctx, vec.Subtypes),
+		values:   NewPrimitiveEncoder(bctx, vec.Values, false),
+		subtypes: NewTypeValueEncoder(bctx, vec.Subtypes),
 	}
 }
 
@@ -31,10 +31,10 @@ func (a *AnyEncoder) Encode(group *errgroup.Group) {
 	a.subtypes.Encode(group)
 }
 
-func (a *AnyEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
-	off, values := a.values.Metadata(cctx, off)
-	off, subtypes := a.subtypes.Metadata(cctx, off)
-	return off, cctx.enter(&Any{
+func (a *AnyEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
+	off, values := a.values.Metadata(bctx, off)
+	off, subtypes := a.subtypes.Metadata(bctx, off)
+	return off, bctx.enter(&Any{
 		Values:   values,
 		Subtypes: subtypes,
 	})

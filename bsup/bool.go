@@ -36,7 +36,7 @@ func (b *BoolEncoder) Encode(group *errgroup.Group) {
 	})
 }
 
-func (b *BoolEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
+func (b *BoolEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	loc := Segment{
 		Offset:            off,
 		Length:            uint64(len(b.out)),
@@ -44,7 +44,7 @@ func (b *BoolEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
 		CompressionFormat: b.fmt,
 	}
 	off += loc.Length
-	return off, cctx.enter(&Bool{
+	return off, bctx.enter(&Bool{
 		Location: loc,
 		Count:    b.bits.Len(),
 	})

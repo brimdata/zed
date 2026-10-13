@@ -17,23 +17,23 @@ type map_ struct {
 	values shadow
 }
 
-func newMap(cctx *bsup.Context, meta *bsup.Map) *map_ {
-	return &map_{meta: meta, len: meta.Len(cctx)}
+func newMap(bctx *bsup.Context, meta *bsup.Map) *map_ {
+	return &map_{meta: meta, len: meta.Len(bctx)}
 }
 
 func (m *map_) length() uint32 {
 	return m.len
 }
 
-func (m *map_) unmarshal(cctx *bsup.Context, projection field.Projection) {
+func (m *map_) unmarshal(bctx *bsup.Context, projection field.Projection) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.keys == nil {
-		m.keys = newShadow(cctx, m.meta.Keys)
-		m.values = newShadow(cctx, m.meta.Values)
+		m.keys = newShadow(bctx, m.meta.Keys)
+		m.values = newShadow(bctx, m.meta.Values)
 	}
-	m.keys.unmarshal(cctx, projection)
-	m.values.unmarshal(cctx, projection)
+	m.keys.unmarshal(bctx, projection)
+	m.values.unmarshal(bctx, projection)
 }
 
 func (m *map_) project(loader *FrameLoader, projection field.Projection) vector.Any {

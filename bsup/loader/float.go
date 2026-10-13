@@ -16,8 +16,8 @@ type float struct {
 	vals []float64
 }
 
-func newFloat(cctx *bsup.Context, meta *bsup.Float) *float {
-	return &float{meta: meta, len: meta.Len(cctx)}
+func newFloat(bctx *bsup.Context, meta *bsup.Float) *float {
+	return &float{meta: meta, len: meta.Len(bctx)}
 }
 
 func (f *float) length() uint32 {
