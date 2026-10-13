@@ -11,9 +11,9 @@ type FieldEncoder struct {
 	values Encoder
 }
 
-func (f *FieldEncoder) Metadata(cctx *Context, off uint64) (uint64, Field) {
+func (f *FieldEncoder) Metadata(bctx *Context, off uint64) (uint64, Field) {
 	var id ID
-	off, id = f.values.Metadata(cctx, off)
+	off, id = f.values.Metadata(bctx, off)
 	return off, Field{
 		Name:   f.name,
 		Values: id,

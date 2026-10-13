@@ -41,11 +41,11 @@ func (r *Record) LookupField(name string) *Field {
 	return nil
 }
 
-func under(cctx *Context, meta Metadata) Metadata {
+func under(bctx *Context, meta Metadata) Metadata {
 	for {
 		switch inner := meta.(type) {
 		case *Named:
-			meta = cctx.Lookup(inner.Values)
+			meta = bctx.Lookup(inner.Values)
 		default:
 			return meta
 		}
@@ -99,8 +99,8 @@ type Enum struct {
 	Values  ID
 }
 
-func (e *Enum) Len(cctx *Context) uint32 {
-	return cctx.Lookup(e.Values).Len(cctx)
+func (e *Enum) Len(bctx *Context) uint32 {
+	return bctx.Lookup(e.Values).Len(bctx)
 }
 
 type Named struct {
@@ -108,16 +108,16 @@ type Named struct {
 	Values ID
 }
 
-func (n *Named) Len(cctx *Context) uint32 {
-	return cctx.Lookup(n.Values).Len(cctx)
+func (n *Named) Len(bctx *Context) uint32 {
+	return bctx.Lookup(n.Values).Len(bctx)
 }
 
 type Error struct {
 	Values ID
 }
 
-func (e *Error) Len(cctx *Context) uint32 {
-	return cctx.Lookup(e.Values).Len(cctx)
+func (e *Error) Len(bctx *Context) uint32 {
+	return bctx.Lookup(e.Values).Len(bctx)
 }
 
 type Fusion struct {
@@ -125,8 +125,8 @@ type Fusion struct {
 	Subtypes ID
 }
 
-func (f *Fusion) Len(cctx *Context) uint32 {
-	return cctx.Lookup(f.Values).Len(cctx)
+func (f *Fusion) Len(bctx *Context) uint32 {
+	return bctx.Lookup(f.Values).Len(bctx)
 }
 
 type Option struct {
@@ -145,8 +145,8 @@ type Any struct {
 	Subtypes ID
 }
 
-func (a *Any) Len(cctx *Context) uint32 {
-	return cctx.Lookup(a.Values).Len(cctx)
+func (a *Any) Len(bctx *Context) uint32 {
+	return bctx.Lookup(a.Values).Len(bctx)
 }
 
 type Int struct {
@@ -316,38 +316,38 @@ func (d *Dynamic) Len(*Context) uint32 {
 	return d.Length
 }
 
-func newMetadataValue(cctx *Context, sctx *super.Context, b *scode.Builder, id ID, p field.Projection) super.Value {
+func newMetadataValue(bctx *Context, sctx *super.Context, b *scode.Builder, id ID, p field.Projection) super.Value {
 	b.Truncate()
-	typ := metadataValue(cctx, sctx, b, id, p)
+	typ := metadataValue(bctx, sctx, b, id, p)
 	return super.NewValue(typ, b.Bytes().Body())
 }
 
 // XXX this should live in shadow so we don't load it twice
-func metadataValue(cctx *Context, sctx *super.Context, b *scode.Builder, id ID, projection field.Projection) super.Type {
-	m := cctx.Lookup(id)
-	switch m := under(cctx, m).(type) {
+func metadataValue(bctx *Context, sctx *super.Context, b *scode.Builder, id ID, projection field.Projection) super.Type {
+	m := bctx.Lookup(id)
+	switch m := under(bctx, m).(type) {
 	case *Any:
 		// XXX Do not have min/max on all values for now.
 		b.Append(nil)
 		return super.TypeNull
 	case *Fusion:
-		return metadataValue(cctx, sctx, b, m.Values, projection)
+		return metadataValue(bctx, sctx, b, m.Values, projection)
 	case *Option:
-		return metadataValue(cctx, sctx, b, m.Values, projection)
+		return metadataValue(bctx, sctx, b, m.Values, projection)
 	case *Dict:
-		return metadataValue(cctx, sctx, b, m.Values, projection)
+		return metadataValue(bctx, sctx, b, m.Values, projection)
 	case *Record:
 		var fields []super.Field
 		b.BeginContainer()
 		if len(projection) == 0 {
 			for _, f := range m.Fields {
-				typ := metadataValue(cctx, sctx, b, f.Values, nil)
+				typ := metadataValue(bctx, sctx, b, f.Values, nil)
 				fields = append(fields, super.NewField(f.Name, typ))
 			}
 		} else {
 			for _, node := range projection {
 				if k := indexOfField(node.Name, m.Fields); k >= 0 {
-					typ := metadataValue(cctx, sctx, b, m.Fields[k].Values, node.Proj)
+					typ := metadataValue(bctx, sctx, b, m.Fields[k].Values, node.Proj)
 					fields = append(fields, super.NewField(node.Name, typ))
 				}
 			}
@@ -359,7 +359,7 @@ func metadataValue(cctx *Context, sctx *super.Context, b *scode.Builder, id ID, 
 		max, min := super.Null, super.Null
 		var bb scode.Builder
 		for _, id := range m.Values {
-			val := newMetadataValue(cctx, sctx, &bb, id, projection)
+			val := newMetadataValue(bctx, sctx, &bb, id, projection)
 			if val.IsNull() {
 				continue
 			}

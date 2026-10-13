@@ -16,21 +16,21 @@ type set struct {
 	values shadow
 }
 
-func newSet(cctx *bsup.Context, meta *bsup.Set) *set {
-	return &set{meta: meta, len: meta.Len(cctx)}
+func newSet(bctx *bsup.Context, meta *bsup.Set) *set {
+	return &set{meta: meta, len: meta.Len(bctx)}
 }
 
 func (s *set) length() uint32 {
 	return s.len
 }
 
-func (s *set) unmarshal(cctx *bsup.Context, projection field.Projection) {
+func (s *set) unmarshal(bctx *bsup.Context, projection field.Projection) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.values == nil {
-		s.values = newShadow(cctx, s.meta.Values)
+		s.values = newShadow(bctx, s.meta.Values)
 	}
-	s.values.unmarshal(cctx, projection)
+	s.values.unmarshal(bctx, projection)
 }
 
 func (s *set) project(loader *FrameLoader, projection field.Projection) vector.Any {

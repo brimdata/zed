@@ -14,8 +14,8 @@ func NewNullEncoder(len uint32) *NullEncoder {
 	return &NullEncoder{len}
 }
 
-func (n *NullEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
-	return off, cctx.enter(&Null{n.len})
+func (n *NullEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
+	return off, bctx.enter(&Null{n.len})
 }
 
 func (*NullEncoder) Encode(*errgroup.Group) {}

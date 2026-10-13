@@ -15,9 +15,9 @@ type ArrayEncoder struct {
 
 var _ Encoder = (*ArrayEncoder)(nil)
 
-func NewArrayEncoder(cctx *Context, vec *vector.Array) *ArrayEncoder {
+func NewArrayEncoder(bctx *Context, vec *vector.Array) *ArrayEncoder {
 	return &ArrayEncoder{
-		values:  NewEncoder(cctx, vec.Values),
+		values:  NewEncoder(bctx, vec.Values),
 		offsets: NewUint32Encoder(vec.Offsets),
 	}
 }
@@ -34,10 +34,10 @@ func (a *ArrayEncoder) Emit(w io.Writer) error {
 	return a.values.Emit(w)
 }
 
-func (a *ArrayEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
+func (a *ArrayEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	off, lens := a.offsets.Segment(off)
-	off, vals := a.values.Metadata(cctx, off)
-	return off, cctx.enter(&Array{
+	off, vals := a.values.Metadata(bctx, off)
+	return off, bctx.enter(&Array{
 		Length:  a.count,
 		Lengths: lens,
 		Values:  vals,
@@ -48,19 +48,19 @@ type SetEncoder struct {
 	ArrayEncoder
 }
 
-func NewSetEncoder(cctx *Context, vec *vector.Set) *SetEncoder {
+func NewSetEncoder(bctx *Context, vec *vector.Set) *SetEncoder {
 	return &SetEncoder{
 		ArrayEncoder{
-			values:  NewEncoder(cctx, vec.Values),
+			values:  NewEncoder(bctx, vec.Values),
 			offsets: &Uint32Encoder{vals: vec.Offsets},
 		},
 	}
 }
 
-func (s *SetEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
-	off, id := s.ArrayEncoder.Metadata(cctx, off)
-	array := cctx.Lookup(id).(*Array) // XXX this leaves a dummy node in the table
-	return off, cctx.enter(&Set{
+func (s *SetEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
+	off, id := s.ArrayEncoder.Metadata(bctx, off)
+	array := bctx.Lookup(id).(*Array) // XXX this leaves a dummy node in the table
+	return off, bctx.enter(&Set{
 		Length:  array.Length,
 		Lengths: array.Lengths,
 		Values:  array.Values,

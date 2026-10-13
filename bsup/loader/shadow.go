@@ -44,44 +44,44 @@ type shadow interface {
 
 // newShadow decodes the BSUP metadata structure to the appropriate shadow object.
 // No vector data data is actually loaded here.
-func newShadow(cctx *bsup.Context, id bsup.ID) shadow {
-	switch meta := cctx.Lookup(id).(type) {
+func newShadow(bctx *bsup.Context, id bsup.ID) shadow {
+	switch meta := bctx.Lookup(id).(type) {
 	case *bsup.Dynamic:
 		return newDynamic(meta)
 	case *bsup.Error:
-		return newError(cctx, meta)
+		return newError(bctx, meta)
 	case *bsup.Named:
-		return newNamed(meta, newShadow(cctx, meta.Values))
+		return newNamed(meta, newShadow(bctx, meta.Values))
 	case *bsup.Record:
-		return newRecord(cctx, meta)
+		return newRecord(bctx, meta)
 	case *bsup.Array:
-		return newArray(cctx, meta)
+		return newArray(bctx, meta)
 	case *bsup.Set:
-		return newSet(cctx, meta)
+		return newSet(bctx, meta)
 	case *bsup.Map:
-		return newMap(cctx, meta)
+		return newMap(bctx, meta)
 	case *bsup.Union:
-		return newUnion(cctx, meta)
+		return newUnion(bctx, meta)
 	case *bsup.Enum:
-		return newEnum(meta, newShadow(cctx, meta.Values))
+		return newEnum(meta, newShadow(bctx, meta.Values))
 	case *bsup.Fusion:
-		return newFusion(cctx, meta)
+		return newFusion(bctx, meta)
 	case *bsup.Option:
-		return newOption(cctx, meta)
+		return newOption(bctx, meta)
 	case *bsup.Any:
-		return newAny(cctx, meta)
+		return newAny(bctx, meta)
 	case *bsup.Dict:
-		return newDict(cctx, meta)
+		return newDict(bctx, meta)
 	case *bsup.Int:
-		return newInt(cctx, meta)
+		return newInt(bctx, meta)
 	case *bsup.Uint:
-		return newUint(cctx, meta)
+		return newUint(bctx, meta)
 	case *bsup.Float:
-		return newFloat(cctx, meta)
+		return newFloat(bctx, meta)
 	case *bsup.Bool:
 		return newBool(meta)
 	case *bsup.Bytes:
-		return newBytes(cctx, meta)
+		return newBytes(bctx, meta)
 	case *bsup.IP:
 		return newIP(meta)
 	case *bsup.Net:
@@ -91,9 +91,9 @@ func newShadow(cctx *bsup.Context, id bsup.ID) shadow {
 	case *bsup.None:
 		return newNone(meta)
 	case *bsup.TypeValue:
-		return newTypeValue(cctx, meta)
+		return newTypeValue(bctx, meta)
 	case *bsup.Const:
-		return newConst(cctx, meta)
+		return newConst(bctx, meta)
 	case *bsup.Empty:
 		return newEmpty(meta)
 	default:

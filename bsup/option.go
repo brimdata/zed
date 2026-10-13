@@ -17,7 +17,7 @@ type OptionEncoder struct {
 
 var _ Encoder = (*UnionEncoder)(nil)
 
-func NewOptionEncoder(cctx *Context, vec *vector.Option) *OptionEncoder {
+func NewOptionEncoder(bctx *Context, vec *vector.Option) *OptionEncoder {
 	var tags []uint32
 	values := vec.Any
 	if d, ok := values.(*vector.Dynamic); ok {
@@ -26,7 +26,7 @@ func NewOptionEncoder(cctx *Context, vec *vector.Option) *OptionEncoder {
 		values = d.Values[super.OptionSomeTag]
 	}
 	return &OptionEncoder{
-		values: NewEncoder(cctx, values),
+		values: NewEncoder(bctx, values),
 		tags:   NewUint32Encoder(tags),
 		count:  vec.Len(),
 		typ:    vec.Type(),
@@ -45,10 +45,10 @@ func (o *OptionEncoder) Encode(group *errgroup.Group) {
 	o.values.Encode(group)
 }
 
-func (o *OptionEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
+func (o *OptionEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	off, tags := o.tags.Segment(off)
-	off, id := o.values.Metadata(cctx, off)
-	return off, cctx.enter(&Option{
+	off, id := o.values.Metadata(bctx, off)
+	return off, bctx.enter(&Option{
 		Tags:   tags,
 		Values: id,
 		Length: o.count,

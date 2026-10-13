@@ -19,7 +19,7 @@ func newEmpty(meta *bsup.Empty) *empty {
 	return &empty{typ: meta.Type}
 }
 
-func (e *empty) unmarshal(cctx *bsup.Context, projection field.Projection) {
+func (e *empty) unmarshal(bctx *bsup.Context, projection field.Projection) {
 }
 
 func (e *empty) project(loader *FrameLoader, projection field.Projection) vector.Any {

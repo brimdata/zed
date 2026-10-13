@@ -16,8 +16,8 @@ type bytes struct {
 	table *vector.BytesTable
 }
 
-func newBytes(cctx *bsup.Context, meta *bsup.Bytes) *bytes {
-	return &bytes{meta: meta, len: meta.Len(cctx)}
+func newBytes(bctx *bsup.Context, meta *bsup.Bytes) *bytes {
+	return &bytes{meta: meta, len: meta.Len(bctx)}
 }
 
 func (b *bytes) length() uint32 {

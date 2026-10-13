@@ -14,8 +14,8 @@ type ConstEncoder struct {
 
 func (*ConstEncoder) Encode(group *errgroup.Group) {}
 
-func (c *ConstEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
-	return off, cctx.enter(&Const{c.val, c.len})
+func (c *ConstEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
+	return off, bctx.enter(&Const{c.val, c.len})
 }
 
 func (*ConstEncoder) Emit(w io.Writer) error { return nil }

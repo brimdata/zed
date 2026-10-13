@@ -14,12 +14,12 @@ type FusionEncoder struct {
 
 var _ Encoder = (*FusionEncoder)(nil)
 
-func NewFusionEncoder(cctx *Context, vec *vector.Fusion) *FusionEncoder {
+func NewFusionEncoder(bctx *Context, vec *vector.Fusion) *FusionEncoder {
 	return &FusionEncoder{
-		values: NewEncoder(cctx, vec.Values),
+		values: NewEncoder(bctx, vec.Values),
 		// Call NewTypeValueEncoder directly because we do not want subtypes
 		// wrapped in a dict / const.
-		subtypes: NewTypeValueEncoder(cctx, vec.Subtypes),
+		subtypes: NewTypeValueEncoder(bctx, vec.Subtypes),
 	}
 }
 
@@ -35,10 +35,10 @@ func (f *FusionEncoder) Encode(group *errgroup.Group) {
 	f.subtypes.Encode(group)
 }
 
-func (f *FusionEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
-	off, values := f.values.Metadata(cctx, off)
-	off, subtypes := f.subtypes.Metadata(cctx, off)
-	return off, cctx.enter(&Fusion{
+func (f *FusionEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
+	off, values := f.values.Metadata(bctx, off)
+	off, subtypes := f.subtypes.Metadata(bctx, off)
+	return off, bctx.enter(&Fusion{
 		Values:   values,
 		Subtypes: subtypes,
 	})

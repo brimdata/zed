@@ -123,11 +123,11 @@ func (c *ColumnWriter) pushFrame() error {
 	}
 	var metaData bytes.Buffer
 	rowWriter := NewRowWriter(sio.NopCloser(&metaData))
-	cctx := enc.cctx
-	m := super.NewMarshaler(cctx.local)
+	bctx := enc.bctx
+	m := super.NewMarshaler(bctx.local)
 	m.Decorate(super.StyleSimple)
-	for id := range len(cctx.metas) {
-		val, err := m.Marshal(cctx.Lookup(ID(id)))
+	for id := range len(bctx.metas) {
+		val, err := m.Marshal(bctx.Lookup(ID(id)))
 		if err != nil {
 			return fmt.Errorf("could not marshal BSUP metadata: %w", err)
 		}
@@ -139,7 +139,7 @@ func (c *ColumnWriter) pushFrame() error {
 	if err != nil {
 		return err
 	}
-	typedefs := cctx.typedefs.Bytes()
+	typedefs := bctx.typedefs.Bytes()
 	header := newColumnHeader(root, uint64(metaDataSize), uint64(len(typedefs)), uint64(len(fusedTypeBytes)), dataSectionSize)
 	if _, err := c.writer.Write(header.Serialize()); err != nil {
 		return fmt.Errorf("system error: could not write BSUP header: %w", err)

@@ -29,42 +29,42 @@ type Encoder interface {
 	Emit(w io.Writer) error
 }
 
-func NewEncoder(cctx *Context, vec vector.Any) Encoder {
+func NewEncoder(bctx *Context, vec vector.Any) Encoder {
 	switch vec := vec.(type) {
 	case *vector.Record:
-		return NewRecordEncoder(cctx, vec)
+		return NewRecordEncoder(bctx, vec)
 	case *vector.Array:
-		return NewArrayEncoder(cctx, vec)
+		return NewArrayEncoder(bctx, vec)
 	case *vector.Set:
-		return NewSetEncoder(cctx, vec)
+		return NewSetEncoder(bctx, vec)
 	case *vector.Map:
-		return NewMapEncoder(cctx, vec)
+		return NewMapEncoder(bctx, vec)
 	case *vector.Union:
-		return NewUnionEncoder(cctx, vec)
+		return NewUnionEncoder(bctx, vec)
 	case *vector.Enum:
 		return NewEnumEncoder(vec)
 	case *vector.Error:
-		return &ErrorEncoder{NewEncoder(cctx, vec.Vals)}
+		return &ErrorEncoder{NewEncoder(bctx, vec.Vals)}
 	case *vector.Named:
-		return NewNamedEncoder(cctx, vec)
+		return NewNamedEncoder(bctx, vec)
 	case *vector.Fusion:
 		if super.IsTypeAny(vec.Type()) {
-			return NewAnyEncoder(cctx, vec)
+			return NewAnyEncoder(bctx, vec)
 		}
-		return NewFusionEncoder(cctx, vec)
+		return NewFusionEncoder(bctx, vec)
 	case *vector.Option:
-		return NewOptionEncoder(cctx, vec)
+		return NewOptionEncoder(bctx, vec)
 	default:
-		return NewPrimitiveEncoder(cctx, vec, true)
+		return NewPrimitiveEncoder(bctx, vec, true)
 	}
 }
 
-func NewPrimitiveEncoder(cctx *Context, vec vector.Any, root bool) Encoder {
+func NewPrimitiveEncoder(bctx *Context, vec vector.Any, root bool) Encoder {
 	switch vec := vec.(type) {
 	case *vector.Dict:
 		return &DictEncoder{
 			counts: NewUint32Encoder(vec.Counts),
-			values: NewPrimitiveEncoder(cctx, vec.Any, false),
+			values: NewPrimitiveEncoder(bctx, vec.Any, false),
 			index:  vec.Index,
 		}
 	case *vector.Const:
@@ -80,7 +80,7 @@ func NewPrimitiveEncoder(cctx *Context, vec vector.Any, root bool) Encoder {
 			out := maybeConvertToDictOrConst(vec.Values, func(vals []uint64) vector.Any {
 				return vector.NewUint(vec.Typ, vals)
 			})
-			return NewPrimitiveEncoder(cctx, out, false)
+			return NewPrimitiveEncoder(bctx, out, false)
 		}
 		return &UintEncoder{typ: vec.Typ, vals: vec.Values}
 	case *vector.Int:
@@ -88,7 +88,7 @@ func NewPrimitiveEncoder(cctx *Context, vec vector.Any, root bool) Encoder {
 			out := maybeConvertToDictOrConst(vec.Values, func(vals []int64) vector.Any {
 				return vector.NewInt(vec.Typ, vals)
 			})
-			return NewPrimitiveEncoder(cctx, out, false)
+			return NewPrimitiveEncoder(bctx, out, false)
 		}
 		return &IntEncoder{typ: vec.Typ, vals: vec.Values}
 	case *vector.Float:
@@ -96,7 +96,7 @@ func NewPrimitiveEncoder(cctx *Context, vec vector.Any, root bool) Encoder {
 			out := maybeConvertToDictOrConst(vec.Values, func(vals []float64) vector.Any {
 				return vector.NewFloat(vec.Typ, vals)
 			})
-			return NewPrimitiveEncoder(cctx, out, false)
+			return NewPrimitiveEncoder(bctx, out, false)
 		}
 		return NewFloatEncoder(vec.Typ, vec.Values)
 	case *vector.Bool:
@@ -105,13 +105,13 @@ func NewPrimitiveEncoder(cctx *Context, vec vector.Any, root bool) Encoder {
 	case *vector.String:
 		if root {
 			out := maybeStringBytesDict(super.TypeString, vec.Table())
-			return NewPrimitiveEncoder(cctx, out, false)
+			return NewPrimitiveEncoder(bctx, out, false)
 		}
 		return NewBytesEncoder(super.TypeString, vec.Table())
 	case *vector.Bytes:
 		if root {
 			out := maybeStringBytesDict(super.TypeBytes, vec.Table())
-			return NewPrimitiveEncoder(cctx, out, false)
+			return NewPrimitiveEncoder(bctx, out, false)
 		}
 		return NewBytesEncoder(super.TypeBytes, vec.Table())
 	case *vector.IP:
@@ -119,7 +119,7 @@ func NewPrimitiveEncoder(cctx *Context, vec vector.Any, root bool) Encoder {
 			out := maybeConvertToDictOrConst(vec.Values, func(vals []netip.Addr) vector.Any {
 				return vector.NewIP(vals)
 			})
-			return NewPrimitiveEncoder(cctx, out, false)
+			return NewPrimitiveEncoder(bctx, out, false)
 		}
 		return NewIPEncoder(vec.Values)
 	case *vector.Net:
@@ -127,7 +127,7 @@ func NewPrimitiveEncoder(cctx *Context, vec vector.Any, root bool) Encoder {
 			out := maybeConvertToDictOrConst(vec.Values, func(vals []netip.Prefix) vector.Any {
 				return vector.NewNet(vals)
 			})
-			return NewPrimitiveEncoder(cctx, out, false)
+			return NewPrimitiveEncoder(bctx, out, false)
 		}
 		return NewNetEncoder(vec.Values)
 	case *vector.TypeValue:
@@ -135,9 +135,9 @@ func NewPrimitiveEncoder(cctx *Context, vec vector.Any, root bool) Encoder {
 			out := maybeConvertToDictOrConst(vec.Types(), func(vals []super.Type) vector.Any {
 				return vector.NewTypeValue(vals)
 			})
-			return NewPrimitiveEncoder(cctx, out, false)
+			return NewPrimitiveEncoder(bctx, out, false)
 		}
-		return NewTypeValueEncoder(cctx, vec)
+		return NewTypeValueEncoder(bctx, vec)
 	case *vector.Null:
 		return NewNullEncoder(vec.Len())
 	case *vector.None:
@@ -189,7 +189,7 @@ type ErrorEncoder struct {
 	Encoder
 }
 
-func (e *ErrorEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
-	off, id := e.Encoder.Metadata(cctx, off)
-	return off, cctx.enter(&Error{id})
+func (e *ErrorEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
+	off, id := e.Encoder.Metadata(bctx, off)
+	return off, bctx.enter(&Error{id})
 }

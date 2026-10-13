@@ -17,7 +17,7 @@ func NewEnumEncoder(vec *vector.Enum) *EnumEncoder {
 	}
 }
 
-func (e *EnumEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
-	off, values := e.UintEncoder.Metadata(cctx, off)
-	return off, cctx.enter(&Enum{Symbols: e.typ.Symbols, Values: values})
+func (e *EnumEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
+	off, values := e.UintEncoder.Metadata(bctx, off)
+	return off, bctx.enter(&Enum{Symbols: e.typ.Symbols, Values: values})
 }

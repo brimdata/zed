@@ -22,8 +22,8 @@ func newEnum(meta *bsup.Enum, values shadow) *enum {
 	}
 }
 
-func (e *enum) unmarshal(cctx *bsup.Context, projection field.Projection) {
-	e.values.unmarshal(cctx, projection)
+func (e *enum) unmarshal(bctx *bsup.Context, projection field.Projection) {
+	e.values.unmarshal(bctx, projection)
 }
 
 func (e *enum) project(loader *FrameLoader, projection field.Projection) vector.Any {

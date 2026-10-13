@@ -14,8 +14,8 @@ func NewNoneEncoder(len uint32) *NoneEncoder {
 	return &NoneEncoder{len}
 }
 
-func (n *NoneEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
-	return off, cctx.enter(&None{n.len})
+func (n *NoneEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
+	return off, bctx.enter(&None{n.len})
 }
 
 func (*NoneEncoder) Encode(group *errgroup.Group) {}

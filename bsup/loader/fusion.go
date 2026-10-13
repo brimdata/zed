@@ -10,18 +10,18 @@ import (
 
 type fusion struct {
 	mu       sync.Mutex
-	cctx     *bsup.Context
+	bctx     *bsup.Context
 	meta     *bsup.Fusion
 	len      uint32
 	values   shadow
 	subtypes *typevalue
 }
 
-func newFusion(cctx *bsup.Context, meta *bsup.Fusion) *fusion {
+func newFusion(bctx *bsup.Context, meta *bsup.Fusion) *fusion {
 	return &fusion{
-		cctx: cctx,
+		bctx: bctx,
 		meta: meta,
-		len:  meta.Len(cctx),
+		len:  meta.Len(bctx),
 	}
 }
 
@@ -29,16 +29,16 @@ func (f *fusion) length() uint32 {
 	return f.len
 }
 
-func (f *fusion) unmarshal(cctx *bsup.Context, projection field.Projection) {
+func (f *fusion) unmarshal(bctx *bsup.Context, projection field.Projection) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.values == nil {
-		f.values = newShadow(cctx, f.meta.Values)
+		f.values = newShadow(bctx, f.meta.Values)
 	}
 	if f.subtypes == nil {
-		f.subtypes = newTypeValue(cctx, cctx.Lookup(f.meta.Subtypes).(*bsup.TypeValue))
+		f.subtypes = newTypeValue(bctx, bctx.Lookup(f.meta.Subtypes).(*bsup.TypeValue))
 	}
-	f.values.unmarshal(cctx, projection)
+	f.values.unmarshal(bctx, projection)
 }
 
 func (f *fusion) project(loader *FrameLoader, projection field.Projection) vector.Any {

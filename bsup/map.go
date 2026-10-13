@@ -14,10 +14,10 @@ type MapEncoder struct {
 	count   uint32
 }
 
-func NewMapEncoder(cctx *Context, vec *vector.Map) *MapEncoder {
+func NewMapEncoder(bctx *Context, vec *vector.Map) *MapEncoder {
 	return &MapEncoder{
-		keys:    NewEncoder(cctx, vec.Keys),
-		values:  NewEncoder(cctx, vec.Values),
+		keys:    NewEncoder(bctx, vec.Keys),
+		values:  NewEncoder(bctx, vec.Values),
 		offsets: NewUint32Encoder(vec.Offsets),
 	}
 }
@@ -32,11 +32,11 @@ func (m *MapEncoder) Emit(w io.Writer) error {
 	return m.values.Emit(w)
 }
 
-func (m *MapEncoder) Metadata(cctx *Context, off uint64) (uint64, ID) {
+func (m *MapEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	off, lens := m.offsets.Segment(off)
-	off, keys := m.keys.Metadata(cctx, off)
-	off, vals := m.values.Metadata(cctx, off)
-	return off, cctx.enter(&Map{
+	off, keys := m.keys.Metadata(bctx, off)
+	off, vals := m.values.Metadata(bctx, off)
+	return off, bctx.enter(&Map{
 		Lengths: lens,
 		Keys:    keys,
 		Values:  vals,

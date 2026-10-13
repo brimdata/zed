@@ -18,10 +18,10 @@ type union struct {
 	values []shadow
 }
 
-func newUnion(cctx *bsup.Context, meta *bsup.Union) *union {
+func newUnion(bctx *bsup.Context, meta *bsup.Union) *union {
 	return &union{
 		meta:   meta,
-		len:    meta.Len(cctx),
+		len:    meta.Len(bctx),
 		values: make([]shadow, len(meta.Values)),
 	}
 }
@@ -30,14 +30,14 @@ func (u *union) length() uint32 {
 	return u.len
 }
 
-func (u *union) unmarshal(cctx *bsup.Context, projection field.Projection) {
+func (u *union) unmarshal(bctx *bsup.Context, projection field.Projection) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	for k, id := range u.meta.Values {
 		if u.values[k] == nil {
-			u.values[k] = newShadow(cctx, id)
+			u.values[k] = newShadow(bctx, id)
 		}
-		u.values[k].unmarshal(cctx, projection)
+		u.values[k].unmarshal(bctx, projection)
 	}
 }
 
