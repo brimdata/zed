@@ -352,7 +352,7 @@ The following file `hello.sup` is also used.
 
 _Source data from the `main` branch of a table_
 ```mdtest-command
-super db -db example -s -c 'from coinflips'
+super db -attach example -s -c 'from coinflips'
 ```
 ```mdtest-output
 {flip:2,result:"tails"}
@@ -363,7 +363,7 @@ super db -db example -s -c 'from coinflips'
 
 _Source data from a specific branch of a table_
 ```mdtest-command
-super db -db example -s -c 'from coinflips@trial'
+super db -attach example -s -c 'from coinflips@trial'
 ```
 ```mdtest-output
 {flip:3,result:"heads"}
@@ -375,7 +375,7 @@ super db -db example -s -c 'from coinflips@trial'
 
 _Count the number of values in the `main` branch of all tables_
 ```mdtest-command
-super db -db example -s -c 'from * | count()'
+super db -attach example -s -c 'from * | count()'
 ```
 ```mdtest-output
 5
@@ -386,7 +386,7 @@ super db -db example -s -c 'from * | count()'
 _Join the data from multiple tables_
 
 ```mdtest-command
-super db -db example -s -c '
+super db -attach example -s -c '
   from coinflips
   | join ( from numbers ) on left.flip=right.number
   | values {...left, word:right.word}
@@ -401,7 +401,7 @@ super db -db example -s -c '
 
 _Use `pass` to combine our join output with data from yet another source_
 ```mdtest-command
-super db -db example -s -c '
+super db -attach example -s -c '
   from coinflips
   | join ( from numbers ) on left.flip=right.number
   | values {...left, word:right.word}
@@ -422,7 +422,7 @@ super db -db example -s -c '
 
 _Use an f-string to source data from table names computed at run time_
 ```mdtest-command
-super db -db example -s -c '
+super db -attach example -s -c '
   from :tables
   | from f"{name}"
   | sort this'

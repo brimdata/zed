@@ -11,6 +11,7 @@ import (
 
 	"github.com/superdb/super/api/client"
 	"github.com/superdb/super/api/client/auth0"
+	"github.com/superdb/super/cli/poolflags"
 	"github.com/superdb/super/db"
 	"github.com/superdb/super/db/api"
 	"github.com/superdb/super/pkg/storage"
@@ -24,10 +25,8 @@ var (
 
 type Flags struct {
 	ConfigDir string
-	DB        string
 	Quiet     bool
-
-	dbSpecified bool
+	attach    string
 }
 
 func (l *Flags) SetFlags(fs *flag.FlagSet) {
@@ -37,17 +36,33 @@ func (l *Flags) SetFlags(fs *flag.FlagSet) {
 		dir = filepath.Join(dir, ".super")
 	}
 	fs.StringVar(&l.ConfigDir, "configdir", dir, "configuration and credentials directory")
-	if s, ok := os.LookupEnv("SUPER_DB"); ok {
-		l.DB, l.dbSpecified = s, true
+	fs.StringVar(&l.attach, "attach", "", "database for this command only (default: the attached database)")
+}
+
+func (l *Flags) Location() (*storage.URI, error) {
+	s := l.attach
+	if s == "" {
+		s = os.Getenv("SUPER_DB")
 	}
-	fs.Func("db", fmt.Sprintf("database location (env SUPER_DB) (default %s)", l.DB), func(s string) error {
-		l.DB, l.dbSpecified = s, true
-		return nil
-	})
+	if s == "" {
+		var err error
+		if s, err = poolflags.ReadAttach(); err != nil {
+			return nil, err
+		}
+	}
+	if s == "" {
+		if pingLocalServer() {
+			return storage.MustParseURI("http://localhost:9867"), nil
+		}
+		if s = getDefaultDataDir(); s == "" {
+			return nil, errors.New(`no database attached (run "super db attach <location>" or use -attach)`)
+		}
+	}
+	return storage.ParseURI(strings.TrimRight(s, "/"))
 }
 
 func (l *Flags) Connection() (*client.Connection, error) {
-	uri, err := l.ClientURI()
+	uri, err := l.Location()
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +77,7 @@ func (l *Flags) Connection() (*client.Connection, error) {
 }
 
 func (l *Flags) Open(ctx context.Context) (api.Interface, error) {
-	uri, err := l.ClientURI()
+	uri, err := l.Location()
 	if err != nil {
 		return nil, err
 	}
@@ -84,36 +99,7 @@ func (l *Flags) AuthStore() *auth0.Store {
 	return auth0.NewStore(filepath.Join(l.ConfigDir, "credentials.json"))
 }
 
-func (l *Flags) URI() (*storage.URI, error) {
-	db := strings.TrimRight(l.DB, "/")
-	if !l.dbSpecified {
-		db = getDefaultDataDir()
-	}
-	if db == "" {
-		return nil, errors.New("database location must be set (either with the -db flag or SUPER_DB environment variable)")
-	}
-	u, err := storage.ParseURI(db)
-	if err != nil {
-		err = fmt.Errorf("error parsing database location: %w", err)
-	}
-	return u, err
-}
-
-// ClientURI returns the URI of the database to connect to. If the database path is
-// the defaultDataDir, it first checks if a SuperDB service is running on
-// localhost:9867 and if so uses http://localhost:9867 as the database location.
-func (l *Flags) ClientURI() (*storage.URI, error) {
-	u, err := l.URI()
-	if err != nil {
-		return nil, err
-	}
-	if !l.dbSpecified && localServer() {
-		u = storage.MustParseURI("http://localhost:9867")
-	}
-	return u, nil
-}
-
-func localServer() bool {
+func pingLocalServer() bool {
 	_, err := client.NewConnection().Ping(context.Background())
 	return err == nil
 }

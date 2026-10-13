@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/superdb/super/pkg/charm"
 	"github.com/superdb/super/pkg/fs"
 	"github.com/superdb/super/pkg/httpd"
+	"github.com/superdb/super/pkg/storage"
 	"github.com/superdb/super/service"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -27,7 +29,7 @@ import (
 
 var spec = &charm.Spec{
 	Name:  "serve",
-	Usage: "serve [options]",
+	Usage: "serve [options] <path>",
 	Short: "service requests to a database",
 	Long: `
 See https://superdb.org/command/db.html#super-db-serve
@@ -80,9 +82,14 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	if c.conf.Root, err = c.DBFlags.URI(); err != nil {
+	if len(args) != 1 {
+		return errors.New("serve requires one argument: the path to the database root")
+	}
+	root, err := storage.ParseURI(strings.TrimRight(args[0], "/"))
+	if err != nil {
 		return err
 	}
+	c.conf.Root = root
 	if api.IsRemote(c.conf.Root.String()) {
 		return errors.New("serve command available for local databases only")
 	}

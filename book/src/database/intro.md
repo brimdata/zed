@@ -209,14 +209,15 @@ enable this by default while allowing for separate storage when desired,
 `super db` checks each of the following in order to attempt to locate an existing
 database.
 
-1. The contents of the `-db` option (if specified)
-2. The contents of the `SUPER_DB` environment variable (if defined)
-3. A database service running locally at `http://localhost:9867` (if a socket
+1. The contents of the `-attach` option (if specified)
+2. The currently attached database in `~/.super_attach` (written by super db attach)
+3. The contents of the `SUPER_DB` environment variable (if defined)
+4. A database service running locally at `http://localhost:9867` (if a socket
    is listening at that port)
-4. A `super` subdirectory below a path in the
+5. A `super` subdirectory below a path in the
    `XDG_DATA_HOME` **TODO: add link to basedir spec**
    environment variable (if defined)
-5. A default file system location based on detected OS platform:
+6. A default file system location based on detected OS platform:
    - `%LOCALAPPDATA%\super` on Windows
    - `$HOME/.local/share/super` on Linux and macOS
 

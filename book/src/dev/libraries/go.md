@@ -90,9 +90,10 @@ as access via a service endpoint.
 
 First, we'll use `super` to create a database and load the example data:
 ```
-super db init -db scratch
-super db create -db scratch Demo
-echo '{s:"hello, world"}{x:1}{s:"good bye"}' | super db load -db scratch -use Demo -
+super db init scratch
+super db attach scratch
+super db create Demo
+echo '{s:"hello, world"}{x:1}{s:"good bye"}' | super db load -use Demo -
 ```
 Now replace `main.go` with this code:
 ```mdtest-go-example

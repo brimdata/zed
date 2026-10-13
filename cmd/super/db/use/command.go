@@ -53,8 +53,8 @@ func (c *Command) Run(args []string) error {
 			return errors.New("default table and branch unset")
 		}
 		fmt.Printf("HEAD at %s\n", head)
-		if u, err := c.DBFlags.ClientURI(); err == nil {
-			fmt.Printf("Database at %s\n", u)
+		if u, err := c.DBFlags.Location(); err == nil {
+			fmt.Printf("Attached to %s\n", u)
 		}
 		return nil
 	}

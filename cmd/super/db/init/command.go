@@ -42,7 +42,7 @@ func (c *Command) Run(args []string) error {
 	defer cleanup()
 	var u *storage.URI
 	if len(args) == 0 {
-		if u, err = c.DBFlags.URI(); err != nil {
+		if u, err = c.DBFlags.Location(); err != nil {
 			return err
 		}
 	} else if len(args) == 1 {

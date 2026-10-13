@@ -72,11 +72,7 @@ which may be:
 * an HTTPS URL that points to a SuperDB service endpoint.
 
 In the case of a service endpoint, authentication may be performed with the
-[super db auth](#super-db-auth) command.
-
->[!NOTE]
-> A future release of SuperDB will introduce `db connect` and `db disconnect` commands,
-> which will include optional authentication and replace `db auth`.
+[super db attach](#super-db-attach) command.
 
 ### Committish
 
@@ -218,11 +214,12 @@ super db -f db -c "from logs:objects"
 
 ## Sub-commands
 
-* [auth](#super-db-auth) authentication and authorization commands
+* [attach](#super-db-attach) attach local CLI to a database
 * [branch](#super-db-branch) create a new branch in a table
 * [compact](#super-db-compact) compact data objects on a table branch
-* [create](#super-db-create) create a new table in a database
+* [create](#super-db-create) create a new pootablel in a database
 * [delete](#super-db-delete) delete data from a table
+* [detach](#super-db-attach) detach local CLI from database
 * [drop](#super-db-drop) remove a table from a database
 * [init](#super-db-init) create and initialize a new database
 * [load](#super-db-load) load data into database
@@ -237,20 +234,23 @@ super db -f db -c "from logs:objects"
 * [vacate](#super-db-vacate) truncate a table's commit history by removing old commits
 * [vacuum](#super-db-vacuum) vacuum deleted storage in database
 
-### super db auth
+### super db attach
 
 ```
-super db auth login|logout|method|verify
+super db attach <endpoint>
 ```
 * [Global](options.md#global)
 * [Database](options.md#database)
 
-> **TODO: rename this command. it's really about connecting to a database.
-> authenticating is something you do to connect.**
-* login - log in to a database service and save credentials
-* logout - remove saved credentials for a database service
-* method - display authentication method supported by database service
-* verify - verify authentication credentials
+The `attach` command binds the local CLI to a database.
+The `<endpoint>` argument specifies a local file system path,
+an `s3` URL, or the URL of a service endpoint.
+When connecting to a service that requires authentication,
+attach initiates a login to obtain credentials.
+
+The `-login` flag forces a login even when existing credentials are in place.
+The `-token` flag may be used to specify the authentication secret directly
+without invoking a login process.
 
 ### super db branch
 ```
@@ -366,6 +366,18 @@ single filter expression, e.g.:
 ```
 super db delete -where 'ts > 2022-10-05T17:20:00Z and ts < 2022-10-05T17:21:00Z'
 ```
+
+### super db detach
+
+```
+super db detach
+```
+* [Global](options.md#global)
+* [Database](options.md#database)
+
+The `detach` command disconnects the CLI from a database and
+clears authentication credentials when present from local storage.
+It also clears HEAD.
 
 ### super db drop
 

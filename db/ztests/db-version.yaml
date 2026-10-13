@@ -4,7 +4,7 @@ script: |
   super db create -q test
   mv test/superdb.bsup superdb-orig.bsup
   super -o test/superdb.bsup -c 'version:=1' superdb-orig.bsup
-  ! super db serve
+  ! super db serve $SUPER_DB
 
 outputs:
   - name: stderr

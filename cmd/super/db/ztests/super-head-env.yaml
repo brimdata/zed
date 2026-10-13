@@ -9,7 +9,7 @@ script: |
   export SUPER_HEAD_DIR=.
   mkdir y
   cd y
-  super db use -db ../test -q TABLE
+  super db use -attach ../test -q TABLE
   cat .super_head
 
 outputs:

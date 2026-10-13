@@ -5,7 +5,7 @@ import (
 	"os"
 
 	_ "github.com/superdb/super/cmd/super/compile"
-	_ "github.com/superdb/super/cmd/super/db/auth"
+	_ "github.com/superdb/super/cmd/super/db/attach"
 	_ "github.com/superdb/super/cmd/super/db/branch"
 	_ "github.com/superdb/super/cmd/super/db/compact"
 	_ "github.com/superdb/super/cmd/super/db/compile"

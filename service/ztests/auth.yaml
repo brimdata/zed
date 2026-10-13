@@ -1,8 +1,9 @@
 script: |
   DB_EXTRA_FLAGS="-auth.enabled=true -auth.audience=a -auth.clientid=testuser -auth.domain=https://testdomain -auth.jwkspath=auth-public-jwks.json" source service.sh
-  super db auth store -configdir user1 -access \
-    $(gentoken -audience a -domain https://testdomain -privatekeyfile auth-private-key -keyid testkey -tenantid tenant1 -userid user1)
-  super db auth verify -configdir user1 
+  super db attach -q -configdir user1 -token \
+    $(gentoken -audience a -domain https://testdomain -privatekeyfile auth-private-key -keyid testkey -tenantid tenant1 -userid user1) \
+    $SUPER_DB
+  super db attach -configdir user1 | grep -v '^Attached to'
   super db create -configdir user1 -q test0
   # Unauthenticated user should not be able to create a table.
   ! super db create -q test1
@@ -20,6 +21,7 @@ outputs:
       status code 401: no token present in request
   - name: stdout
     data: |
+      Auth method: auth0
       {
       	"tenant_id": "tenant1",
       	"user_id": "user1"

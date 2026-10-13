@@ -73,7 +73,7 @@ in which they occurred.
 Database options available to the `super db` command and
 to all `db` [sub-commands](db.md#sub-commands) include:
 * `-configdir` configuration and credentials directory
-* `-db database` location (defaults to environment variable SUPER_DB if not specified)
+* `-attach URI` location (defaults to environment variable SUPER_DB if not specified)
 * `-q` quiet mode to disable displaying status messages for many `super db` subcommands
 
 ## Commit
