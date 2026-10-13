@@ -141,6 +141,8 @@ func recordOf(typ super.Type) *super.TypeRecord {
 				return typ
 			}
 		}
+	case *super.TypeFusion:
+		return recordOf(typ.Type)
 	}
 	return nil
 }
