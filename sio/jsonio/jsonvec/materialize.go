@@ -73,10 +73,7 @@ func (m *materializer) union(u *Union) (vector.Any, []uint32) {
 	}
 	utyp := m.sctx.MustLookupTypeUnion(super.UniqueTypes(types))
 	subtypes := m.makeUnionSubtypes(u.Tags, dynamic, fixed)
-	typ, err := m.sctx.LookupTypeFusion(utyp)
-	if err != nil {
-		panic(err)
-	}
+	typ := m.sctx.MustLookupTypeFusion(utyp)
 	loader := &subtypesLoader{
 		defs:     m.defs,
 		subtypes: subtypes,
@@ -114,10 +111,7 @@ func (m *materializer) array(a *Array) (vector.Any, []uint32) {
 		id := m.arrayID(ids[a.Offsets[k]:a.Offsets[k+1]])
 		subtypes = append(subtypes, id)
 	}
-	fusionType, err := m.sctx.LookupTypeFusion(arrayType)
-	if err != nil {
-		panic(err)
-	}
+	fusionType := m.sctx.MustLookupTypeFusion(arrayType)
 	loader := &subtypesLoader{
 		defs:     m.defs,
 		subtypes: subtypes,
@@ -205,10 +199,7 @@ func (m *materializer) record(r *Record) (vector.Any, []uint32) {
 		// still need the per-row original types for their subtypes.
 		return record, subtypes
 	}
-	typ, err := m.sctx.LookupTypeFusion(rtyp)
-	if err != nil {
-		panic(err)
-	}
+	typ := m.sctx.MustLookupTypeFusion(rtyp)
 	loader := &subtypesLoader{
 		defs:     m.defs,
 		subtypes: subtypes,
@@ -246,10 +237,7 @@ func (m *materializer) missing(vec vector.Any, ids []uint32, fixed uint32, n uin
 			subtypes = append(subtypes, fixed)
 		}
 	}
-	typ, err := m.sctx.LookupTypeFusion(u.Typ)
-	if err != nil {
-		panic(err) // can't happen: none is at this fusion's own level
-	}
+	typ := m.sctx.MustLookupTypeFusion(u.Typ)
 	loader := &subtypesLoader{defs: m.defs, subtypes: subtypes}
 	return vector.NewFusionWithLoader(m.sctx, typ, loader, u)
 }

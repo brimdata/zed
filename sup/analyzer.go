@@ -586,10 +586,7 @@ func (a *Analyzer) createAny(val Value) Value {
 	if super.IsTypeAny(val.Type()) {
 		return val
 	}
-	typ, err := a.sctx.LookupTypeFusion(super.TypeAll)
-	if err != nil {
-		panic(err)
-	}
+	typ := a.sctx.MustLookupTypeFusion(super.TypeAll)
 	return &Fusion{
 		value:   val,
 		typ:     typ,

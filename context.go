@@ -414,6 +414,14 @@ func (c *Context) LookupTypeFusion(inner Type) (*TypeFusion, error) {
 	return typ, nil
 }
 
+func (c *Context) MustLookupTypeFusion(inner Type) *TypeFusion {
+	typ, err := c.LookupTypeFusion(inner)
+	if err != nil {
+		panic(err)
+	}
+	return typ
+}
+
 func (c *Context) LookupTypeOption(inner Type) *TypeOption {
 	if _, ok := inner.(*TypeOption); ok || inner == TypeNone {
 		panic(inner)

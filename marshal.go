@@ -213,10 +213,7 @@ func (m *Marshaler) encodeAny(v reflect.Value) (Type, error) {
 		return val.Type(), nil
 	case Value:
 		// Encode as {Fusion:<any>,Bytes:bytes,Subtype:typ}
-		anyType, err := m.sctx.LookupTypeFusion(TypeAll)
-		if err != nil {
-			panic(err)
-		}
+		anyType := m.sctx.MustLookupTypeFusion(TypeAll)
 		typeVal := m.sctx.LookupTypeValue(v.Type())
 		BuildFusion(&m.builder, v.Bytes(), typeVal.Bytes())
 		return anyType, nil
