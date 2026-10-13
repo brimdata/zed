@@ -1,7 +1,9 @@
   script: |
-    ! super db serve
+    ! super db ls -attach ''
+    ! super db serve ''
 
   outputs:
     - name: stderr
       data: |
-        serve requires one argument: the path to the database root
+        invalid value "" for flag -attach: please provide path of database or URI of service
+        root path cannot have scheme ""

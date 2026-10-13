@@ -36,33 +36,18 @@ func (l *Flags) SetFlags(fs *flag.FlagSet) {
 		dir = filepath.Join(dir, ".super")
 	}
 	fs.StringVar(&l.ConfigDir, "configdir", dir, "configuration and credentials directory")
-	fs.StringVar(&l.attach, "attach", "", "database for this command only (default: the attached database)")
-}
-
-func (l *Flags) Location() (*storage.URI, error) {
-	s := l.attach
-	if s == "" {
-		s = os.Getenv("SUPER_DB")
-	}
-	if s == "" {
-		var err error
-		if s, err = poolflags.ReadAttach(); err != nil {
-			return nil, err
-		}
-	}
-	if s == "" {
-		if pingLocalServer() {
-			return storage.MustParseURI("http://localhost:9867"), nil
-		}
-		if s = getDefaultDataDir(); s == "" {
-			return nil, errors.New(`no database attached (run "super db attach <location>" or use -attach)`)
-		}
-	}
-	return storage.ParseURI(strings.TrimRight(s, "/"))
+	fs.Func("attach", "database for this command only (default: the attached database)",
+		func(s string) error {
+			l.attach = s
+			if s == "" {
+				return errors.New("please provide path of database or URI of service")
+			}
+			return nil
+		})
 }
 
 func (l *Flags) Connection() (*client.Connection, error) {
-	uri, err := l.Location()
+	uri, err := l.URI()
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +62,7 @@ func (l *Flags) Connection() (*client.Connection, error) {
 }
 
 func (l *Flags) Open(ctx context.Context) (api.Interface, error) {
-	uri, err := l.Location()
+	uri, err := l.URI()
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +78,28 @@ func (l *Flags) Open(ctx context.Context) (api.Interface, error) {
 		return nil, fmt.Errorf("%w\n(hint: run 'super db init' to initialize a database at this location)", err)
 	}
 	return DB, err
+}
+
+func (l *Flags) URI() (*storage.URI, error) {
+	s := l.attach
+	if s == "" {
+		var err error
+		if s, err = poolflags.ReadAttach(); err != nil {
+			return nil, err
+		}
+	}
+	if s == "" && pingLocalServer() {
+		s = "http://localhost:9867"
+	}
+	if s == "" {
+		s = os.Getenv("SUPER_DB")
+	}
+	if s == "" {
+		if s = getDefaultDataDir(); s == "" {
+			return nil, errors.New(`no database attached (run "super db attach <location>" or use -attach)`)
+		}
+	}
+	return storage.ParseURI(strings.TrimRight(s, "/"))
 }
 
 func (l *Flags) AuthStore() *auth0.Store {

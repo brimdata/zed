@@ -161,7 +161,7 @@ func (c *AttachCommand) loginAuth0(ctx context.Context, m api.AuthMethodAuth0Det
 }
 
 func (c *AttachCommand) status(ctx context.Context) error {
-	u, err := c.DBFlags.Location()
+	u, err := c.DBFlags.URI()
 	if err != nil {
 		return err
 	}

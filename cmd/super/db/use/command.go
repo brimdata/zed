@@ -53,7 +53,7 @@ func (c *Command) Run(args []string) error {
 			return errors.New("default table and branch unset")
 		}
 		fmt.Printf("HEAD at %s\n", head)
-		if u, err := c.DBFlags.Location(); err == nil {
+		if u, err := c.DBFlags.URI(); err == nil {
 			fmt.Printf("Attached to %s\n", u)
 		}
 		return nil
