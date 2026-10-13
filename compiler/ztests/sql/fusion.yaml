@@ -1,6 +1,12 @@
 script: |
-  super -o test.bsup -c "type foo={a:int64} values cast({a:1},foo), {a:2}"
-  super -s -c "SELECT * FROM 'test.bsup'"
+  super -s -c "SELECT * FROM test.sup"
+
+inputs:
+  - name: test.sup
+    data: |
+      type foo={a:int64}
+      {a:1}::foo
+      {a:2}
 
 outputs:
   - name: stdout

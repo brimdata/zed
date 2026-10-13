@@ -44,7 +44,7 @@ func (r *Reader) Read() (*super.Value, error) {
 
 func (r *Reader) Type() (super.Type, error) {
 	r.parser = sup.NewParser(r.reader)
-	fuser := super.NewFuser(r.sctx, false)
+	fuser := super.NewFuser(r.sctx, true)
 	for {
 		ast, err := r.parser.ParseValue()
 		if ast == nil || err != nil {
