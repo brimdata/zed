@@ -12,7 +12,7 @@ import (
 	"github.com/superdb/super/api"
 	"github.com/superdb/super/api/client"
 	"github.com/superdb/super/api/client/auth0"
-	"github.com/superdb/super/cli/poolflags"
+	"github.com/superdb/super/cli/tableflags"
 	"github.com/superdb/super/cmd/super/db"
 	superdb "github.com/superdb/super/db"
 	dbapi "github.com/superdb/super/db/api"
@@ -79,10 +79,10 @@ func (c *Command) Run(args []string) error {
 		}
 		return err
 	}
-	if err := poolflags.WriteAttach(u.String()); err != nil {
+	if err := tableflags.WriteAttach(u.String()); err != nil {
 		return err
 	}
-	if err := poolflags.ClearHead(); err != nil {
+	if err := tableflags.ClearHead(); err != nil {
 		return err
 	}
 	if !c.DBFlags.Quiet {

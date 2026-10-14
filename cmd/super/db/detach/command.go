@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/superdb/super/api/client"
-	"github.com/superdb/super/cli/poolflags"
+	"github.com/superdb/super/cli/tableflags"
 	"github.com/superdb/super/cmd/super/db"
 	dbapi "github.com/superdb/super/db/api"
 	"github.com/superdb/super/pkg/charm"
@@ -39,7 +39,7 @@ func (c *Command) Run(args []string) error {
 	if len(args) > 0 {
 		return errors.New("detach takes no arguments")
 	}
-	loc, err := poolflags.ReadAttach()
+	loc, err := tableflags.ReadAttach()
 	if err != nil {
 		return err
 	}
@@ -52,8 +52,8 @@ func (c *Command) Run(args []string) error {
 			return fmt.Errorf("failed to remove credentials: %w", err)
 		}
 	}
-	if err := poolflags.RemoveAttach(); err != nil {
+	if err := tableflags.RemoveAttach(); err != nil {
 		return err
 	}
-	return poolflags.ClearHead()
+	return tableflags.ClearHead()
 }

@@ -42,8 +42,8 @@ func writeState(which string, s string) error {
 	return err
 }
 
-func WriteHead(pool, branch string) error {
-	return writeState(head, fmt.Sprintf("%s@%s\n", pool, branch))
+func WriteHead(table, branch string) error {
+	return writeState(head, fmt.Sprintf("%s@%s\n", table, branch))
 }
 
 func readHead() (string, error) {
@@ -66,7 +66,7 @@ func RemoveAttach() error {
 	return err
 }
 
-// ClearHead removes the default pool and branch, e.g., when the attached
+// ClearHead removes the default table and branch, e.g., when the attached
 // database changes and the old HEAD no longer applies.
 func ClearHead() error {
 	err := os.Remove(statePath(head))

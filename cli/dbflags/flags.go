@@ -11,7 +11,7 @@ import (
 
 	"github.com/superdb/super/api/client"
 	"github.com/superdb/super/api/client/auth0"
-	"github.com/superdb/super/cli/poolflags"
+	"github.com/superdb/super/cli/tableflags"
 	"github.com/superdb/super/db"
 	"github.com/superdb/super/db/api"
 	"github.com/superdb/super/pkg/storage"
@@ -84,7 +84,7 @@ func (l *Flags) URI() (*storage.URI, error) {
 	s := l.attach
 	if s == "" {
 		var err error
-		if s, err = poolflags.ReadAttach(); err != nil {
+		if s, err = tableflags.ReadAttach(); err != nil {
 			return nil, err
 		}
 	}
