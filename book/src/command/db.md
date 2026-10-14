@@ -217,7 +217,7 @@ super db -f db -c "from logs:objects"
 * [attach](#super-db-attach) attach local CLI to a database
 * [branch](#super-db-branch) create a new branch in a table
 * [compact](#super-db-compact) compact data objects on a table branch
-* [create](#super-db-create) create a new pootablel in a database
+* [create](#super-db-create) create a new table in a database
 * [delete](#super-db-delete) delete data from a table
 * [detach](#super-db-attach) detach local CLI from database
 * [drop](#super-db-drop) remove a table from a database
