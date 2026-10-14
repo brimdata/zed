@@ -195,6 +195,6 @@ output: |
   none
   none
   error({message:"'?.': applied to non-record",on:1})
-  error({message:"'?.': applied to non-record",on:1})
+  error({message:"'?.': applied to non-record",on?:1})
   some(1)
   none::int64

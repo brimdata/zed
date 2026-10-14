@@ -14,6 +14,7 @@ const (
 	ApplyRipUnions ApplyOpt = 1 << iota
 	ApplyRipFusions
 	ApplyRipOptions
+	ApplyDefuseMissings
 )
 
 type NoRip struct {
@@ -58,6 +59,16 @@ func Apply(opt ApplyOpt, eval func(...Any) Any, vecs ...Any) Any {
 			}
 		}
 	}
+	if opt&ApplyDefuseMissings != 0 {
+		for k, vec := range vecs {
+			if _, ok := vec.(*NoRip); !ok && vec.Kind() == KindFusion {
+				if union, ok := Super(vec).(*Union); ok {
+					vecs[k] = defuseMissing(vec, union)
+				}
+			}
+		}
+	}
+
 	var needApply bool
 	for k, vec := range vecs {
 		if d, ok := vec.(*Dynamic); ok && len(d.Tags) > 0 && homogenous(d.Tags) {
@@ -206,4 +217,39 @@ func ripOption(o *Option) Any {
 		return NewDynamic(d.Tags, []Any{some, none})
 	}
 	return o
+}
+
+type Missing struct {
+	Any
+}
+
+func defuseMissing(vec Any, union *Union) Any {
+	noneTag := findNone(union.Values())
+	if noneTag < 0 {
+		return vec
+	}
+	var index, tags []uint32
+	for k, tag := range union.Tags() {
+		if int(tag) != noneTag {
+			index = append(index, uint32(k))
+			tags = append(tags, 0)
+		} else {
+			tags = append(tags, 1)
+		}
+	}
+	vals := Pick(vec, index)
+	missings := &Missing{NewNone(vec.Len() - uint32(len(index)))}
+	return NewDynamic(tags, []Any{vals, missings})
+}
+
+func findNone(vecs []Any) int {
+	for k, vec := range vecs {
+		if vec.Type() == super.TypeNone {
+			if vec.Len() != 0 {
+				return k
+			}
+			break
+		}
+	}
+	return -1
 }
