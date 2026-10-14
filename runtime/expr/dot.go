@@ -79,7 +79,6 @@ func (d *DotExpr) eval(outerVecs ...vector.Any) vector.Any {
 				return out
 			}
 			return vector.Apply(vector.ApplyDefuseMissings, func(vecs ...vector.Any) vector.Any {
-
 				on := vecs[0]
 				unripped := vecs[1]
 				ripped := vecs[2]
@@ -141,7 +140,7 @@ func hasMissingUnion(vec vector.Any) bool {
 	case *vector.Fusion:
 		return hasMissingUnion(vec.Values)
 	case *vector.Dynamic:
-		return slices.IndexFunc(vec.Values, hasMissingUnion) >= 0
+		return slices.ContainsFunc(vec.Values, hasMissingUnion)
 	case *vector.View:
 		return hasMissingUnion(vec.Any)
 	}
@@ -157,7 +156,7 @@ func hasNone(vec vector.Any) bool {
 	case *vector.Fusion:
 		return hasNone(vec.Values)
 	case *vector.Dynamic:
-		return slices.IndexFunc(vec.Values, hasNone) >= 0
+		return slices.ContainsFunc(vec.Values, hasNone)
 	}
 	return false
 }

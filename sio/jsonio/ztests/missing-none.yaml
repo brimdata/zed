@@ -26,7 +26,7 @@ outputs:
 ---
 
 script: |
-  super -f bsup -o in.bsup in.json
+  super -o in.bsup in.json
   super -s -I query.spq
 
 inputs:
@@ -52,7 +52,7 @@ outputs:
 ---
 
 script: |
-  super -f bsup -o in.bsup in.json
+  super -o in.bsup in.json
   super -s -I query.spq
 
 inputs:

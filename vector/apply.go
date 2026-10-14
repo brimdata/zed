@@ -228,17 +228,17 @@ func defuseMissing(vec Any, union *Union) Any {
 	if noneTag < 0 {
 		return vec
 	}
-	var pick, tags []uint32
+	var index, tags []uint32
 	for k, tag := range union.Tags() {
 		if int(tag) != noneTag {
-			pick = append(pick, uint32(k))
+			index = append(index, uint32(k))
 			tags = append(tags, 0)
 		} else {
 			tags = append(tags, 1)
 		}
 	}
-	vals := Pick(vec, pick)
-	missings := &Missing{NewNone(vec.Len() - uint32(len(pick)))}
+	vals := Pick(vec, index)
+	missings := &Missing{NewNone(vec.Len() - uint32(len(index)))}
 	return NewDynamic(tags, []Any{vals, missings})
 }
 
