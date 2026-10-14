@@ -1,4 +1,4 @@
-package attach
+package detach
 
 import (
 	"errors"
@@ -22,15 +22,15 @@ See https://superdb.org/command/db.html#super-db-auth
 	New: NewDetachCommand,
 }
 
-type DetachCommand struct {
+type Command struct {
 	*db.Command
 }
 
 func NewDetachCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	return &DetachCommand{Command: parent.(*db.Command)}, nil
+	return &Command{Command: parent.(*db.Command)}, nil
 }
 
-func (c *DetachCommand) Run(args []string) error {
+func (c *Command) Run(args []string) error {
 	_, cleanup, err := c.Init()
 	if err != nil {
 		return err

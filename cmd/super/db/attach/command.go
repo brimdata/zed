@@ -35,10 +35,9 @@ var Attach = &charm.Spec{
 
 func init() {
 	db.Spec.Add(Attach)
-	db.Spec.Add(Detach)
 }
 
-type AttachCommand struct {
+type Command struct {
 	*db.Command
 	launchBrowser bool
 	login         bool
@@ -46,14 +45,14 @@ type AttachCommand struct {
 }
 
 func NewAttachCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &AttachCommand{Command: parent.(*db.Command)}
+	c := &Command{Command: parent.(*db.Command)}
 	f.BoolVar(&c.launchBrowser, "launchbrowser", true, "launch a browser for service login")
 	f.BoolVar(&c.login, "login", false, "log in even if credentials are already stored")
 	f.StringVar(&c.token, "token", "", "store this raw access token instead of prompting for login")
 	return c, nil
 }
 
-func (c *AttachCommand) Run(args []string) error {
+func (c *Command) Run(args []string) error {
 	ctx, cleanup, err := c.Init()
 	if err != nil {
 		return err
@@ -92,7 +91,7 @@ func (c *AttachCommand) Run(args []string) error {
 	return nil
 }
 
-func (c *AttachCommand) attachService(ctx context.Context, url string) error {
+func (c *Command) attachService(ctx context.Context, url string) error {
 	conn := client.NewConnectionTo(url)
 	if _, err := conn.Ping(ctx); err != nil {
 		return fmt.Errorf("cannot reach %s: %w", url, err)
@@ -132,7 +131,7 @@ func (c *AttachCommand) attachService(ctx context.Context, url string) error {
 	}
 }
 
-func (c *AttachCommand) loginAuth0(ctx context.Context, m api.AuthMethodAuth0Details, secrets *auth0.Store, conn *client.Connection) error {
+func (c *Command) loginAuth0(ctx context.Context, m api.AuthMethodAuth0Details, secrets *auth0.Store, conn *client.Connection) error {
 	fmt.Println("method", m.ClientID)
 	fmt.Println("domain", m.Domain)
 	fmt.Println("audience", m.Audience)
@@ -160,7 +159,7 @@ func (c *AttachCommand) loginAuth0(ctx context.Context, m api.AuthMethodAuth0Det
 	return nil
 }
 
-func (c *AttachCommand) status(ctx context.Context) error {
+func (c *Command) status(ctx context.Context) error {
 	u, err := c.DBFlags.URI()
 	if err != nil {
 		return err

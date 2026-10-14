@@ -1,9 +1,9 @@
-  script: |
-    ! super db ls -attach ''
-    ! super db serve ''
+script: |
+  ! super db ls -attach ''
+  ! super db serve ''
 
-  outputs:
-    - name: stderr
-      data: |
-        invalid value "" for flag -attach: please provide path of database or URI of service
-        root path cannot have scheme ""
+outputs:
+  - name: stderr
+    data: |
+      invalid value "" for flag -attach: please provide path of database or URI of service
+      root path cannot have scheme ""

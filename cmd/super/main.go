@@ -11,6 +11,7 @@ import (
 	_ "github.com/superdb/super/cmd/super/db/compile"
 	_ "github.com/superdb/super/cmd/super/db/create"
 	_ "github.com/superdb/super/cmd/super/db/delete"
+	_ "github.com/superdb/super/cmd/super/db/detach"
 	_ "github.com/superdb/super/cmd/super/db/drop"
 	_ "github.com/superdb/super/cmd/super/db/init"
 	_ "github.com/superdb/super/cmd/super/db/load"
