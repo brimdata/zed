@@ -62,7 +62,6 @@ func (d *DotExpr) eval(outerVecs ...vector.Any) vector.Any {
 				return val
 			}
 		case *vector.None:
-			//XXX this should have noneish check
 			return val
 		case *vector.Record:
 			i, ok := val.Typ.IndexOfField(d.key)
