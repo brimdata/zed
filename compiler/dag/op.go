@@ -342,7 +342,6 @@ var CommitMetas = map[string]struct{}{
 	"objects":    {},
 	"partitions": {},
 	"rawlog":     {},
-	"vectors":    {},
 }
 
 func (*CommitMetaScan) opNode() {}
