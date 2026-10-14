@@ -22,7 +22,7 @@ mkdir -p $db_root
 
 portdir=$(mktemp -d)
 
-super db serve -l=localhost:0 -db=$db_root -portfile=$portdir/db -log.level=warn $DB_EXTRA_FLAGS &> db.log &
+super db serve -l=localhost:0 -portfile=$portdir/db -log.level=warn $DB_EXTRA_FLAGS $db_root &> db.log &
 db_pid=$!
 awaitfile $portdir/db
 

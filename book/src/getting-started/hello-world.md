@@ -67,9 +67,9 @@ run Hello World as a client talking to a SuperDB server instance.
 Continuing the example above (with the `SUPER_DB` environment pointing to `./scratch`),
 run a service as follows:
 ```
-super db serve
+super db serve scratch
 ```
-This command will block and output logging information to standard output.
+This command runs continuously in the foreground and logs to standard output.
 
 In another window (without `SUPER_DB` defined), run `super` as a client talking
 to the service input as follows:

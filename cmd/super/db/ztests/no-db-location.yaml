@@ -1,9 +1,9 @@
 script: |
-  ! super db ls -db ''
-  ! super db serve -db ''
+  ! super db ls -attach ''
+  ! super db serve ''
 
 outputs:
   - name: stderr
     data: |
-      database location must be set (either with the -db flag or SUPER_DB environment variable)
-      database location must be set (either with the -db flag or SUPER_DB environment variable)
+      invalid value "" for flag -attach: please provide path of database or URI of service
+      root path cannot have scheme ""

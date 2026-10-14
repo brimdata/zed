@@ -35,8 +35,8 @@ pip3 install "git+https://github.com/superdb/superdb-python"
 
 To run this example, first start a SuperDB service from your shell:
 ```sh
-super db init -db scratch
-super db serve -db scratch
+super db init scratch
+super db serve scratch
 ```
 
 Then, in another shell, use Python to create a table, load some data,

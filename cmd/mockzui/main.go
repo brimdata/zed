@@ -51,10 +51,10 @@ func main() {
 		"db",
 		"serve",
 		"-l=localhost:0",
-		"-db=" + dbroot,
 		"-log.level=warn",
 		"-portfile=" + portfile,
 		fmt.Sprintf("-brimfd=%d", brimFDInChild),
+		dbroot,
 	}
 	stderr := bytes.NewBuffer(nil)
 	cmd := exec.Command("super", args...)

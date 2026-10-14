@@ -57,13 +57,13 @@ coinflips@onlytails
 
 _Modify some values, load them into the `main` branch of our empty `bigflips` table, and see what was loaded_
 ```mdtest-command
-super db -db example -c '
+super db -attach example -c '
   from coinflips
   | result:=upper(result)
   | load bigflips
 ' > /dev/null
 
-super db -db example -s -c 'from bigflips'
+super db -attach example -s -c 'from bigflips'
 ```
 =>
 ```mdtest-output
@@ -73,7 +73,7 @@ super db -db example -s -c 'from bigflips'
 
 _Add a filtered subset of records to our `onlytails` branch, while also adding metadata_
 ```mdtest-command
-super db -db example -c '
+super db -attach example -c '
   from coinflips
   | result=="tails"
   | load coinflips@onlytails (
@@ -83,7 +83,7 @@ super db -db example -c '
     )
 ' > /dev/null
 
-super db -db example -s -c 'from coinflips@onlytails'
+super db -attach example -s -c 'from coinflips@onlytails'
 ```
 =>
 ```mdtest-output

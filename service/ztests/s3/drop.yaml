@@ -1,12 +1,12 @@
-skip: "issue #2651"
+skip: source services.sh s3://bucket/db doesn't work
 
 script: |
   source services.sh s3://bucket/db
-  super db new -db $SUPER_DB test
+  super db create -attach $SUPER_DB test
   echo ===
-  super db drop -db $SUPER_DB -p test
+  super db drop -attach $SUPER_DB test
   echo ===
-  super db ls -db $SUPER_DB
+  super db ls -attach $SUPER_DB
   echo ===
 
 inputs:

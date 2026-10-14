@@ -32,4 +32,4 @@ outputs:
   - name: no-args-use.txt
     regexp: |
       HEAD at TABLE@main
-      Database at file.*/test
+      Attached to file.*/test

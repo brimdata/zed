@@ -3,6 +3,7 @@ package charm
 import (
 	"flag"
 	"fmt"
+	"io"
 	"slices"
 	"sort"
 	"strings"
@@ -51,14 +52,12 @@ func (i *instance) options(showHidden bool) []string {
 
 func parse(spec *Spec, args []string, parent Command, interiorLeaf int) (path, []string, bool, error) {
 	var path path
-	var help, hidden, usage bool
+	var help, hidden bool
 	flags := flag.NewFlagSet(spec.Name, flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
 	flags.BoolVar(&help, HelpFlag, false, "display help")
 	flags.BoolVar(&help, HelpLongFlag, false, "display help")
 	flags.BoolVar(&hidden, HiddenFlag, false, "show hidden options")
-	flags.Usage = func() {
-		usage = true
-	}
 	for {
 		cmd, err := spec.New(parent, flags)
 		if err != nil {
@@ -81,17 +80,12 @@ func parse(spec *Spec, args []string, parent Command, interiorLeaf int) (path, [
 		// These gymnastics prevent Go flags from stopping at and consuming the "--"
 		// and retains it as remaining args, which lets us implement args options
 		// passed to the query with "... -- arg arg"
-		savedArgs := args
 		var dashDashArgs []string
 		if k := slices.Index(args, "--"); k >= 0 {
 			dashDashArgs = args[k:]
 			args = args[:k]
 		}
 		if err := flags.Parse(args); err != nil {
-			if usage {
-				s := strings.Join(savedArgs, " ")
-				err = fmt.Errorf("at flag: %q: %w", s, err)
-			}
 			return path, nil, false, err
 		}
 		if help {
@@ -126,11 +120,11 @@ func diff(flags *flag.FlagSet, all map[string]*flag.Flag) map[string]*flag.Flag 
 
 func parseHelp(spec *Spec, args []string) (path, error) {
 	flags := flag.NewFlagSet(spec.Name, flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
 	var b bool
 	flags.BoolVar(&b, HelpFlag, false, "display help")
 	flags.BoolVar(&b, HelpLongFlag, false, "display help")
 	flags.BoolVar(&b, HiddenFlag, false, "show hidden options")
-	flags.Usage = func() {}
 	var parent Command
 	all := make(map[string]*flag.Flag)
 	var path path
