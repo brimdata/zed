@@ -17,6 +17,11 @@ func NewDynamicBuilder() *DynamicBuilder {
 
 func (d *DynamicBuilder) Write(vec vector.Any) {
 	if dynamic, ok := vec.(*vector.Dynamic); ok {
+		// There's one Builder per type so merge same-type vectors to
+		// preserve order.
+		vec = MergeSameTypesInDynamic(dynamic)
+	}
+	if dynamic, ok := vec.(*vector.Dynamic); ok {
 		tagMap := make([]uint32, len(dynamic.Values))
 		for i, vec := range dynamic.Values {
 			if vec != nil {
