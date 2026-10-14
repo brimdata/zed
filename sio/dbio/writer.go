@@ -12,7 +12,7 @@ import (
 	"github.com/superdb/super/db"
 	"github.com/superdb/super/db/commits"
 	"github.com/superdb/super/db/data"
-	"github.com/superdb/super/db/pools"
+	"github.com/superdb/super/db/tables"
 	"github.com/superdb/super/dbid"
 	"github.com/superdb/super/pkg/charm"
 	"github.com/superdb/super/pkg/terminal/color"
@@ -85,8 +85,8 @@ func (w *Writer) WriteSUP(val super.Value) error {
 
 func (w *Writer) formatValue(t table, b *bytes.Buffer, v any, width int, colors *color.Stack) {
 	switch v := v.(type) {
-	case *pools.Config:
-		formatPoolConfig(b, v)
+	case *tables.Config:
+		formatTableConfig(b, v)
 	case *db.BranchMeta:
 		formatBranchMeta(b, v, w.headID, w.headName, colors)
 	case data.Object:
@@ -109,7 +109,7 @@ func (w *Writer) formatValue(t table, b *bytes.Buffer, v any, width int, colors 
 	}
 }
 
-func formatPoolConfig(b *bytes.Buffer, p *pools.Config) {
+func formatTableConfig(b *bytes.Buffer, p *tables.Config) {
 	b.WriteString(p.Name)
 	b.WriteByte(' ')
 	b.WriteString(p.ID.String())
@@ -133,7 +133,7 @@ func formatPoolConfig(b *bytes.Buffer, p *pools.Config) {
 }
 
 func formatBranchMeta(b *bytes.Buffer, p *db.BranchMeta, headID uuid.UUID, headName string, colors *color.Stack) {
-	b.WriteString(p.Pool.Name)
+	b.WriteString(p.Table.Name)
 	b.WriteByte('@')
 	b.WriteString(p.Branch.Name)
 	b.WriteByte(' ')

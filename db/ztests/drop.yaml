@@ -12,6 +12,6 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      logs: pool not found at line 1, column 6:
+      logs: table not found at line 1, column 6:
       from 'logs'@'main':log
            ~~~~~~

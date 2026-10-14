@@ -198,7 +198,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 				return nil, err
 			}
 		}
-		return op.NewCommitMetaScanner(b.rctx.Context, b.sctx(), b.env.DB(), o.Pool, o.Commit, o.Meta, pruner)
+		return op.NewCommitMetaScanner(b.rctx.Context, b.sctx(), b.env.DB(), o.Table, o.Commit, o.Meta, pruner)
 	case *dag.CountOp:
 		var e expr.Evaluator
 		if o.Expr != nil {
@@ -232,7 +232,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 		d := op.NewDebug(b.rctx, e, filter, b.debugs, parent)
 		return d, nil
 	case *dag.DeleterScan:
-		pool, err := b.lookupPool(o.Pool)
+		table, err := b.lookupTable(o.Table)
 		if err != nil {
 			return nil, err
 		}
@@ -253,7 +253,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 				return nil, err
 			}
 		}
-		return op.NewDeleter(b.rctx, sbuf.NewMaterializer(parent), pool, whereNot, pruner, b.progress, b.deletes), nil
+		return op.NewDeleter(b.rctx, sbuf.NewMaterializer(parent), table, whereNot, pruner, b.progress, b.deletes), nil
 	case *dag.DistinctOp:
 		e, err := b.compileVamExpr(o.Expr)
 		if err != nil {
@@ -305,7 +305,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 		if parent != nil {
 			return nil, errors.New("internal error: data source cannot have a parent operator")
 		}
-		pool, err := b.lookupPool(o.Pool)
+		table, err := b.lookupTable(o.Table)
 		if err != nil {
 			return nil, err
 		}
@@ -316,9 +316,9 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 				return nil, err
 			}
 		}
-		return op.NewLister(b.rctx.Context, b.mctx, pool, o.Commit, pruner)
+		return op.NewLister(b.rctx.Context, b.mctx, table, o.Commit, pruner)
 	case *dag.LoadOp:
-		return op.NewLoad(b.rctx, b.env.DB(), parent, o.Pool, o.Branch, o.Author, o.Message, o.Meta), nil
+		return op.NewLoad(b.rctx, b.env.DB(), parent, o.Table, o.Branch, o.Author, o.Message, o.Meta), nil
 	case *dag.NullScan:
 		return vio.NewPuller(vector.NewNull(1)), nil
 	case *dag.OutputOp:
@@ -326,8 +326,6 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 		return parent, nil
 	case *dag.PassOp:
 		return parent, nil
-	case *dag.PoolMetaScan:
-		return op.NewPoolMetaScanner(b.rctx.Context, b.sctx(), b.env.DB(), o.ID, o.Meta)
 	case *dag.PutOp:
 		rec, err := newRecordExprFromAssignments(o.Args)
 		if err != nil {
@@ -362,25 +360,8 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 			dataFilter = &dagFilter{nil, o.Filter}
 		}
 		return op.NewRobot(b.rctx, b.env, parent, e, o.Format, b.newPushdown(nil, nil, nil, dataFilter, false), b.progress), nil
-	case *dag.PoolScan:
-		if parent != nil {
-			return nil, errors.New("internal error: pool scan cannot have a parent operator")
-		}
-		// Here we convert PoolScan to lister->slicer->seqscan for the slow path as
-		// optimizer should do this conversion, but this allows us to run
-		// unoptimized scans too.
-		pool, err := b.lookupPool(o.ID)
-		if err != nil {
-			return nil, err
-		}
-		l, err := op.NewLister(b.rctx.Context, b.mctx, pool, o.Commit, nil)
-		if err != nil {
-			return nil, err
-		}
-		slicer := op.NewSlicer(b.mctx, l)
-		return op.NewPoolScanner(b.rctx, slicer, pool, nil, nil, b.progress), nil
 	case *dag.SeqScan:
-		pool, err := b.lookupPool(o.Pool)
+		table, err := b.lookupTable(o.Table)
 		if err != nil {
 			return nil, err
 		}
@@ -398,7 +379,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 				return nil, err
 			}
 		}
-		return op.NewPoolScanner(b.rctx, parent, pool, filter, pruner, b.progress), nil
+		return op.NewTableScanner(b.rctx, parent, table, filter, pruner, b.progress), nil
 	case *dag.SkipOp:
 		return op.NewSkip(parent, o.Count), nil
 	case *dag.SlicerOp:
@@ -411,6 +392,25 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 		return op.NewSort(b.rctx, parent, exprs, o.Reverse), nil
 	case *dag.TailOp:
 		return op.NewTail(parent, o.Count), nil
+	case *dag.TableScan:
+		if parent != nil {
+			return nil, errors.New("internal error: table scan cannot have a parent operator")
+		}
+		// Here we convert TableScan to lister->slicer->seqscan for the slow path as
+		// optimizer should do this conversion, but this allows us to run
+		// unoptimized scans too.
+		table, err := b.lookupTable(o.ID)
+		if err != nil {
+			return nil, err
+		}
+		l, err := op.NewLister(b.rctx.Context, b.mctx, table, o.Commit, nil)
+		if err != nil {
+			return nil, err
+		}
+		slicer := op.NewSlicer(b.mctx, l)
+		return op.NewTableScanner(b.rctx, slicer, table, nil, nil, b.progress), nil
+	case *dag.TableMetaScan:
+		return op.NewTableMetaScanner(b.rctx.Context, b.sctx(), b.env.DB(), o.ID, o.Meta)
 	case *dag.UnnestOp:
 		e, err := b.compileVamExpr(o.Expr)
 		if err != nil {

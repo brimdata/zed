@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/superdb/super/cli/poolflags"
+	"github.com/superdb/super/cli/tableflags"
 	"github.com/superdb/super/cmd/super/db"
 	"github.com/superdb/super/dbid"
 	"github.com/superdb/super/pkg/charm"
@@ -15,7 +15,7 @@ import (
 
 var spec = &charm.Spec{
 	Name:  "use",
-	Usage: "use [pool][@branch]",
+	Usage: "use [table][@branch]",
 	Short: "use a branch or print current branch and database",
 	Long: `
 See https://superdb.org/command/db.html#super-db-use
@@ -29,12 +29,12 @@ func init() {
 
 type Command struct {
 	*db.Command
-	poolFlags poolflags.Flags
+	tableFlags tableflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*db.Command)}
-	c.poolFlags.SetFlags(f)
+	c.tableFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -48,9 +48,9 @@ func (c *Command) Run(args []string) error {
 		return errors.New("too many arguments")
 	}
 	if len(args) == 0 {
-		head, err := c.poolFlags.HEAD()
+		head, err := c.tableFlags.HEAD()
 		if err != nil {
-			return errors.New("default pool and branch unset")
+			return errors.New("default table and branch unset")
 		}
 		fmt.Printf("HEAD at %s\n", head)
 		if u, err := c.DBFlags.ClientURI(); err == nil {
@@ -62,12 +62,12 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if committish.Pool == "" {
-		head, err := c.poolFlags.HEAD()
+	if committish.Table == "" {
+		head, err := c.tableFlags.HEAD()
 		if err != nil {
-			return errors.New("default pool unset")
+			return errors.New("default table unset")
 		}
-		committish.Pool = head.Pool
+		committish.Table = head.Table
 	}
 	if committish.Branch == "" {
 		committish.Branch = "main"
@@ -76,18 +76,18 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	poolID, err := db.PoolID(ctx, committish.Pool)
+	tableID, err := db.TableID(ctx, committish.Table)
 	if err != nil {
 		return err
 	}
-	if _, err = db.CommitObject(ctx, poolID, committish.Branch); err != nil {
+	if _, err = db.CommitObject(ctx, tableID, committish.Branch); err != nil {
 		return err
 	}
-	if err := poolflags.WriteHead(committish.Pool, committish.Branch); err != nil {
+	if err := tableflags.WriteHead(committish.Table, committish.Branch); err != nil {
 		return err
 	}
 	if !c.DBFlags.Quiet {
-		fmt.Printf("Switched to branch %q on pool %q\n", committish.Branch, committish.Pool)
+		fmt.Printf("Switched to branch %q on table %q\n", committish.Branch, committish.Table)
 	}
 	return nil
 }

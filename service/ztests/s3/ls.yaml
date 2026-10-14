@@ -15,9 +15,9 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      p1: pool created
-      p2: pool created
-      p3: pool created
+      p1: table created
+      p2: table created
+      p3: table created
       ===
       p1
       p2

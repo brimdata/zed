@@ -33,10 +33,10 @@ const (
 )
 
 var (
-	// ErrPoolNotFound is returned when the specified pool does not exist.
-	ErrPoolNotFound = errors.New("pool not found")
-	// ErrPoolExists is returned when the specified the pool already exists.
-	ErrPoolExists = errors.New("pool exists")
+	// ErrTableNotFound is returned when the specified table does not exist.
+	ErrTableNotFound = errors.New("table not found")
+	// ErrTableExists is returned when the specified the table already exists.
+	ErrTableExists = errors.New("table exists")
 	// ErrBranchNotFound is returned when the specified branch does not exist.
 	ErrBranchNotFound = errors.New("branch not found")
 	// ErrBranchExists is returned when the specified the branch already exists.
@@ -209,18 +209,18 @@ func (c *Connection) Version(ctx context.Context) (string, error) {
 	return res.Version, nil
 }
 
-func (c *Connection) PoolStats(ctx context.Context, id uuid.UUID) (exec.PoolStats, error) {
-	req := c.NewRequest(ctx, http.MethodGet, path.Join("/pool", id.String(), "stats"), nil)
-	var stats exec.PoolStats
+func (c *Connection) TableStats(ctx context.Context, id uuid.UUID) (exec.TableStats, error) {
+	req := c.NewRequest(ctx, http.MethodGet, path.Join("/table", id.String(), "stats"), nil)
+	var stats exec.TableStats
 	err := c.doAndUnmarshal(req, &stats)
 	if errIsStatus(err, http.StatusNotFound) {
-		err = ErrPoolNotFound
+		err = ErrTableNotFound
 	}
 	return stats, err
 }
 
-func (c *Connection) BranchGet(ctx context.Context, poolID uuid.UUID, branchName string) (api.CommitResponse, error) {
-	path := urlPath("pool", poolID.String(), "branch", branchName)
+func (c *Connection) BranchGet(ctx context.Context, tableID uuid.UUID, branchName string) (api.CommitResponse, error) {
+	path := urlPath("table", tableID.String(), "branch", branchName)
 	req := c.NewRequest(ctx, http.MethodGet, path, nil)
 	var commit api.CommitResponse
 	err := c.doAndUnmarshal(req, &commit)
@@ -230,18 +230,18 @@ func (c *Connection) BranchGet(ctx context.Context, poolID uuid.UUID, branchName
 	return commit, err
 }
 
-func (c *Connection) CreatePool(ctx context.Context, payload api.PoolPostRequest) (db.BranchMeta, error) {
-	req := c.NewRequest(ctx, http.MethodPost, "/pool", payload)
+func (c *Connection) CreateTable(ctx context.Context, payload api.TablePostRequest) (db.BranchMeta, error) {
+	req := c.NewRequest(ctx, http.MethodPost, "/table", payload)
 	var meta db.BranchMeta
 	err := c.doAndUnmarshal(req, &meta)
 	if errIsStatus(err, http.StatusConflict) {
-		err = ErrPoolExists
+		err = ErrTableExists
 	}
 	return meta, err
 }
 
-func (c *Connection) RenamePool(ctx context.Context, id uuid.UUID, put api.PoolPutRequest) error {
-	req := c.NewRequest(ctx, http.MethodPut, path.Join("/pool", id.String()), put)
+func (c *Connection) RenameTable(ctx context.Context, id uuid.UUID, put api.TablePutRequest) error {
+	req := c.NewRequest(ctx, http.MethodPut, path.Join("/table", id.String()), put)
 	res, err := c.Do(req)
 	if err != nil {
 		return err
@@ -250,12 +250,12 @@ func (c *Connection) RenamePool(ctx context.Context, id uuid.UUID, put api.PoolP
 	return nil
 }
 
-func (c *Connection) RemovePool(ctx context.Context, id uuid.UUID) error {
-	req := c.NewRequest(ctx, http.MethodDelete, path.Join("/pool", id.String()), nil)
+func (c *Connection) RemoveTable(ctx context.Context, id uuid.UUID) error {
+	req := c.NewRequest(ctx, http.MethodDelete, path.Join("/table", id.String()), nil)
 	res, err := c.Do(req)
 	if err != nil {
 		if errIsStatus(err, http.StatusNotFound) {
-			return ErrPoolNotFound
+			return ErrTableNotFound
 		}
 		return err
 	}
@@ -263,8 +263,8 @@ func (c *Connection) RemovePool(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (c *Connection) CreateBranch(ctx context.Context, poolID uuid.UUID, payload api.BranchPostRequest) (branches.Config, error) {
-	req := c.NewRequest(ctx, http.MethodPost, path.Join("/pool", poolID.String()), payload)
+func (c *Connection) CreateBranch(ctx context.Context, tableID uuid.UUID, payload api.BranchPostRequest) (branches.Config, error) {
+	req := c.NewRequest(ctx, http.MethodPost, path.Join("/table", tableID.String()), payload)
 	var branch branches.Config
 	err := c.doAndUnmarshal(req, &branch)
 	if errIsStatus(err, http.StatusConflict) {
@@ -273,8 +273,8 @@ func (c *Connection) CreateBranch(ctx context.Context, poolID uuid.UUID, payload
 	return branch, err
 }
 
-func (c *Connection) MergeBranch(ctx context.Context, poolID uuid.UUID, childBranch, parentBranch string, message api.CommitMessage) (api.CommitResponse, error) {
-	path := urlPath("pool", poolID.String(), "branch", parentBranch, "merge", childBranch)
+func (c *Connection) MergeBranch(ctx context.Context, tableID uuid.UUID, childBranch, parentBranch string, message api.CommitMessage) (api.CommitResponse, error) {
+	path := urlPath("table", tableID.String(), "branch", parentBranch, "merge", childBranch)
 	req := c.NewRequest(ctx, http.MethodPost, path, nil)
 	if err := encodeCommitMessage(req, message); err != nil {
 		return api.CommitResponse{}, err
@@ -284,8 +284,8 @@ func (c *Connection) MergeBranch(ctx context.Context, poolID uuid.UUID, childBra
 	return commit, err
 }
 
-func (c *Connection) Revert(ctx context.Context, poolID uuid.UUID, branchName string, commitID uuid.UUID, message api.CommitMessage) (api.CommitResponse, error) {
-	path := urlPath("pool", poolID.String(), "branch", branchName, "revert", commitID.String())
+func (c *Connection) Revert(ctx context.Context, tableID uuid.UUID, branchName string, commitID uuid.UUID, message api.CommitMessage) (api.CommitResponse, error) {
+	path := urlPath("table", tableID.String(), "branch", branchName, "revert", commitID.String())
 	req := c.NewRequest(ctx, http.MethodPost, path, nil)
 	if err := encodeCommitMessage(req, message); err != nil {
 		return api.CommitResponse{}, err
@@ -314,8 +314,8 @@ func (c *Connection) Query(ctx context.Context, inputs []srcfiles.Input) (*Respo
 	return res, err
 }
 
-func (c *Connection) Compact(ctx context.Context, poolID uuid.UUID, branchName string, objects []uuid.UUID, message api.CommitMessage) (api.CommitResponse, error) {
-	path := urlPath("pool", poolID.String(), "branch", branchName, "compact")
+func (c *Connection) Compact(ctx context.Context, tableID uuid.UUID, branchName string, objects []uuid.UUID, message api.CommitMessage) (api.CommitResponse, error) {
+	path := urlPath("table", tableID.String(), "branch", branchName, "compact")
 	req := c.NewRequest(ctx, http.MethodPost, path, api.CompactRequest{ObjectIDs: objects})
 	if err := encodeCommitMessage(req, message); err != nil {
 		return api.CommitResponse{}, err
@@ -327,8 +327,8 @@ func (c *Connection) Compact(ctx context.Context, poolID uuid.UUID, branchName s
 
 // Load loads data from r.  contentType is a media type for r or the empty
 // string, in which case the server will attempt to detect r's format.
-func (c *Connection) Load(ctx context.Context, poolID uuid.UUID, branchName, contentType string, r io.Reader, message api.CommitMessage) (api.CommitResponse, error) {
-	path := urlPath("pool", poolID.String(), "branch", branchName)
+func (c *Connection) Load(ctx context.Context, tableID uuid.UUID, branchName, contentType string, r io.Reader, message api.CommitMessage) (api.CommitResponse, error) {
+	path := urlPath("table", tableID.String(), "branch", branchName)
 	req := c.NewRequest(ctx, http.MethodPost, path, r)
 	req.Header.Set("Content-Type", contentType)
 	if err := encodeCommitMessage(req, message); err != nil {
@@ -348,16 +348,16 @@ func encodeCommitMessage(req *Request, message api.CommitMessage) error {
 	return nil
 }
 
-func (c *Connection) Delete(ctx context.Context, poolID uuid.UUID, branchName string, ids []uuid.UUID, message api.CommitMessage) (api.CommitResponse, error) {
-	return c.delete(ctx, poolID, branchName, ids, "", message)
+func (c *Connection) Delete(ctx context.Context, tableID uuid.UUID, branchName string, ids []uuid.UUID, message api.CommitMessage) (api.CommitResponse, error) {
+	return c.delete(ctx, tableID, branchName, ids, "", message)
 }
 
-func (c *Connection) DeleteWhere(ctx context.Context, poolID uuid.UUID, branchName, src string, message api.CommitMessage) (api.CommitResponse, error) {
-	return c.delete(ctx, poolID, branchName, nil, src, message)
+func (c *Connection) DeleteWhere(ctx context.Context, tableID uuid.UUID, branchName, src string, message api.CommitMessage) (api.CommitResponse, error) {
+	return c.delete(ctx, tableID, branchName, nil, src, message)
 }
 
-func (c *Connection) delete(ctx context.Context, poolID uuid.UUID, branchName string, ids []uuid.UUID, where string, message api.CommitMessage) (api.CommitResponse, error) {
-	path := urlPath("pool", poolID.String(), "branch", branchName, "delete")
+func (c *Connection) delete(ctx context.Context, tableID uuid.UUID, branchName string, ids []uuid.UUID, where string, message api.CommitMessage) (api.CommitResponse, error) {
+	path := urlPath("table", tableID.String(), "branch", branchName, "delete")
 	tags := make([]string, len(ids))
 	for i, id := range ids {
 		tags[i] = id.String()
@@ -374,8 +374,8 @@ func (c *Connection) delete(ctx context.Context, poolID uuid.UUID, branchName st
 	return commit, err
 }
 
-func (c *Connection) Vacate(ctx context.Context, pool string, ts nano.Ts, dryrun bool) (api.VacateResponse, error) {
-	path := urlPath("pool", pool, "vacate")
+func (c *Connection) Vacate(ctx context.Context, tableName string, ts nano.Ts, dryrun bool) (api.VacateResponse, error) {
+	path := urlPath("table", tableName, "vacate")
 	vals := make(url.Values)
 	vals.Add("ts", ts.Time().Format(time.RFC3339Nano))
 	if dryrun {
@@ -388,8 +388,8 @@ func (c *Connection) Vacate(ctx context.Context, pool string, ts nano.Ts, dryrun
 	return res, err
 }
 
-func (c *Connection) Vacuum(ctx context.Context, pool, revision string, dryrun bool) (api.VacuumResponse, error) {
-	path := urlPath("pool", pool, "revision", revision, "vacuum")
+func (c *Connection) Vacuum(ctx context.Context, tableName, revision string, dryrun bool) (api.VacuumResponse, error) {
+	path := urlPath("table", tableName, "revision", revision, "vacuum")
 	if dryrun {
 		path += "?dryrun=true"
 	}
@@ -399,16 +399,17 @@ func (c *Connection) Vacuum(ctx context.Context, pool, revision string, dryrun b
 	return res, err
 }
 
-func (c *Connection) AddVectors(ctx context.Context, pool, revision string, objectIDs []uuid.UUID, message api.CommitMessage) (api.CommitResponse, error) {
-	return c.doVector(ctx, pool, revision, objectIDs, message, http.MethodPost)
+func (c *Connection) AddVectors(ctx context.Context, tableName, revision string, objectIDs []uuid.UUID, message api.CommitMessage) (api.CommitResponse, error) {
+	return c.doVector(ctx, tableName, revision, objectIDs, message, http.MethodPost)
 }
 
-func (c *Connection) DeleteVectors(ctx context.Context, pool, revision string, objectIDs []uuid.UUID, message api.CommitMessage) (api.CommitResponse, error) {
-	return c.doVector(ctx, pool, revision, objectIDs, message, http.MethodDelete)
+func (c *Connection) DeleteVectors(ctx context.Context, tableName, revision string, objectIDs []uuid.UUID, message api.CommitMessage) (api.CommitResponse, error) {
+	return c.doVector(ctx, tableName, revision, objectIDs, message, http.MethodDelete)
 }
 
-func (c *Connection) doVector(ctx context.Context, pool, revision string, objectIDs []uuid.UUID, message api.CommitMessage, method string) (api.CommitResponse, error) {
-	path := urlPath("pool", pool, "revision", revision, "vector")
+// XXX
+func (c *Connection) doVector(ctx context.Context, tableName, revision string, objectIDs []uuid.UUID, message api.CommitMessage, method string) (api.CommitResponse, error) {
+	path := urlPath("tableName", tableName, "revision", revision, "vector")
 	req := c.NewRequest(ctx, method, path, api.VectorRequest{ObjectIDs: objectIDs})
 	if err := encodeCommitMessage(req, message); err != nil {
 		return api.CommitResponse{}, err

@@ -28,113 +28,113 @@ func TestQuery(t *testing.T) {
 	expected := `{_path:"b",ts:1970-01-01T00:00:01Z}
 `
 	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", SortKeys: []order.SortKey{{Path: []string{"ts"}, Order: order.Desc}}})
-	conn.TestLoad(poolID, "main", strings.NewReader(src))
+	tableID := conn.TestTablePost(api.TablePostRequest{Name: "test", SortKeys: []order.SortKey{{Path: []string{"ts"}, Order: order.Desc}}})
+	conn.TestLoad(tableID, "main", strings.NewReader(src))
 	assert.Equal(t, expected, conn.TestQuery("from test | _path == 'b'"))
 }
 
-func TestQueryEmptyPool(t *testing.T) {
+func TestQueryEmptyTable(t *testing.T) {
 	_, conn := newCore(t)
-	conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
+	conn.TestTablePost(api.TablePostRequest{Name: "test"})
 	assert.Equal(t, "", conn.TestQuery("from test"))
 }
 
-func TestPoolStats(t *testing.T) {
+func TestTableStats(t *testing.T) {
 	src := `
 {_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa"}
 {_path:"conn",ts:1970-01-01T00:00:02Z,uid:"C8Tful1TvM3Zf5x8fl"}
 `
 	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", SortKeys: []order.SortKey{{Path: []string{"ts"}, Order: order.Desc}}})
-	conn.TestLoad(poolID, "main", strings.NewReader(src))
+	tableID := conn.TestTablePost(api.TablePostRequest{Name: "test", SortKeys: []order.SortKey{{Path: []string{"ts"}, Order: order.Desc}}})
+	conn.TestLoad(tableID, "main", strings.NewReader(src))
 
 	span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
-	expected := exec.PoolStats{
+	expected := exec.TableStats{
 		Span: &span,
 		Size: 1058,
 	}
-	require.Equal(t, expected, conn.TestPoolStats(poolID))
+	require.Equal(t, expected, conn.TestTableStats(tableID))
 }
 
-func TestPoolStatsNoData(t *testing.T) {
+func TestTableStatsNoData(t *testing.T) {
 	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	info := conn.TestPoolStats(poolID)
-	expected := exec.PoolStats{
+	tableID := conn.TestTablePost(api.TablePostRequest{Name: "test"})
+	info := conn.TestTableStats(tableID)
+	expected := exec.TableStats{
 		Size: 0,
 	}
 	require.Equal(t, expected, info)
 }
 
-func TestPoolPostNameOnly(t *testing.T) {
+func TestTablePostNameOnly(t *testing.T) {
 	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	assert.NotEqual(t, uuid.Nil(), poolID)
+	tableID := conn.TestTablePost(api.TablePostRequest{Name: "test"})
+	assert.NotEqual(t, uuid.Nil(), tableID)
 }
 
-func TestPoolPostDuplicateName(t *testing.T) {
+func TestTablePostDuplicateName(t *testing.T) {
 	_, conn := newCore(t)
-	conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	_, err := conn.CreatePool(t.Context(), api.PoolPostRequest{Name: "test"})
-	require.Equal(t, errors.Is(err, client.ErrPoolExists), true)
+	conn.TestTablePost(api.TablePostRequest{Name: "test"})
+	_, err := conn.CreateTable(t.Context(), api.TablePostRequest{Name: "test"})
+	require.Equal(t, errors.Is(err, client.ErrTableExists), true)
 }
 
-func TestPoolInvalidName(t *testing.T) {
-	t.Skip("verify invalid characters for a pool name")
+func TestTableInvalidName(t *testing.T) {
+	t.Skip("verify invalid characters for a table name")
 	_, conn := newCore(t)
 	t.Run("Post", func(t *testing.T) {
-		_, err := conn.CreatePool(t.Context(), api.PoolPostRequest{Name: "𝚭𝚴𝚪 is.good"})
+		_, err := conn.CreateTable(t.Context(), api.TablePostRequest{Name: "𝚭𝚴𝚪 is.good"})
 		require.NoError(t, err)
-		_, err = conn.CreatePool(t.Context(), api.PoolPostRequest{Name: "𝚭𝚴𝚪/bad"})
+		_, err = conn.CreateTable(t.Context(), api.TablePostRequest{Name: "𝚭𝚴𝚪/bad"})
 		require.EqualError(t, err, "status code 400: name may not contain '/' or non-printable characters")
 	})
 	t.Run("Put", func(t *testing.T) {
-		poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "𝚭𝚴𝚪1"})
-		err := conn.RenamePool(t.Context(), poolID, api.PoolPutRequest{Name: "𝚭𝚴𝚪/2"})
+		tableID := conn.TestTablePost(api.TablePostRequest{Name: "𝚭𝚴𝚪1"})
+		err := conn.RenameTable(t.Context(), tableID, api.TablePutRequest{Name: "𝚭𝚴𝚪/2"})
 		require.EqualError(t, err, "status code 400: name may not contain '/' or non-printable characters")
 	})
 }
 
-func TestPoolPutDuplicateName(t *testing.T) {
+func TestTablePutDuplicateName(t *testing.T) {
 	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	conn.TestPoolPost(api.PoolPostRequest{Name: "test1"})
-	err := conn.RenamePool(t.Context(), poolID, api.PoolPutRequest{Name: "test"})
-	assert.EqualError(t, err, "status code 409: test: pool already exists")
+	tableID := conn.TestTablePost(api.TablePostRequest{Name: "test"})
+	conn.TestTablePost(api.TablePostRequest{Name: "test1"})
+	err := conn.RenameTable(t.Context(), tableID, api.TablePutRequest{Name: "test"})
+	assert.EqualError(t, err, "status code 409: test: table already exists")
 }
 
-func TestPoolPut(t *testing.T) {
+func TestTablePut(t *testing.T) {
 	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	err := conn.RenamePool(t.Context(), poolID, api.PoolPutRequest{Name: "new_name"})
+	tableID := conn.TestTablePost(api.TablePostRequest{Name: "test"})
+	err := conn.RenameTable(t.Context(), tableID, api.TablePutRequest{Name: "new_name"})
 	require.NoError(t, err)
-	info := conn.TestPoolGet(poolID)
+	info := conn.TestTableGet(tableID)
 	assert.Equal(t, "new_name", info.Name)
 }
 
-func TestPoolRemote(t *testing.T) {
+func TestTableRemote(t *testing.T) {
 	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	err := conn.RemovePool(t.Context(), poolID)
+	tableID := conn.TestTablePost(api.TablePostRequest{Name: "test"})
+	err := conn.RemoveTable(t.Context(), tableID)
 	require.NoError(t, err)
-	list := conn.TestPoolList()
+	list := conn.TestTableList()
 	require.Len(t, list, 0)
 }
 
 func TestNoEndSlashSupport(t *testing.T) {
 	_, conn := newCore(t)
-	_, err := conn.Do(conn.NewRequest(t.Context(), "GET", "/pool/", nil))
+	_, err := conn.Do(conn.NewRequest(t.Context(), "GET", "/table/", nil))
 	require.Error(t, err)
 	require.Equal(t, 404, err.(*client.ErrorResponse).StatusCode)
 }
 
 func TestRequestID(t *testing.T) {
-	pools := api.QueryRequest{Query: "from :pools"}
+	tables := api.QueryRequest{Query: "from :tables"}
 	t.Run("GeneratesUniqueID", func(t *testing.T) {
 		_, conn := newCore(t)
-		res1, err := conn.Do(conn.NewRequest(t.Context(), "POST", "/query", pools))
+		res1, err := conn.Do(conn.NewRequest(t.Context(), "POST", "/query", tables))
 		require.NoError(t, err)
-		res2, err := conn.Do(conn.NewRequest(t.Context(), "POST", "/query", pools))
+		res2, err := conn.Do(conn.NewRequest(t.Context(), "POST", "/query", tables))
 		require.NoError(t, err)
 		assert.NotEqual(t, "", res1.Header.Get("X-Request-ID"))
 		assert.NotEqual(t, "", res2.Header.Get("X-Request-ID"))
@@ -142,7 +142,7 @@ func TestRequestID(t *testing.T) {
 	t.Run("PropagatesID", func(t *testing.T) {
 		_, conn := newCore(t)
 		requestID := "random-request-ID"
-		req := conn.NewRequest(t.Context(), "POST", "/query", pools)
+		req := conn.NewRequest(t.Context(), "POST", "/query", tables)
 		req.Header.Set("X-Request-ID", requestID)
 		res, err := conn.Do(req)
 		require.NoError(t, err)
@@ -155,26 +155,26 @@ func TestEventsHandler(t *testing.T) {
 	_, conn := newCore(t)
 	ev, err := conn.SubscribeEvents(t.Context())
 	require.NoError(t, err)
-	id := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
+	id := conn.TestTablePost(api.TablePostRequest{Name: "test"})
 	kind, v, err := ev.Recv()
 	require.NoError(t, err)
-	assert.Equal(t, "pool-new", kind)
-	assert.Equal(t, &api.EventPool{PoolID: id}, v)
+	assert.Equal(t, "table-new", kind)
+	assert.Equal(t, &api.EventTable{TableID: id}, v)
 	commit := conn.TestLoad(id, "main", strings.NewReader("{ts:0}"))
 	kind, v, err = ev.Recv()
 	require.NoError(t, err)
 	assert.Equal(t, "branch-commit", kind)
 	assert.Equal(t, &api.EventBranchCommit{
-		PoolID:   id,
+		TableID:  id,
 		Branch:   "main",
 		CommitID: commit,
 		Parent:   "",
 	}, v)
-	require.NoError(t, conn.RemovePool(t.Context(), id))
+	require.NoError(t, conn.RemoveTable(t.Context(), id))
 	kind, v, err = ev.Recv()
 	require.NoError(t, err)
-	assert.Equal(t, "pool-delete", kind)
-	assert.Equal(t, &api.EventPool{PoolID: id}, v)
+	assert.Equal(t, "table-delete", kind)
+	assert.Equal(t, &api.EventTable{TableID: id}, v)
 	require.NoError(t, ev.Close())
 }
 

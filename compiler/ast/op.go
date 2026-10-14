@@ -130,10 +130,10 @@ type (
 		Loc        `json:"loc"`
 	}
 	LoadOp struct {
-		Kind string  `json:"kind" unpack:""`
-		Pool *Text   `json:"pool"`
-		Args []OpArg `json:"args"`
-		Loc  `json:"loc"`
+		Kind  string  `json:"kind" unpack:""`
+		Table *Text   `json:"table"`
+		Args  []OpArg `json:"args"`
+		Loc   `json:"loc"`
 	}
 	MergeOp struct {
 		Kind  string     `json:"kind" unpack:""`
@@ -241,7 +241,7 @@ type (
 	}
 	Delete struct {
 		Kind   string       `json:"kind" unpack:""`
-		Pool   string       `json:"pool"`
+		Table  string       `json:"table"`
 		Branch string       `json:"branch"`
 		Loc    `json:"loc"` // dummy field, not needed except to implement Node
 	}

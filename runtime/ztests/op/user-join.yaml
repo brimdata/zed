@@ -15,9 +15,9 @@ script: |
 inputs:
   - name: test.spq
     data: |
-      op test(lpool, rpool, lkey, rkey, ldest, rsrc): (
-        from eval(lpool)
-        | inner join ( from eval(rpool) ) on lkey = rkey ldest := rsrc
+      op test(ltable, rtable, lkey, rkey, ldest, rsrc): (
+        from eval(ltable)
+        | inner join ( from eval(rtable) ) on lkey = rkey ldest := rsrc
       )
       test("fruit", "people", flavor, likes, eater, name)
   - name: fruit.sup

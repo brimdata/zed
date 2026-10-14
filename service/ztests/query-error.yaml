@@ -11,13 +11,13 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      HEAD: pool not found at line 1, column 6:
+      HEAD: table not found at line 1, column 6:
       from HEAD
            ~~~~
       unknown database metadata type "unknownmeta" in from operator at line 1, column 6:
       from :unknownmeta
            ~~~~~~~~~~~~
-      doesnotexist: pool not found at line 1, column 6:
+      doesnotexist: table not found at line 1, column 6:
       from doesnotexist
            ~~~~~~~~~~~~
       

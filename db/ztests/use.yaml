@@ -3,33 +3,33 @@ script: |
   super db init -q
   ! super db use
   ! super db use @main
-  super db create -q POOL
-  ! super db use POOL@branch
+  super db create -q TABLE
+  ! super db use TABLE@branch
   echo ===
-  super db use POOL
+  super db use TABLE
   super db use > no-args-use.txt
   echo ===
   super db branch -q b1
   super db use @b1
   echo ===
   super db branch -q b2
-  super db use POOL@b2
+  super db use TABLE@b2
 
 outputs:
   - name: stdout
     data: |
       ===
-      Switched to branch "main" on pool "POOL"
+      Switched to branch "main" on table "TABLE"
       ===
-      Switched to branch "b1" on pool "POOL"
+      Switched to branch "b1" on table "TABLE"
       ===
-      Switched to branch "b2" on pool "POOL"
+      Switched to branch "b2" on table "TABLE"
   - name: stderr
     data: |
-      default pool and branch unset
-      default pool unset
+      default table and branch unset
+      default table unset
       "branch": branch not found
   - name: no-args-use.txt
     regexp: |
-      HEAD at POOL@main
+      HEAD at TABLE@main
       Database at file.*/test

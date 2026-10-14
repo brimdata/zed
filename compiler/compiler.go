@@ -46,7 +46,7 @@ func (c *compiler) NewQuery(rctx *runtime.Context, ast *parser.AST, readers []vi
 }
 
 func (l *compiler) NewDeleteQuery(rctx *runtime.Context, ast *parser.AST, head *dbid.Committish) (runtime.DeleteQuery, error) {
-	if err := ast.ConvertToDeleteWhere(head.Pool, head.Branch); err != nil {
+	if err := ast.ConvertToDeleteWhere(head.Table, head.Branch); err != nil {
 		return nil, err
 	}
 	seq := ast.Parsed()
@@ -70,14 +70,14 @@ func (l *compiler) NewDeleteQuery(rctx *runtime.Context, ast *parser.AST, head *
 	return exec.NewDeleteQuery(rctx, bundleOutputs(rctx, outputs, debugs), b.Deletes()), nil
 }
 
-func (l *compiler) NewObjectScanner(rctx *runtime.Context, poolID uuid.UUID, objects []*data.Object) (vio.Puller, error) {
-	pool, err := l.env.DB().OpenPool(rctx, poolID)
+func (l *compiler) NewObjectScanner(rctx *runtime.Context, tableID uuid.UUID, objects []*data.Object) (vio.Puller, error) {
+	table, err := l.env.DB().OpenTable(rctx, tableID)
 	if err != nil {
 		return nil, err
 	}
-	lister := op.NewListerFromObjects(rctx, rctx.Sctx, pool, objects, nil)
+	lister := op.NewListerFromObjects(rctx, rctx.Sctx, table, objects, nil)
 	slicer := op.NewSlicer(rctx.Sctx, lister)
-	return op.NewPoolScanner(rctx, slicer, pool, nil, nil, nil), nil
+	return op.NewTableScanner(rctx, slicer, table, nil, nil, nil), nil
 }
 
 type InvalidDeleteWhereQuery struct{}

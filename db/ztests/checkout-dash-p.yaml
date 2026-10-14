@@ -1,13 +1,13 @@
 script: |
   export SUPER_DB=test
   super db init -q
-  super db create -q POOL
-  super db use -q POOL
+  super db create -q TABLE
+  super db use -q TABLE
   super db load -q a.sup
   super db branch -q child
   super db use -q @child
   super db load -q b.sup
-  super db -s -c "from POOL"
+  super db -s -c "from TABLE"
 
 inputs:
   - name: a.sup

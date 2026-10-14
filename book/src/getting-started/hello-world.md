@@ -50,7 +50,7 @@ super db init
 super db create Demo
 echo '{Message:"hello, world"}' | super db load -use Demo -
 ```
-Now you have a database with a data pool called "Demo" and some data in it.
+Now you have a database with a table called "Demo" and some data in it.
 Query this data as follow:
 ```
 super db -c "from Demo"

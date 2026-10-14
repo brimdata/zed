@@ -26,13 +26,13 @@ func clrOp(op sem.Op) {
 		op.Node = nil
 	case *sem.HTTPScan:
 		op.Node = nil
-	case *sem.PoolScan:
+	case *sem.TableScan:
 		op.Node = nil
 	case *sem.RobotScan:
 		op.Node = nil
 	case *sem.DBMetaScan:
 		op.Node = nil
-	case *sem.PoolMetaScan:
+	case *sem.TableMetaScan:
 		op.Node = nil
 	case *sem.CommitMetaScan:
 		op.Node = nil

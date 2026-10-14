@@ -1,10 +1,10 @@
 script: |
   export SUPER_DB=test
   super db init -q
-  super db create -orderby a POOL
-  super db load -q -use POOL in.sup
-  super db -s -c "from POOL@main:rawlog"
-  super db log -use POOL
+  super db create -orderby a TABLE
+  super db load -q -use TABLE in.sup
+  super db -s -c "from TABLE@main:rawlog"
+  super db log -use TABLE
 
 inputs:
   - name: in.sup

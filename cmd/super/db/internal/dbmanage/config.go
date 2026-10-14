@@ -3,20 +3,19 @@ package dbmanage
 import (
 	"time"
 
-	"github.com/superdb/super/db/pools"
+	"github.com/superdb/super/db/tables"
 )
 
 const DefaultInterval = time.Minute
 
 type Config struct {
 	Interval *time.Duration `yaml:"interval"`
-	Vectors  bool           `yaml:"vectors"`
-	Pools    []PoolConfig   `yaml:"pools"`
+	Tables   []TableConfig  `yaml:"tables"`
 }
 
-func (c *Config) poolConfig(p *pools.Config) PoolConfig {
-	for _, pconf := range c.Pools {
-		if p.Name != pconf.Pool && p.ID.String() != pconf.Pool {
+func (c *Config) tableConfig(t *tables.Config) TableConfig {
+	for _, pconf := range c.Tables {
+		if t.Name != pconf.Table && t.ID.String() != pconf.Table {
 			continue
 		}
 		if pconf.Branch == "" {
@@ -24,8 +23,8 @@ func (c *Config) poolConfig(p *pools.Config) PoolConfig {
 		}
 		return pconf
 	}
-	return PoolConfig{
-		Pool:   p.Name,
+	return TableConfig{
+		Table:  t.Name,
 		Branch: "main",
 	}
 }
@@ -37,7 +36,7 @@ func (c *Config) interval() time.Duration {
 	return *c.Interval
 }
 
-type PoolConfig struct {
-	Pool   string `yaml:"pool"`
+type TableConfig struct {
+	Table  string `yaml:"table"`
 	Branch string `yaml:"branch"`
 }

@@ -17,9 +17,9 @@ outputs:
       code 400
       {"type":"Error","kind":"invalid operation","error":"query text is missing"}
       code 400
-      {"type":"Error","kind":"invalid operation","error":"HEAD: pool not found at line 1, column 6:\nfrom HEAD\n     ~~~~","compilation_errors":[{"Msg":"HEAD: pool not found","Pos":5,"End":8}]}
+      {"type":"Error","kind":"invalid operation","error":"HEAD: table not found at line 1, column 6:\nfrom HEAD\n     ~~~~","compilation_errors":[{"Msg":"HEAD: table not found","Pos":5,"End":8}]}
       code 400
       {"type":"Error","kind":"invalid operation","error":"unknown database metadata type \"unknownmeta\" in from operator at line 1, column 6:\nfrom :unknownmeta\n     ~~~~~~~~~~~~","compilation_errors":[{"Msg":"unknown database metadata type \"unknownmeta\" in from operator","Pos":5,"End":16}]}
       code 400
-      {"type":"Error","kind":"invalid operation","error":"doesnotexist: pool not found at line 1, column 6:\nfrom doesnotexist\n     ~~~~~~~~~~~~","compilation_errors":[{"Msg":"doesnotexist: pool not found","Pos":5,"End":16}]}
+      {"type":"Error","kind":"invalid operation","error":"doesnotexist: table not found at line 1, column 6:\nfrom doesnotexist\n     ~~~~~~~~~~~~","compilation_errors":[{"Msg":"doesnotexist: table not found","Pos":5,"End":16}]}
       code 400

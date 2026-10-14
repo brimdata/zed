@@ -27,7 +27,7 @@ type Op interface {
 type (
 	CommitMetaScan struct {
 		ast.Node
-		Pool   uuid.UUID
+		Table  uuid.UUID
 		Commit uuid.UUID
 		Meta   string
 		Tap    bool
@@ -58,20 +58,20 @@ type (
 	NullScan struct {
 		ast.Node
 	}
-	PoolMetaScan struct {
-		ast.Node
-		ID   uuid.UUID
-		Meta string
-	}
-	PoolScan struct {
-		ast.Node
-		ID     uuid.UUID
-		Commit uuid.UUID
-	}
 	RobotScan struct {
 		ast.Node
 		Expr   Expr
 		Format string
+	}
+	TableMetaScan struct {
+		ast.Node
+		ID   uuid.UUID
+		Meta string
+	}
+	TableScan struct {
+		ast.Node
+		ID     uuid.UUID
+		Commit uuid.UUID
 	}
 )
 
@@ -81,9 +81,9 @@ func (*DeleteScan) opNode()     {}
 func (*FileScan) opNode()       {}
 func (*HTTPScan) opNode()       {}
 func (*NullScan) opNode()       {}
-func (*PoolMetaScan) opNode()   {}
-func (*PoolScan) opNode()       {}
 func (*RobotScan) opNode()      {}
+func (*TableScan) opNode()      {}
+func (*TableMetaScan) opNode()  {}
 
 type Seq []Op
 
@@ -156,7 +156,7 @@ type (
 	}
 	LoadOp struct {
 		ast.Node
-		Pool    uuid.UUID
+		Table   uuid.UUID
 		Branch  string
 		Author  string
 		Message string
@@ -289,7 +289,7 @@ func CopyOp(op Op) Op {
 	case *CommitMetaScan:
 		return &CommitMetaScan{
 			Node:   op.Node,
-			Pool:   op.Pool,
+			Table:  op.Table,
 			Commit: op.Commit,
 			Meta:   op.Meta,
 			Tap:    op.Tap,
@@ -325,23 +325,23 @@ func CopyOp(op Op) Op {
 		return &NullScan{
 			Node: op.Node,
 		}
-	case *PoolMetaScan:
-		return &PoolMetaScan{
-			Node: op.Node,
-			ID:   op.ID,
-			Meta: op.Meta,
-		}
-	case *PoolScan:
-		return &PoolScan{
-			Node:   op.Node,
-			ID:     op.ID,
-			Commit: op.Commit,
-		}
 	case *RobotScan:
 		return &RobotScan{
 			Node:   op.Node,
 			Expr:   CopyExpr(op.Expr),
 			Format: op.Format,
+		}
+	case *TableMetaScan:
+		return &TableMetaScan{
+			Node: op.Node,
+			ID:   op.ID,
+			Meta: op.Meta,
+		}
+	case *TableScan:
+		return &TableScan{
+			Node:   op.Node,
+			ID:     op.ID,
+			Commit: op.Commit,
 		}
 
 	case *AggregateOp:
@@ -414,7 +414,7 @@ func CopyOp(op Op) Op {
 	case *LoadOp:
 		return &LoadOp{
 			Node:    op.Node,
-			Pool:    op.Pool,
+			Table:   op.Table,
 			Branch:  op.Branch,
 			Author:  op.Author,
 			Message: op.Message,

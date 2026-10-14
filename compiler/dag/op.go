@@ -121,7 +121,7 @@ type (
 	}
 	LoadOp struct {
 		Kind    string    `json:"kind" unpack:""`
-		Pool    uuid.UUID `json:"pool"`
+		Table   uuid.UUID `json:"table"`
 		Branch  string    `json:"branch"`
 		Author  string    `json:"author"`
 		Message string    `json:"message"`
@@ -240,7 +240,7 @@ func (*ValuesOp) opNode()    {}
 type (
 	CommitMetaScan struct {
 		Kind      string    `json:"kind" unpack:""`
-		Pool      uuid.UUID `json:"pool"`
+		Table     uuid.UUID `json:"table"`
 		Commit    uuid.UUID `json:"commit"`
 		Meta      string    `json:"meta"`
 		Tap       bool      `json:"tap"`
@@ -252,7 +252,7 @@ type (
 	}
 	DeleterScan struct {
 		Kind      string    `json:"kind" unpack:""`
-		Pool      uuid.UUID `json:"pool"`
+		Table     uuid.UUID `json:"table"`
 		Where     Expr      `json:"where"`
 		KeyPruner Expr      `json:"key_pruner"`
 	}
@@ -270,7 +270,7 @@ type (
 	}
 	ListerScan struct {
 		Kind      string    `json:"kind" unpack:""`
-		Pool      uuid.UUID `json:"pool"`
+		Table     uuid.UUID `json:"table"`
 		Commit    uuid.UUID `json:"commit"`
 		KeyPruner Expr      `json:"key_pruner"`
 	}
@@ -282,7 +282,7 @@ type (
 		Headers map[string][]string `json:"headers"`
 		Body    string              `json:"body"`
 	}
-	PoolScan struct {
+	TableScan struct {
 		Kind   string    `json:"kind" unpack:""`
 		ID     uuid.UUID `json:"id"`
 		Commit uuid.UUID `json:"commit"`
@@ -293,7 +293,7 @@ type (
 		Format string `json:"format"`
 		Filter Expr   `json:"filter"`
 	}
-	PoolMetaScan struct {
+	TableMetaScan struct {
 		Kind string    `json:"kind" unpack:""`
 		ID   uuid.UUID `json:"id"`
 		Meta string    `json:"meta"`
@@ -303,7 +303,7 @@ type (
 	}
 	SeqScan struct {
 		Kind      string       `json:"kind" unpack:""`
-		Pool      uuid.UUID    `json:"pool"`
+		Table     uuid.UUID    `json:"table"`
 		Commit    uuid.UUID    `json:"commit"`
 		Fields    []field.Path `json:"fields"`
 		Filter    Expr         `json:"filter"`
@@ -330,10 +330,10 @@ type (
 
 var DBMetas = map[string]struct{}{
 	"branches": {},
-	"pools":    {},
+	"tables":   {},
 }
 
-var PoolMetas = map[string]struct{}{
+var TableMetas = map[string]struct{}{
 	"branches": {},
 }
 
@@ -353,9 +353,9 @@ func (*FileScan) opNode()       {}
 func (*HTTPScan) opNode()       {}
 func (*ListerScan) opNode()     {}
 func (*NullScan) opNode()       {}
-func (*PoolMetaScan) opNode()   {}
-func (*PoolScan) opNode()       {}
 func (*RobotScan) opNode()      {}
+func (*TableMetaScan) opNode()  {}
+func (*TableScan) opNode()      {}
 func (*SeqScan) opNode()        {}
 
 var Pass = &PassOp{Kind: "PassOp"}

@@ -203,12 +203,12 @@ func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	pool, ok := r.openPool(w, c.root)
+	table, ok := r.openTable(w, c.root)
 	if !ok {
 		return
 	}
 	if branchName != "" {
-		branch, err := pool.LookupBranchByName(r.Context(), branchName)
+		branch, err := table.LookupBranchByName(r.Context(), branchName)
 		if err != nil {
 			w.Error(err)
 			return
@@ -216,23 +216,23 @@ func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
 		w.Respond(http.StatusOK, api.CommitResponse{Commit: branch.Commit})
 		return
 	}
-	w.Respond(http.StatusOK, pool.Config)
+	w.Respond(http.StatusOK, table.Config)
 }
 
-func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
-	pool, ok := r.openPool(w, c.root)
+func handleTableStats(c *Core, w *ResponseWriter, r *Request) {
+	table, ok := r.openTable(w, c.root)
 	if !ok {
 		return
 	}
 	//XXX app uses this for key range... should handle this differently
 	// at minimum on a per-branch basis and app needs to be branch aware
 	// If branch not specified, API endpoints here should just assume "main".
-	branch, err := pool.OpenBranchByName(r.Context(), "main")
+	branch, err := table.OpenBranchByName(r.Context(), "main")
 	if err != nil {
 		w.Error(err)
 		return
 	}
-	snap, err := branch.Pool().Snapshot(r.Context(), branch.Commit)
+	snap, err := branch.Table().Snapshot(r.Context(), branch.Commit)
 	if err != nil {
 		if errors.Is(err, journal.ErrEmpty) {
 			w.WriteHeader(http.StatusNoContent)
@@ -241,7 +241,7 @@ func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	info, err := exec.GetPoolStats(r.Context(), pool, snap)
+	info, err := exec.GetTableStats(r.Context(), table, snap)
 	if err != nil {
 		w.Error(err)
 		return
@@ -249,40 +249,40 @@ func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
 	w.Respond(http.StatusOK, info)
 }
 
-func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
-	var req api.PoolPostRequest
+func handleTablePost(c *Core, w *ResponseWriter, r *Request) {
+	var req api.TablePostRequest
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	pool, err := c.root.CreatePool(r.Context(), req.Name, req.SortKeys, req.ObjectCap, req.FrameCap)
+	table, err := c.root.CreateTable(r.Context(), req.Name, req.SortKeys, req.ObjectCap, req.FrameCap)
 	if err != nil {
 		w.Error(err)
 		return
 	}
-	meta, err := pool.Main(r.Context())
+	meta, err := table.Main(r.Context())
 	if err != nil {
 		w.Error(err)
 		return
 	}
 	w.Respond(http.StatusOK, meta)
-	c.publishEvent(w, "pool-new", api.EventPool{PoolID: pool.ID})
+	c.publishEvent(w, "table-new", api.EventTable{TableID: table.ID})
 }
 
-func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
-	var req api.PoolPutRequest
+func handleTablePut(c *Core, w *ResponseWriter, r *Request) {
+	var req api.TablePutRequest
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	id, ok := r.PoolID(w, c.root)
+	id, ok := r.TableID(w, c.root)
 	if !ok {
 		return
 	}
-	if err := c.root.RenamePool(r.Context(), id, req.Name); err != nil {
+	if err := c.root.RenameTable(r.Context(), id, req.Name); err != nil {
 		w.Error(err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-	c.publishEvent(w, "pool-update", api.EventPool{PoolID: id})
+	c.publishEvent(w, "table-update", api.EventTable{TableID: id})
 }
 
 func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
@@ -290,7 +290,7 @@ func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	poolID, ok := r.PoolID(w, c.root)
+	tableID, ok := r.TableID(w, c.root)
 	if !ok {
 		return
 	}
@@ -299,17 +299,17 @@ func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(srverr.ErrInvalid("invalid commit object: %s", req.Commit))
 		return
 	}
-	branchRef, err := c.root.CreateBranch(r.Context(), poolID, req.Name, commit)
+	branchRef, err := c.root.CreateBranch(r.Context(), tableID, req.Name, commit)
 	if err != nil {
 		w.Error(err)
 		return
 	}
 	w.Respond(http.StatusOK, branchRef)
-	c.publishEvent(w, "branch-update", api.EventBranch{PoolID: poolID, Branch: branchRef.Name})
+	c.publishEvent(w, "branch-update", api.EventBranch{TableID: tableID, Branch: branchRef.Name})
 }
 
 func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
-	poolID, ok := r.PoolID(w, c.root)
+	tableID, ok := r.TableID(w, c.root)
 	if !ok {
 		return
 	}
@@ -325,7 +325,7 @@ func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	commit, err := c.root.Revert(r.Context(), poolID, branch, commit, message.Author, message.Body)
+	commit, err := c.root.Revert(r.Context(), tableID, branch, commit, message.Author, message.Body)
 	if err != nil {
 		w.Error(err)
 		return
@@ -333,13 +333,13 @@ func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
-		PoolID:   poolID,
+		TableID:  tableID,
 		Branch:   branch,
 	})
 }
 
 func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
-	poolID, ok := r.PoolID(w, c.root)
+	tableID, ok := r.TableID(w, c.root)
 	if !ok {
 		return
 	}
@@ -355,7 +355,7 @@ func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	commit, err := c.root.MergeBranch(r.Context(), poolID, childBranch, parentBranch, message.Author, message.Body)
+	commit, err := c.root.MergeBranch(r.Context(), tableID, childBranch, parentBranch, message.Author, message.Body)
 	if err != nil {
 		w.Error(err)
 		return
@@ -363,27 +363,27 @@ func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
-		PoolID:   poolID,
+		TableID:  tableID,
 		Branch:   childBranch,
 		Parent:   parentBranch,
 	})
 }
 
-func handlePoolDelete(c *Core, w *ResponseWriter, r *Request) {
-	id, ok := r.PoolID(w, c.root)
+func handleTableDelete(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.TableID(w, c.root)
 	if !ok {
 		return
 	}
-	if err := c.root.RemovePool(r.Context(), id); err != nil {
+	if err := c.root.RemoveTable(r.Context(), id); err != nil {
 		w.Error(err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-	c.publishEvent(w, "pool-delete", api.EventPool{PoolID: id})
+	c.publishEvent(w, "table-delete", api.EventTable{TableID: id})
 }
 
 func handleBranchDelete(c *Core, w *ResponseWriter, r *Request) {
-	poolID, ok := r.PoolID(w, c.root)
+	tableID, ok := r.TableID(w, c.root)
 	if !ok {
 		return
 	}
@@ -391,12 +391,12 @@ func handleBranchDelete(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	if err := c.root.RemoveBranch(r.Context(), poolID, branchName); err != nil {
+	if err := c.root.RemoveBranch(r.Context(), tableID, branchName); err != nil {
 		w.Error(err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-	c.publishEvent(w, "branch-delete", api.EventBranch{PoolID: poolID, Branch: branchName})
+	c.publishEvent(w, "branch-delete", api.EventBranch{TableID: tableID, Branch: branchName})
 }
 
 func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
@@ -420,11 +420,11 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	pool, ok := r.openPool(w, c.root)
+	table, ok := r.openTable(w, c.root)
 	if !ok {
 		return
 	}
-	branch, err := pool.OpenBranchByName(r.Context(), branchName)
+	branch, err := table.OpenBranchByName(r.Context(), branchName)
 	if err != nil {
 		w.Error(err)
 		return
@@ -488,7 +488,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: kommit,
-		PoolID:   pool.ID,
+		TableID:  table.ID,
 		Branch:   branch.Name,
 	})
 }
@@ -520,12 +520,12 @@ func handleCompact(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	pool, ok := r.openPool(w, c.root)
+	table, ok := r.openTable(w, c.root)
 	if !ok {
 		return
 	}
 	ctx := r.Context()
-	branch, err := pool.OpenBranchByName(ctx, branchName)
+	branch, err := table.OpenBranchByName(ctx, branchName)
 	if err != nil {
 		w.Error(err)
 		return
@@ -538,7 +538,7 @@ func handleCompact(c *Core, w *ResponseWriter, r *Request) {
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
-		PoolID:   pool.ID,
+		TableID:  table.ID,
 		Branch:   branchName,
 	})
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: branch.Commit})
@@ -558,11 +558,11 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &payload) {
 		return
 	}
-	pool, ok := r.openPool(w, c.root)
+	table, ok := r.openTable(w, c.root)
 	if !ok {
 		return
 	}
-	branch, err := pool.OpenBranchByName(r.Context(), branchName)
+	branch, err := table.OpenBranchByName(r.Context(), branchName)
 	if err != nil {
 		w.Error(err)
 		return
@@ -603,13 +603,13 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	w.Marshal(api.CommitResponse{Commit: commit})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: commit,
-		PoolID:   pool.ID,
+		TableID:  table.ID,
 		Branch:   branchName,
 	})
 }
 
 func handleVacate(c *Core, w *ResponseWriter, r *Request) {
-	pool, ok := r.StringFromPath(w, "pool")
+	table, ok := r.StringFromPath(w, "table")
 	if !ok {
 		return
 	}
@@ -628,7 +628,7 @@ func handleVacate(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	db := dbapi.FromRoot(c.root)
-	cids, err := db.Vacate(r.Context(), pool, ts, dryrun)
+	cids, err := db.Vacate(r.Context(), table, ts, dryrun)
 	if err != nil {
 		w.Error(err)
 		return
@@ -637,7 +637,7 @@ func handleVacate(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleVacuum(c *Core, w *ResponseWriter, r *Request) {
-	pool, ok := r.StringFromPath(w, "pool")
+	table, ok := r.StringFromPath(w, "table")
 	if !ok {
 		return
 	}
@@ -650,7 +650,7 @@ func handleVacuum(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	db := dbapi.FromRoot(c.root)
-	oids, err := db.Vacuum(r.Context(), pool, revision, dryrun)
+	oids, err := db.Vacuum(r.Context(), table, revision, dryrun)
 	if err != nil {
 		w.Error(err)
 		return

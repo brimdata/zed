@@ -39,17 +39,17 @@ to interpret the database.
 
 ### Storage Layer
 
-Data is arranged in a database as a set of _pools_, which are comprised of one
+Data is arranged in a database as a set of _tables_, which are comprised of one
 or more _branches_, which consist of a sequence of _commits_.
 
 The database storage model is intended to perform well with cloud object stores.
-All of the meta-data describing the pools, branches, commit history,
+All of the meta-data describing the tables, branches, commit history,
 and so forth is stored as objects inside of the database.  There is no need
 to set up and manage an auxiliary metadata store or catalog.
 
 Commits are immutable and named with globally unique IDs,
 and many commands may reference various database entities by their ID, e.g.,
-* _Pool ID_ - the ID of a pool
+* _Table ID_ - the ID of a table
 * _Commit object ID_ - the ID of a commit object
 * _Data object ID_ - the ID of a committed data object
 
@@ -85,11 +85,11 @@ While commit objects are always referenceable by their commit ID, it is also con
 to refer to the commit object at the tip of a branch.
 
 The entity that represents either a commit ID or a branch is called a _committish_.
-A committish is always relative to the pool and has the form:
-* `<pool>@<id>` or
-* `<pool>@<branch>`
+A committish is always relative to the table and has the form:
+* `<table>@<id>` or
+* `<table>@<branch>`
 
-where `<pool>` is a pool name or pool ID, `<id>` is a commit ID,
+where `<table>` is a table name or table ID, `<id>` is a commit ID,
 and `<branch>` is a branch name.
 
 In particular, the working branch set by the [use](#super-db-use) sub-command
@@ -97,14 +97,14 @@ is a committish.
 
 A committish may be abbreviated in several ways where the missing detail is
 obtained from the working-branch committish, e.g.,
-* `<pool>` - When just a pool name is given, then the committish is assumed to be
-`<pool>@main`.
-* `@<id>` or `<id>`- When an ID is given (optionally with the `@` prefix), then the committish is assumed to be `<pool>@<id>` where `<pool>` is obtained from the working-branch committish.
-* `@<branch>` - When a branch name is given with the `@` prefix, then the committish is assumed to be `<pool>@<id>` where `<pool>` is obtained from the working-branch committish.
+* `<table>` - When just a table name is given, then the committish is assumed to be
+`<table>@main`.
+* `@<id>` or `<id>`- When an ID is given (optionally with the `@` prefix), then the committish is assumed to be `<table>@<id>` where `table` is obtained from the working-branch committish.
+* `@<branch>` - When a branch name is given with the `@` prefix, then the committish is assumed to be `<table>@<id>` where `<table>` is obtained from the working-branch committish.
 
 ### Sort Key
 
-Data in a pool may be organized with a sort key to improve performance for certain use
+Data in a table may be organized with a sort key to improve performance for certain use
 cases.  The sort key may be ascending or descending.
 
 The sort key is specified with the [create](#super-db-create) sub-command.
@@ -118,7 +118,7 @@ When `super db` is invoked without a `db` sub-command and
 a query is specified, `super db` executes the
 SuperDB query engine attached to the database storage layer.
 
-In addition to inputs from database pools, URLs may be referenced
+In addition to inputs from database tables, URLs may be referenced
 within the query text as described in [input data section](input.md).
 
 For built-in command help and a listing of all available options,
@@ -133,13 +133,13 @@ When running a query attached to a database, the options include:
 * [Output](options.md#output)
 
 A database query typically begins with a [from](../super-sql/operators/from.md) operator
-indicating the pool and branch to use as input.
-If a pool name is provided to `from` without a branch name, then branch
+indicating the table and branch to use as input.
+If a table is provided to `from` without a branch name, then branch
 "main" is assumed.
 
 Output is sent to a [file or stdout](output.md).
 
-This example reads every record from the full key range of the `logs` pool
+This example reads every record from the full key range of the `logs` table
 and sends the results to stdout.
 
 ```
@@ -153,22 +153,22 @@ super db -c 'from logs | ts >= 2018-03-24T17:36:30.090766Z and ts <= 2018-03-24T
 ```
 
 When querying data to the [BSUP](../formats/bsup.md) output format,
-output from a pool can be easily piped to other commands like `super`, e.g.,
+output from a table can be easily piped to other commands like `super`, e.g.,
 ```
 super db -f bsup -c 'from logs' | super -s -c 'count() by field' -
 ```
-Of course, it's even more efficient to run the query inside of the pool traversal
-like this:
+Of course, it's even more efficient to run the second query from within the
+first query like this:
 ```
 super db -s -c 'from logs | count() by field'
 ```
-By default, the `query` command scans pool data in sort-key order though
+By default, the `query` command scans table data in sort-key order though
 the query optimizer may, in general, reorder the scan to optimize searches,
 aggregations, and joins.
 
 #### Meta-queries
 
-Commit history, metadata about data objects, database and pool configuration,
+Commit history, metadata about data objects, database and table configuration,
 etc. can all be queried and
 returned as super-structured data, which in turn, can be queried.
 
@@ -176,18 +176,18 @@ These structures are introspected using meta-queries that simply
 specify a metadata source using an extended syntax in the `from` operator.
 There are three types of meta-queries:
 * `from :<meta>` - database level
-* `from pool:<meta>` - pool level
-* `from pool[@<branch>]<:meta>` - branch level
+* `from table:<meta>` - table level
+* `from table[@<branch>]<:meta>` - branch level
 
 `<meta>` is the name of the metadata being queried. The available metadata
 sources vary based on level.
 
-For example, a list of pools with configuration data can be obtained
+For example, a list of tables with configuration data can be obtained
 in the SUP format as follows:
 ```
-super db -S -c "from :pools"
+super db -S -c "from :tables"
 ```
-This meta-query produces a list of branches in a pool called `logs`:
+This meta-query produces a list of branches in a table called `logs`:
 ```
 super db -S -c "from logs:branches"
 ```
@@ -198,7 +198,7 @@ super db -S -c "from logs:branches | branch.name=='main'"
 ```
 
 This meta-query produces a list of the data objects in the `live` branch
-of pool `logs`:
+of table `logs`:
 ```
 super db -S -c "from logs@live:objects"
 ```
@@ -219,22 +219,22 @@ super db -f db -c "from logs:objects"
 ## Sub-commands
 
 * [auth](#super-db-auth) authentication and authorization commands
-* [branch](#super-db-branch) create a new branch in a pool
-* [compact](#super-db-compact) compact data objects on a pool branch
-* [create](#super-db-create) create a new pool in a database
-* [delete](#super-db-delete) delete data from a pool
-* [drop](#super-db-drop) remove a pool from a database
+* [branch](#super-db-branch) create a new branch in a table
+* [compact](#super-db-compact) compact data objects on a table branch
+* [create](#super-db-create) create a new table in a database
+* [delete](#super-db-delete) delete data from a table
+* [drop](#super-db-drop) remove a table from a database
 * [init](#super-db-init) create and initialize a new database
 * [load](#super-db-load) load data into database
 * [log](#super-db-log) display the commit log
-* [ls](#super-db-ls) list the pools in a database
+* [ls](#super-db-ls) list the tables in a database
 * [manage](#super-db-manage) run regular maintenance on a database
 * [merge](#super-db-merge) merged data from one branch to another
-* [rename](#super-db-rename) rename a database pool
+* [rename](#super-db-rename) rename a table
 * [revert](#super-db-revert) reverse an old commit
 * [serve](#super-db-serve)  run a SuperDB service endpoint
 * [use](#super-db-use) set working branch for `db` commands
-* [vacate](#super-db-vacate) truncate a pool's commit history by removing old commits
+* [vacate](#super-db-vacate) truncate a table's commit history by removing old commits
 * [vacuum](#super-db-vacuum) vacuum deleted storage in database
 
 ### super db auth
@@ -256,20 +256,20 @@ super db auth login|logout|method|verify
 ```
 super db branch [options] [name]
 ```
-* `-use <committish>` commit to use, i.e., pool, pool@branch, or pool@commit
+* `-use <committish>` commit to use, i.e., table, table@branch, or table@commit
 * [Global](options.md#global)
 * [Database](options.md#database)
 * [Output](options.md#output)
 
 The `branch` command creates a branch with the name `name` that points
 to the tip of the working branch or, if the `name` argument is not provided,
-lists the existing branches of the selected pool.
+lists the existing branches of the selected table.
 
 For example, this branch command
 ```
 super db branch -use logs@main staging
 ```
-creates a new branch called "staging" in pool "logs", which points to
+creates a new branch called "staging" in table "logs", which points to
 the same commit object as the "main" branch.  Once created, commits
 to the "staging" branch will be added to the commit history without
 affecting the "main" branch and each branch can be queried independently
@@ -293,8 +293,8 @@ You can list the branches as follows:
 super db branch
 ```
 
-If no branch is currently checked out, then "-use pool@base" can be
-supplied to specify the desired pool for the new branch.
+If no branch is currently checked out, then "-use table@base" can be
+supplied to specify the desired table for the new branch.
 
 ### super db compact
 
@@ -316,26 +316,26 @@ creates a commit on HEAD replacing the old objects with the new ones.
 ```
 super db create [-orderby key[,key...][:asc|:desc]] <name>
 ```
-* `-orderby key` pool key with optional :asc or :desc suffix to organize data in pool (cannot be changed) (default "ts:desc")
-* `-S size` target size of pool data objects, as '10MB' or '4GiB', etc. (default "500MiB")
-* `-use` set created pool as the current pool (default "false")
+* `-orderby key` sort key with optional :asc or :desc suffix to organize data in the table (cannot be changed) (default "ts:desc")
+* `-S size` target size of table data objects, as '10MB' or '4GiB', etc. (default "500MiB")
+* `-use` select created table as the current working table (default "false")
 * [Global](options.md#global)
 * [Database](options.md#database)
 * [Output](options.md#output)
 
-The `create` command creates a new data pool with the given name,
+The `create` command creates a new data table with the given name,
 which may be any valid UTF-8 string.
 
 The `-orderby` option indicates the [sort key](#sort-key) that is used to sort
-the data in the pool, which may be in ascending or descending order.
+the data in the table, which may be in ascending or descending order.
 
 If a sort key is not specified, then it defaults to
 the [special value `this`](../super-sql/intro.md#pipe-scoping).
 
-A newly created pool is initialized with a branch called `main`.
+A newly created table is initialized with a branch called `main`.
 
 > [!NOTE]
-> Pools can be used without thinking about branches.  When referencing a pool without
+> Tables can be used without thinking about branches.  When referencing a table without
 > a branch, the tooling presumes the "main" branch as the default, and everything
 > can be done on main without having to think about branching.
 
@@ -345,14 +345,14 @@ A newly created pool is initialized with a branch called `main`.
 super db delete [options] <id> [<id>...]
 super db delete [options] -where <filter>
 ```
-* `-use committish` commit to use, i.e., pool, pool@branch, or pool@commit
+* `-use committish` commit to use, i.e., table, table@branch, or table@commit
 * `-where predicate` delete by any SuperSQL predicate
 * [Global](options.md#global)
 * [Database](options.md#database)
 * [Output](options.md#output)
 * [Commit](options.md#commit)
 
-The `delete` command removes one or more data objects indicated by their ID from a pool.
+The `delete` command removes one or more data objects indicated by their ID from a table.
 This command
 simply removes the data from the branch without actually deleting the
 underlying data objects thereby allowing time travel to work in the face
@@ -377,10 +377,10 @@ super db drop [options] <name>|<id>
 * [Database](options.md#database)
 * [Output](options.md#output)
 
-The `drop` command deletes a pool and all of its constituent data.
+The `drop` command deletes a table and all of its constituent data.
 
 **DANGER ZONE.**  You must confirm that you want to delete
-the pool to proceed.  The `-f` option can be used to force the deletion
+the table to proceed.  The `-f` option can be used to force the deletion
 without confirmation.
 
 ### super db init
@@ -406,19 +406,19 @@ storage path to create a new, empty database at the specified path.
 ```
 super db load [options] input [input ...]
 ```
-* `-use <committish>` commit to use, i.e., pool, pool@branch, or pool@commit
+* `-use <committish>` commit to use, i.e., table, table@branch, or table@commit
 * [Global](options.md#global)
 * [Database](options.md#database)
 * [Input](options.md#input)
 * [Output](options.md#output)
 
-The `load` command commits new data to a branch of a pool.
+The `load` command commits new data to a branch of a table.
 
 Run `super db load -h` for a list of command-line options.
 
 Note that there is no need to define a schema or insert data into
 a "table" as all super-structured data is _self describing_ and can be queried in a
-schema-agnostic fashion.  Data of any _shape_ can be stored in any pool
+schema-agnostic fashion.  Data of any _shape_ can be stored in any table
 and arbitrary data _shapes_ can coexist side by side.
 
 As with [super](super.md),
@@ -430,12 +430,12 @@ the data from a Web server or [S3](../dev/integrations/s3.md)
 and into the database.
 
 When data is loaded, it is broken up into objects of a target size determined
-by the pool's `threshold` parameter (which defaults to 500MiB but can be configured
-when the pool is created).  Each object is sorted by the [sort key](#sort-key) but
+by the table's `threshold` parameter (which defaults to 500MiB but can be configured
+when the table is created).  Each object is sorted by the [sort key](#sort-key) but
 a sequence of objects is not guaranteed to be globally sorted.  When lots
 of small or unsorted commits occur, data can be fragmented.  The performance
 impact of fragmentation can be eliminated by regularly [compacting](#super-db-manage)
-pools.
+tables.
 
 For example, this command
 ```
@@ -444,7 +444,7 @@ super db load sample1.json sample2.bsup sample3.sup
 loads files of varying formats in a single commit to the working branch.
 
 An alternative branch may be specified with a branch reference with the
-`-use` option, i.e., `<pool>@<branch>`.  Supposing a branch
+`-use` option, i.e., `<table>@<branch>`.  Supposing a branch
 called `live` existed, data can be committed into this branch as follows:
 ```
 super db load -use logs@live sample.bsup
@@ -456,13 +456,13 @@ super db use logs@live
 super db load sample.bsup
 ```
 During a `load` operation, a commit is broken out into units called _data objects_
-where a target object size is configured into the pool,
+where a target object size is configured into the table,
 typically 100MB-1GB.  The records within each object are sorted by the sort key.
 A data object is presumed by the implementation
 to fit into the memory of an intake worker node
 so that such a sort can be trivially accomplished.
 
-Data added to a pool can arrive in any order with respect to its sort key.
+Data added to a table can arrive in any order with respect to its sort key.
 While each object is sorted before it is written,
 the collection of objects is generally not sorted.
 
@@ -490,7 +490,7 @@ with the user obtained from the session and a message that is descriptive
 of the action.
 
 The `date` field here is used by the database for time travel
-through the branch and pool history, allowing you to see the state of
+through the branch and table history, allowing you to see the state of
 branches at any time in their commit history.
 
 Arbitrary metadata expressed as any [SUP value](../formats/sup.md)
@@ -526,7 +526,7 @@ Run `super db log -h` for a list of command-line options.
 To understand the log contents, the `load` operation is actually
 decomposed into two steps under the covers:
 an "add" step stores one or more
-new immutable data objects in the pool and a "commit" step
+new immutable data objects in the table and a "commit" step
 materializes the objects into a branch with an ACID transaction.
 This updates the branch pointer to point at a new commit object
 referencing the data objects where the new commit object's parent
@@ -548,18 +548,18 @@ and are also available in the SuperDB API for automation.
 ### super db ls
 
 ```
-super db ls [options] [pool]
+super db ls [options] [table]
 ```
 * [Global](options.md#global)
 * [Database](options.md#database)
 * [Output](options.md#output)
 
-The `ls` command lists pools in a database or branches in a pool.
+The `ls` command lists tables in a database or branches in a table.
 
-By default, all pools in the database are listed along with each pool's unique ID
+By default, all tables in the database are listed along with each table's unique ID
 and [sort key](#sort-key)
 
-If a pool name or pool ID is given, then the pool's branches are listed along
+If a table name or table ID is given, then the table's branches are listed along
 with the ID of their commit object, which points at the tip of each branch.
 
 ### super db manage
@@ -574,7 +574,7 @@ super db manage [options]
 * `-log.level level` logging level (default "info")
 * `-log.path path` path to send logs (values: stderr, stdout, path in file system) (default "stderr")
 * `-monitor` continuously monitor the database for updates
-* `-pool pool` pool to manage (all if unset, can be specified multiple times)
+* `-table table` table to manage (all if unset, can be specified multiple times)
 * `-vectors` create vectors for objects
 * [Global](options.md#global)
 * [Database](options.md#database)
@@ -583,7 +583,7 @@ super db manage [options]
 The `manage` command performs maintenance tasks on a database.
 
 Currently the only supported task is _compaction_, which reduces fragmentation
-by reading data objects in a pool and writing their contents back to large,
+by reading data objects in a table and writing their contents back to large,
 non-overlapping objects.
 
 If the `-monitor` option is specified and the database is
@@ -596,11 +596,11 @@ alternate check frequency as a [duration](../super-sql/types/time.md).
 If `-monitor` is not specified, a single maintenance pass is performed on the
 database.
 
-By default, maintenance tasks are performed on all pools in the database.  The
-`-pool` option may be specified one or more times to limit maintenance tasks
-to a subset of pools listed by name.
+By default, maintenance tasks are performed on all tables in the database.  The
+`-table` option may be specified one or more times to limit maintenance tasks
+to a subset of tables listed by name.
 
-The output from `manage` provides a per-pool summary of the maintenance
+The output from `manage` provides a per-table summary of the maintenance
 performed, including a count of `objects_compacted`.
 
 As an alternative to running `manage` as a separate command, the `-manage`
@@ -613,7 +613,7 @@ tasks run at the specified interval by the service process.
 super db merge -use logs@updates <branch>
 ```
 * `-f` force merge of main into a target (default "false")
-* `-use <committish>` commit to use, i.e., pool, pool@branch, or pool@commit
+* `-use <committish>` commit to use, i.e., table, table@branch, or table@commit
 * [Global](options.md#global)
 * [Database](options.md#database)
 * [Output](options.md#output)
@@ -624,7 +624,7 @@ Data is merged from one branch into another with the `merge` command, e.g.,
 super db merge -use logs@updates main
 ```
 where the `updates` branch is being merged into the `main` branch
-within the `logs` pool.
+within the `logs` table.
 
 A merge operation finds a common ancestor in the commit history then
 computes the set of changes needed for the target branch to reflect the
@@ -652,14 +652,14 @@ super db rename <existing> <new-name>
 * [Output](options.md#output)
 
 The `rename` command assigns a new name `<new-name>` to an existing
-pool `<existing>`, which may be referenced by its ID or its previous name.
+table `<existing>`, which may be referenced by its ID or its previous name.
 
 ### super db revert
 
 ```
 super db revert committish
 ```
-* `-use <committish>` commit to use, i.e., pool, pool@branch, or pool@commit
+* `-use <committish>` commit to use, i.e., table, table@branch, or table@commit
 * [Global](options.md#global)
 * [Database](options.md#database)
 * [Query](options.md#query)
@@ -729,7 +729,7 @@ The use command is like "git checkout" but there is no local copy of
 the database.  Rather, the local HEAD state influences commands as
 they access the database.
 
-The pool must be the name or ID of an existing pool.  The branch must be
+The table must be the name or ID of an existing table.  The branch must be
 the name of an existing branch or a commit ID.
 
 Any command that relies upon HEAD can also be run with the `-use` option
@@ -743,16 +743,16 @@ file ~/.super_head.  This file simply contains a pointer to the HEAD branch
 and thus provides the default for the `-use` option.  This way, multiple working
 directories can contain different HEAD pointers (along with your local files)
 and you can easily switch between windows without having to continually
-re-specify a new HEAD.  Unlike Git, all the committed pool data remains
+re-specify a new HEAD.  Unlike Git, all the committed table data remains
 in the database and is not copied to this local directory.
 
 For example,
 ```
 super db use logs
 ```
-provides a "pool-only" committish that sets the working branch to `logs@main`.
+provides a "table-only" committish that sets the working branch to `logs@main`.
 
-If an `@branch` or commit ID are given without a pool prefix, then the pool of
+If an `@branch` or commit ID are given without a table prefix, then the table of
 the committish previously in use is presumed.  For example, if you are on
 `logs@main` then run this command:
 ```
@@ -760,10 +760,10 @@ super db use @test
 ```
 then the working branch is set to `logs@test`.
 
-To specify a branch in another pool, simply prepend
-the pool name to the desired branch:
+To specify a branch in another table, simply prepend
+the table name to the desired branch:
 ```
-super db use otherpool@otherbranch
+super db use othertable@otherbranch
 ```
 This command stores the working branch in `$HOME/.super_head`.
 
@@ -773,13 +773,13 @@ This command stores the working branch in `$HOME/.super_head`.
 super db vacate [options] [timestamp]
 ```
 **Options**
-* `-use <committish>` commit to use, i.e., pool, pool@branch, or pool@commit
+* `-use <committish>` commit to use, i.e., table, table@branch, or table@commit
 * [Global](options.md#global)
 * [Database](options.md#database)
 * [Output](options.md#output)
 * [Commit](options.md#commit)
 
-The `vacate` command truncates a pool's commit history by removing old commits.
+The `vacate` command truncates a table's commit history by removing old commits.
 
 If `-use` is specified, all commits timestamped older than that of the
 given committish will be deleted. If the optional `timestamp` argument is
@@ -787,7 +787,7 @@ supplied, all commits older than that timestamp will be deleted. If
 neither `-use` nor `timestamp` is given, only the most recent commit in the
 history will be kept and all others deleted.
 
-**DANGER ZONE.** Once the pool's commit history has been truncated and old
+**DANGER ZONE.** Once the table's commit history has been truncated and old
 commits are deleted, they cannot be recovered.  You must confirm that you want
 to remove the commits to proceed.  The `-f` option can be used to force
 removal without confirmation.  The `-dryrun` option may also be used to see a
@@ -801,7 +801,7 @@ super db vacuum [ options ]
 ```
 * `-dryrun` run vacuum without deleting anything
 * `-f` do not prompt for confirmation
-* `-use <committish>` commit to use, i.e., pool, pool@branch, or pool@commit
+* `-use <committish>` commit to use, i.e., table, table@branch, or table@commit
 * [Global](options.md#global)
 * [Database](options.md#database)
 * [Output](options.md#output)

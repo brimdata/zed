@@ -7,7 +7,7 @@ import (
 
 	"github.com/superdb/super/cli/commitflags"
 	"github.com/superdb/super/cli/dbflags"
-	"github.com/superdb/super/cli/poolflags"
+	"github.com/superdb/super/cli/tableflags"
 	"github.com/superdb/super/cmd/super/db"
 	"github.com/superdb/super/dbid"
 	"github.com/superdb/super/pkg/charm"
@@ -30,13 +30,13 @@ func init() {
 type Command struct {
 	*db.Command
 	commitFlags commitflags.Flags
-	poolFlags   poolflags.Flags
+	tableFlags  tableflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*db.Command)}
 	c.commitFlags.SetFlags(f)
-	c.poolFlags.SetFlags(f)
+	c.tableFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -53,14 +53,14 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, err := c.poolFlags.HEAD()
+	head, err := c.tableFlags.HEAD()
 	if err != nil {
 		return err
 	}
-	if head.Pool == "" {
+	if head.Table == "" {
 		return dbflags.ErrNoHEAD
 	}
-	poolID, err := db.PoolID(ctx, head.Pool)
+	tableID, err := db.TableID(ctx, head.Table)
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	revertID, err := db.Revert(ctx, poolID, head.Branch, commitID, c.commitFlags.CommitMessage())
+	revertID, err := db.Revert(ctx, tableID, head.Branch, commitID, c.commitFlags.CommitMessage())
 	if err != nil {
 		return err
 	}

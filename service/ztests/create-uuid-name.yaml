@@ -1,4 +1,4 @@
-# Test that a pool can be given a uuid name and everything still works.
+# Test that a table can be given a uuid name and everything still works.
 script: |
   source service.sh
   super db create 01a119bb-45ea-7d50-999a-d46d8e4acb64
@@ -11,7 +11,7 @@ inputs:
 outputs:
   - name: stdout
     regexp: |
-      pool created: 01a119bb-45ea-7d50-999a-d46d8e4acb64 [0-9a-f-]{36}
-      Switched to branch "main" on pool "01a119bb-45ea-7d50-999a-d46d8e4acb64"
+      table created: 01a119bb-45ea-7d50-999a-d46d8e4acb64 [0-9a-f-]{36}
+      Switched to branch "main" on table "01a119bb-45ea-7d50-999a-d46d8e4acb64"
   - name: stderr
     data: ""

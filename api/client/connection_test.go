@@ -39,7 +39,7 @@ func TestClientRedirectReplay(t *testing.T) {
 	})
 	var requests int
 	var body string
-	mux.HandleFunc("/pool/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/table/", func(w http.ResponseWriter, r *http.Request) {
 		if requests == 0 {
 			requests++
 			w.WriteHeader(401)

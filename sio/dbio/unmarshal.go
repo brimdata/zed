@@ -5,7 +5,7 @@ import (
 	"github.com/superdb/super/db"
 	"github.com/superdb/super/db/commits"
 	"github.com/superdb/super/db/data"
-	"github.com/superdb/super/db/pools"
+	"github.com/superdb/super/db/tables"
 	"github.com/superdb/super/pkg/field"
 )
 
@@ -18,7 +18,7 @@ func init() {
 		commits.Commit{},
 		commits.Delete{},
 		field.Path{},
-		pools.Config{},
+		tables.Config{},
 		db.BranchMeta{},
 		db.BranchTip{},
 		data.Object{},

@@ -12,10 +12,10 @@ script: |
   echo === dag.CommitMetaScan
   super db compile -C -dag 'values (from test@main:objects)' | sed -Ee 's/[0-9a-f-]{36}/xxx/'
   echo === dag.DBMetaScan
-  super db compile -C -dag 'values (from :pools)' | sed -Ee 's/[0-9a-f-]{36}/xxx/'
-  echo === dag.PoolMetaScan
+  super db compile -C -dag 'values (from :tables)' | sed -Ee 's/[0-9a-f-]{36}/xxx/'
+  echo === dag.TableMetaScan
   super db compile -C -dag 'values (from test:branches)' | sed -Ee 's/[0-9a-f-]{36}/xxx/'
-  echo === dag.PoolScan
+  echo === dag.TableScan
   super db compile -C -dag 'values (from test)' | sed -Ee 's/[0-9a-f-]{36}/xxx/'
 
   echo === dag.ForkOp
@@ -49,22 +49,22 @@ outputs:
       === dag.CommitMetaScan
       null
       | values (
-        pool xxx@00000000-0000-0000-0000-000000000000:objects)
+        table xxx@00000000-0000-0000-0000-000000000000:objects)
       | output main
       === dag.DBMetaScan
       null
       | values (
-        :pools)
+        :tables)
       | output main
-      === dag.PoolMetaScan
+      === dag.TableMetaScan
       null
       | values (
-        pool xxx:branches)
+        table xxx:branches)
       | output main
-      === dag.PoolScan
+      === dag.TableScan
       null
       | values (
-        pool xxx)
+        table xxx)
       | output main
       === dag.ForkOp
       null

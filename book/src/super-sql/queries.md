@@ -148,7 +148,7 @@ regexp(r'\w+(foo|bar)', this)
 But when used outside of expressions where an explicit indication of
 a regular expression is required (e.g., in a
 [search](operators/search.md) or
-[from](operators/from.md#pools) operator), the RE2 is instead
+[from](operators/from.md#tables) operator), the RE2 is instead
 prefixed and suffixed with a `/`, e.g.,
 ```
 /foo|bar/

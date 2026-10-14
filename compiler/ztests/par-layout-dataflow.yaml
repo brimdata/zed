@@ -3,9 +3,9 @@ script: |
   super db init -q
   super db create -q -orderby ts:asc ASC
   super db create -q -orderby ts:desc DESC
-  super db compile -C -P 2 "from ASC | cut x:=ts,ts:=1" | sed -e 's/pool .*/.../'
+  super db compile -C -P 2 "from ASC | cut x:=ts,ts:=1" | sed -e 's/table .*/.../'
   echo ===
-  super db compile -C -P 2 "from DESC | cut x:=ts,ts:=1" | sed -e 's/pool .*/.../'
+  super db compile -C -P 2 "from DESC | cut x:=ts,ts:=1" | sed -e 's/table .*/.../'
 
 outputs:
   - name: stdout

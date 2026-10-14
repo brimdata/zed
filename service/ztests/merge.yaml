@@ -1,13 +1,13 @@
 script: |
   source service.sh
-  super db create -q POOL
-  super db load -q -use POOL a.sup
-  super db branch -q -use POOL child
-  super db load -q -use POOL@child b.sup
-  super db -s -c "from POOL | sort this"
+  super db create -q TABLE
+  super db load -q -use TABLE a.sup
+  super db branch -q -use TABLE child
+  super db load -q -use TABLE@child b.sup
+  super db -s -c "from TABLE | sort this"
   echo ===
-  super db merge -q -use POOL@child main
-  super db -s -c "from POOL | sort this"
+  super db merge -q -use TABLE@child main
+  super db -s -c "from TABLE | sort this"
 
 inputs:
   - name: a.sup

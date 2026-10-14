@@ -1,9 +1,9 @@
 script: |
   export SUPER_DB=test
   super db init -q
-  for pool in match1 match2 nope; do
-    super db create -q $pool
-    echo "\"$pool\"" | super db load -q -use $pool -
+  for table in match1 match2 nope; do
+    super db create -q $table
+    echo "\"$table\"" | super db load -q -use $table -
   done
   super db -s -c 'from * | sort this'
   echo ===

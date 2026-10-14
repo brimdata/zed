@@ -12,7 +12,7 @@ import (
 var spec = &charm.Spec{
 	Name:  "rename",
 	Usage: "rename old-name new-name",
-	Short: "rename a data pool",
+	Short: "rename a table",
 	Long: `
 See https://superdb.org/command/db.html#super-db-rename
 `,
@@ -39,7 +39,7 @@ func (c *Command) Run(args []string) error {
 	}
 	defer cleanup()
 	if len(args) != 2 {
-		return errors.New("two pool names must be provided")
+		return errors.New("two tables must be provided")
 	}
 	oldName := args[0]
 	newName := args[1]
@@ -47,15 +47,15 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	poolID, err := db.PoolID(ctx, oldName)
+	tableID, err := db.TableID(ctx, oldName)
 	if err != nil {
 		return err
 	}
-	if err := db.RenamePool(ctx, poolID, newName); err != nil {
+	if err := db.RenameTable(ctx, tableID, newName); err != nil {
 		return err
 	}
 	if !c.DBFlags.Quiet {
-		fmt.Printf("pool %s renamed from %s to %s\n", poolID, oldName, newName)
+		fmt.Printf("table %s renamed from %s to %s\n", tableID, oldName, newName)
 	}
 	return nil
 }

@@ -17,8 +17,8 @@ import (
 
 var spec = &charm.Spec{
 	Name:  "ls",
-	Usage: "ls [options] [pool]",
-	Short: "list pools in a database or branches in a pool",
+	Usage: "ls [options] [table]",
+	Short: "list tables in a database or branches in a table",
 	Long: `
 See https://superdb.org/command/db.html#super-db-ls
 `,
@@ -43,11 +43,11 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	var poolName string
+	var tableName string
 	switch len(args) {
 	case 0:
 	case 1:
-		poolName = args[0]
+		tableName = args[0]
 	default:
 		return errors.New("too many arguments")
 	}
@@ -62,13 +62,13 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	var query string
-	if poolName == "" {
-		query = "from :pools"
+	if tableName == "" {
+		query = "from :tables"
 	} else {
-		if strings.IndexByte(poolName, '\'') >= 0 {
-			return errors.New("pool name may not contain quote characters")
+		if strings.IndexByte(tableName, '\'') >= 0 {
+			return errors.New("table name may not contain quote characters")
 		}
-		query = fmt.Sprintf("from '%s':branches", poolName)
+		query = fmt.Sprintf("from '%s':branches", tableName)
 	}
 	//XXX at should be a date/time
 	var at uuid.UUID

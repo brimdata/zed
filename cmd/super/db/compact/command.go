@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/superdb/super/cli/commitflags"
-	"github.com/superdb/super/cli/poolflags"
+	"github.com/superdb/super/cli/tableflags"
 	"github.com/superdb/super/cmd/super/db"
 	"github.com/superdb/super/dbid"
 	"github.com/superdb/super/pkg/charm"
@@ -14,7 +14,7 @@ import (
 var spec = &charm.Spec{
 	Name:  "compact",
 	Usage: "compact id id [id ...]",
-	Short: "compact data objects on a pool branch",
+	Short: "compact data objects on a table branch",
 	Long: `
 See https://superdb.org/command/db.html#super-db-compact
 `,
@@ -24,7 +24,7 @@ See https://superdb.org/command/db.html#super-db-compact
 type Command struct {
 	*db.Command
 	commitFlags commitflags.Flags
-	poolFlags   poolflags.Flags
+	tableFlags  tableflags.Flags
 }
 
 func init() {
@@ -34,7 +34,7 @@ func init() {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*db.Command)}
 	c.commitFlags.SetFlags(f)
-	c.poolFlags.SetFlags(f)
+	c.tableFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -52,15 +52,15 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, err := c.poolFlags.HEAD()
+	head, err := c.tableFlags.HEAD()
 	if err != nil {
 		return err
 	}
-	poolID, err := db.PoolID(ctx, head.Pool)
+	tableID, err := db.TableID(ctx, head.Table)
 	if err != nil {
 		return err
 	}
-	commit, err := db.Compact(ctx, poolID, head.Branch, ids, c.commitFlags.CommitMessage())
+	commit, err := db.Compact(ctx, tableID, head.Branch, ids, c.commitFlags.CommitMessage())
 	if err == nil && !c.DBFlags.Quiet {
 		fmt.Printf("%s compaction committed\n", commit)
 	}

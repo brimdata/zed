@@ -1,4 +1,4 @@
-package pools
+package tables
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	ErrExists   = errors.New("pool already exists")
-	ErrNotFound = errors.New("pool not found")
+	ErrExists   = errors.New("table already exists")
+	ErrNotFound = errors.New("table not found")
 )
 
 type Store struct {
@@ -43,11 +43,11 @@ func (s *Store) All(ctx context.Context) ([]Config, error) {
 	}
 	list := make([]Config, 0, len(entries))
 	for _, entry := range entries {
-		pool, ok := entry.(*Config)
+		table, ok := entry.(*Config)
 		if !ok {
-			return nil, errors.New("corrupt pool config journal")
+			return nil, errors.New("corrupt table config journal")
 		}
-		list = append(list, *pool)
+		list = append(list, *table)
 	}
 	return list, nil
 }
@@ -98,7 +98,7 @@ func (s *Store) Rename(ctx context.Context, id uuid.UUID, newName string) error 
 	return err
 }
 
-// Remove deletes a pool from the configuration journal.
+// Remove deletes a table from the configuration journal.
 func (s *Store) Remove(ctx context.Context, config Config) error {
 	err := s.store.Delete(ctx, config.Name, func(v journal.Entry) bool {
 		p, ok := v.(*Config)
@@ -112,7 +112,7 @@ func (s *Store) Remove(ctx context.Context, config Config) error {
 			return fmt.Errorf("%s: %w", config.ID, ErrNotFound)
 		}
 		if err == journal.ErrConstraint {
-			return fmt.Errorf("%s: pool %q renamed during removal", config.Name, config.ID)
+			return fmt.Errorf("%s: table %q renamed during removal", config.Name, config.ID)
 		}
 		return err
 	}

@@ -2,7 +2,7 @@ script: |
   export SUPER_DB=test
   super db init -q
   super db create -q -orderby s:asc test
-  super db compile -P 2 -C "from test | union(s) by n:=len(s)" | sed -e 's/pool .*/.../'
+  super db compile -P 2 -C "from test | union(s) by n:=len(s)" | sed -e 's/table .*/.../'
   echo ===
   super compile -C -P 2 -dynamic 'from test.bsup | summarize count(a) by b'
 

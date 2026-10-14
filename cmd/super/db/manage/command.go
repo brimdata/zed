@@ -45,13 +45,12 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 		}
 		return yaml.UnmarshalWithOptions(b, &c.config, yaml.DisallowUnknownField())
 	})
-	f.Func("pool", "pool to manage (all if unset, can be specified multiple times)", func(s string) error {
-		c.config.Pools = append(c.config.Pools, dbmanage.PoolConfig{Pool: s, Branch: "main"})
+	f.Func("table", "table to manage (all if unset, can be specified multiple times)", func(s string) error {
+		c.config.Tables = append(c.config.Tables, dbmanage.TableConfig{Table: s, Branch: "main"})
 		return nil
 	})
 	c.config.Interval = f.Duration("interval", dbmanage.DefaultInterval, "interval between updates (only applicable with -monitor")
 	f.BoolVar(&c.monitor, "monitor", false, "continuously monitor the database for updates")
-	f.BoolVar(&c.config.Vectors, "vectors", false, "create vectors for objects")
 	return c, nil
 }
 

@@ -7,34 +7,34 @@ import (
 )
 
 type Committish struct {
-	Pool   string `super:"pool"`
+	Table  string `super:"table"`
 	Branch string `super:"branch"`
 }
 
 func ParseCommittish(committish string) (*Committish, error) {
 	if committish == "" {
-		return nil, errors.New("empty pool and branch")
+		return nil, errors.New("empty table and branch")
 	}
 	if strings.IndexByte(committish, '\'') >= 0 {
-		return nil, errors.New("pool and branch names may not contain single quote characters")
+		return nil, errors.New("table and branch names may not contain single quote characters")
 	}
 	if i := strings.LastIndexByte(committish, '@'); i > -1 {
-		return &Committish{Pool: committish[:i], Branch: committish[i+1:]}, nil
+		return &Committish{Table: committish[:i], Branch: committish[i+1:]}, nil
 	}
-	return &Committish{Pool: committish}, nil
+	return &Committish{Table: committish}, nil
 }
 
-var ErrNoPool = errors.New("no pool")
+var ErrNoTable = errors.New("no table")
 
 func (c *Committish) FromSpec(meta string) (string, error) {
-	if c.Pool == "" {
-		return "", ErrNoPool
+	if c.Table == "" {
+		return "", ErrNoTable
 	}
 	var s string
 	if _, err := ParseID(c.Branch); err == nil {
-		s = fmt.Sprintf("from '%s'@%s", c.Pool, c.Branch)
+		s = fmt.Sprintf("from '%s'@%s", c.Table, c.Branch)
 	} else {
-		s = fmt.Sprintf("from '%s'@'%s'", c.Pool, c.Branch)
+		s = fmt.Sprintf("from '%s'@'%s'", c.Table, c.Branch)
 	}
 	if meta != "" {
 		s += ":" + meta
@@ -43,9 +43,9 @@ func (c *Committish) FromSpec(meta string) (string, error) {
 }
 
 func (c *Committish) String() string {
-	return fmt.Sprintf("%s@%s", c.Pool, c.Branch)
+	return fmt.Sprintf("%s@%s", c.Table, c.Branch)
 }
 
 func (c *Committish) IsZero() bool {
-	return c.Pool == "" && c.Branch == ""
+	return c.Table == "" && c.Branch == ""
 }

@@ -15,7 +15,7 @@ type Load struct {
 	rctx    *runtime.Context
 	root    *db.Root
 	parent  vio.Puller
-	pool    uuid.UUID
+	tableID uuid.UUID
 	branch  string
 	author  string
 	message string
@@ -23,12 +23,12 @@ type Load struct {
 	done    bool
 }
 
-func NewLoad(rctx *runtime.Context, root *db.Root, parent vio.Puller, pool uuid.UUID, branch, author, message, meta string) *Load {
+func NewLoad(rctx *runtime.Context, root *db.Root, parent vio.Puller, tableID uuid.UUID, branch, author, message, meta string) *Load {
 	return &Load{
 		rctx:    rctx,
 		root:    root,
 		parent:  parent,
-		pool:    pool,
+		tableID: tableID,
 		branch:  branch,
 		author:  author,
 		message: message,
@@ -52,11 +52,11 @@ func (l *Load) Pull(done bool) (vector.Any, error) {
 		l.branch = "main"
 	}
 	l.done = true
-	pool, err := l.root.OpenPool(l.rctx.Context, l.pool)
+	table, err := l.root.OpenTable(l.rctx.Context, l.tableID)
 	if err != nil {
 		return nil, err
 	}
-	branch, err := pool.OpenBranchByName(l.rctx.Context, l.branch)
+	branch, err := table.OpenBranchByName(l.rctx.Context, l.branch)
 	if err != nil {
 		return nil, err
 	}

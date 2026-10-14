@@ -62,7 +62,7 @@ func FileMatch(s string) (kind FileKind, id uuid.UUID, ok bool) {
 }
 
 // An Object represents a cloud object or file that holds an ordered sequence
-// of values sorted according to the pool's data order where From is the
+// of values sorted according to the table's sort order where From is the
 // the first value in the sequence and To is the last value.  Count is the number
 // of values in the sequence and Size is total size in bytes of the Object as
 // persisted to storage (i.e., its compressed size).

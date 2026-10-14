@@ -1,19 +1,19 @@
 script: |
   export SUPER_DB=test
   super db init -q
-  super db create -use -q POOL
+  super db create -use -q TABLE
   a=$(super db load a.sup | head -1 | awk '{print $1}')
   b=$(super db load b.sup | head -1 | awk '{print $1}')
-  super db -s -c "from POOL | sort this"
+  super db -s -c "from TABLE | sort this"
   echo === AT a
-  super db -s -c "from POOL@$a | sort this"
+  super db -s -c "from TABLE@$a | sort this"
   echo === AT b
-  super db -s -c "from POOL@$b | sort this"
+  super db -s -c "from TABLE@$b | sort this"
   super db revert -q $a
   echo === with A deleted
-  super db -s -c "from POOL | sort this"
+  super db -s -c "from TABLE | sort this"
   echo === at B before A deleted
-  super db -s -c "from POOL@$b | sort this"
+  super db -s -c "from TABLE@$b | sort this"
 
 inputs:
   - name: a.sup

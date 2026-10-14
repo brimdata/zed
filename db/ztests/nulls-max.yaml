@@ -1,5 +1,5 @@
 # This test ensures that nulls are the max value for either descending or 
-# ascending ordered pools.
+# ascending ordered tables.
 
 script: |
   export SUPER_DB=test

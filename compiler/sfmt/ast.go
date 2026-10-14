@@ -553,7 +553,7 @@ func (c *canon) op(p ast.Op) {
 		c.sortExprs(p.Exprs)
 	case *ast.LoadOp:
 		c.next()
-		c.write("load %s", sup.QuotedString(p.Pool.Text))
+		c.write("load %s", sup.QuotedString(p.Table.Text))
 		c.opArgs(p.Args)
 	case *ast.HeadOp:
 		c.next()

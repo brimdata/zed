@@ -685,10 +685,10 @@ AssignmentOp
     }
 
 LoadOp
-  = LOAD _ pool:Text args:CommittishOpArgs? {
+  = LOAD _ table:Text args:CommittishOpArgs? {
       return &ast.LoadOp{
         Kind: "LoadOp",
-        Pool: pool.(*ast.Text),
+        Table: table.(*ast.Text),
         Args: sliceOf[ast.OpArg](args),
         Loc: loc(c),
       }, nil

@@ -25,13 +25,13 @@ func (a *AST) Files() *srcfiles.List {
 	return a.files
 }
 
-func (a *AST) ConvertToDeleteWhere(pool, branch string) error {
+func (a *AST) ConvertToDeleteWhere(table, branch string) error {
 	if len(a.seq) == 0 {
 		return errors.New("internal error: AST seq cannot be empty")
 	}
 	a.seq.Prepend(&ast.Delete{
 		Kind:   "Delete",
-		Pool:   pool,
+		Table:  table,
 		Branch: branch,
 	})
 	return nil

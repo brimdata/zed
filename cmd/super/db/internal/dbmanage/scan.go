@@ -9,7 +9,7 @@ import (
 	"github.com/superdb/super/compiler/srcfiles"
 	"github.com/superdb/super/db/api"
 	"github.com/superdb/super/db/data"
-	"github.com/superdb/super/db/pools"
+	"github.com/superdb/super/db/tables"
 	"github.com/superdb/super/dbid"
 	"github.com/superdb/super/order"
 	"github.com/superdb/super/runtime/sam/expr"
@@ -18,7 +18,7 @@ import (
 	"github.com/superdb/super/sio"
 )
 
-func scan(ctx context.Context, it *objectIterator, pool *pools.Config, runCh chan<- []uuid.UUID, vecCh chan<- uuid.UUID) error {
+func scan(ctx context.Context, it *objectIterator, config *tables.Config, runCh chan<- []uuid.UUID, vecCh chan<- uuid.UUID) error {
 	send := func(r *runBuilder) error {
 		switch len(r.objects) {
 		case 0: // do nothing
@@ -48,7 +48,7 @@ func scan(ctx context.Context, it *objectIterator, pool *pools.Config, runCh cha
 		if err != nil {
 			return err
 		}
-		if run.overlaps(o.Min, o.Max) || run.len+o.Count < pool.ObjectCap {
+		if run.overlaps(o.Min, o.Max) || run.len+o.Count < config.ObjectCap {
 			run.add(o)
 			continue
 		}
@@ -75,7 +75,7 @@ type objectIterator struct {
 }
 
 func newObjectIterator(ctx context.Context, db api.Interface, head *dbid.Committish) (*objectIterator, error) {
-	query := fmt.Sprintf(iteratorQuery, head.Pool, head.Branch, head.Pool, head.Branch)
+	query := fmt.Sprintf(iteratorQuery, head.Table, head.Branch, head.Table, head.Branch)
 	q, err := db.Query(ctx, srcfiles.Plain(query))
 	if err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ func (r *objectIterator) close() error {
 
 type object struct {
 	data.Object
-	Vector bool `super:"vector"`
+	Vector bool `super:"vector"` //XXX remove
 }
 
 type runBuilder struct {

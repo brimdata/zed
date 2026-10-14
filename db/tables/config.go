@@ -1,4 +1,4 @@
-package pools
+package tables
 
 import (
 	"uuid"

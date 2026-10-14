@@ -7,7 +7,7 @@ import (
 
 	"github.com/superdb/super/cli/commitflags"
 	"github.com/superdb/super/cli/dbflags"
-	"github.com/superdb/super/cli/poolflags"
+	"github.com/superdb/super/cli/tableflags"
 	"github.com/superdb/super/cmd/super/db"
 	"github.com/superdb/super/pkg/charm"
 )
@@ -29,14 +29,14 @@ func init() {
 type Command struct {
 	*db.Command
 	commitFlags commitflags.Flags
-	poolFlags   poolflags.Flags
+	tableFlags  tableflags.Flags
 	force       bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*db.Command)}
 	c.commitFlags.SetFlags(f)
-	c.poolFlags.SetFlags(f)
+	c.tableFlags.SetFlags(f)
 	f.BoolVar(&c.force, "f", false, "force merge of main into a target")
 	return c, nil
 }
@@ -57,11 +57,11 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	head, err := c.poolFlags.HEAD()
+	head, err := c.tableFlags.HEAD()
 	if err != nil {
 		return err
 	}
-	if head.Pool == "" {
+	if head.Table == "" {
 		return dbflags.ErrNoHEAD
 	}
 	if head.Branch == "" || targetBranch == "" {
@@ -70,11 +70,11 @@ func (c *Command) Run(args []string) error {
 	if head.Branch == "main" && !c.force {
 		return errors.New("merging the main branch into another branch is unusual; use -f to force")
 	}
-	poolID, err := db.PoolID(ctx, head.Pool)
+	tableID, err := db.TableID(ctx, head.Table)
 	if err != nil {
 		return err
 	}
-	if _, err = db.MergeBranch(ctx, poolID, head.Branch, targetBranch, c.commitFlags.CommitMessage()); err != nil {
+	if _, err = db.MergeBranch(ctx, tableID, head.Branch, targetBranch, c.commitFlags.CommitMessage()); err != nil {
 		return err
 	}
 	if !c.DBFlags.Quiet {

@@ -1,4 +1,4 @@
-package poolflags
+package tableflags
 
 import (
 	"errors"
@@ -13,20 +13,20 @@ type Flags struct {
 
 func (l *Flags) SetFlags(fs *flag.FlagSet) {
 	defaultHead, _ := readHead()
-	fs.StringVar(&l.defaultHead, "use", defaultHead, "commit to use, i.e., pool, pool@branch, or pool@commit")
+	fs.StringVar(&l.defaultHead, "use", defaultHead, "commit to use, i.e., table, table@branch, or table@commit")
 }
 
 func (f *Flags) HEAD() (*dbid.Committish, error) {
 	if f.defaultHead == "" {
-		return nil, errors.New(`pool and branch are unspecified
+		return nil, errors.New(`table and branch are unspecified
 (specify with -use flag or "super db use" command)`)
 	}
 	c, err := dbid.ParseCommittish(f.defaultHead)
 	if err != nil {
 		return nil, err
 	}
-	if c.Pool == "" {
-		return nil, errors.New("pool unspecified")
+	if c.Table == "" {
+		return nil, errors.New("table unspecified")
 	}
 	if c.Branch == "" {
 		c.Branch = "main"

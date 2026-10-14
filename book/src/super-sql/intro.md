@@ -161,9 +161,8 @@ When running on the local file system,
 indicating an API endpoint.
 When connected to a [SuperDB database](../command/db.md),
 `from` typically
-refers to a collection of super-structured data called a _pool_ and
-is referenced using the pool's name similar to SQL referencing
-a relational table by name.
+refers to a collection of super-structured data in a table and
+is referenced using the table's name as in SQL.
 
 For more detail, see the reference page of the [from](operators/from.md) operator,
 but as an example, you might use `from` to fetch data from an

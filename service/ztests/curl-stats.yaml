@@ -1,9 +1,9 @@
 script: |
   source service.sh
-  curl -X POST -d '{"name":"test","sort_keys":[{"order":"desc","path":["ts"]}]}' $SUPER_DB/pool > pool.json
-  poolID=$(super -f line -c 'values uuid(pool.id)' pool.json)
-  curl -X POST -d @- $SUPER_DB/pool/$poolID/branch/main > load.json
-  curl $SUPER_DB/pool/$poolID/stats
+  curl -X POST -d '{"name":"test","sort_keys":[{"order":"desc","path":["ts"]}]}' $SUPER_DB/table > table.json
+  tableID=$(super -f line -c 'values uuid(table.id)' table.json)
+  curl -X POST -d @- $SUPER_DB/table/$tableID/branch/main > load.json
+  curl $SUPER_DB/table/$tableID/stats
 
 inputs:
   - name: stdin
@@ -15,5 +15,5 @@ outputs:
     data: |
       type "nano.Duration"=int64
       type "nano.Span"={ts:time,dur:"nano.Duration"}
-      type "exec.PoolStats"={size:int64,span:"nano.Span"}
-      {size:28646,span:{ts:2020-04-21T22:40:30.06852324Z,dur:9789993714061}}::exec.PoolStats
+      type "exec.TableStats"={size:int64,span:"nano.Span"}
+      {size:28646,span:{ts:2020-04-21T22:40:30.06852324Z,dur:9789993714061}}::exec.TableStats

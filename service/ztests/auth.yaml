@@ -4,7 +4,7 @@ script: |
     $(gentoken -audience a -domain https://testdomain -privatekeyfile auth-private-key -keyid testkey -tenantid tenant1 -userid user1)
   super db auth verify -configdir user1 
   super db create -configdir user1 -q test0
-  # Unauthenticated user should not be able to create a pool.
+  # Unauthenticated user should not be able to create a table.
   ! super db create -q test1
 
 inputs:

@@ -6,37 +6,37 @@ import (
 
 	"github.com/superdb/super/api"
 	dbapi "github.com/superdb/super/db/api"
-	"github.com/superdb/super/db/pools"
+	"github.com/superdb/super/db/tables"
 	"github.com/superdb/super/dbid"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
 type branch struct {
-	config PoolConfig
+	config TableConfig
 	db     dbapi.Interface
 	logger *zap.Logger
-	pool   *pools.Config
+	table  *tables.Config
 }
 
-func newBranch(c Config, pool *pools.Config, db dbapi.Interface, logger *zap.Logger) *branch {
-	config := c.poolConfig(pool)
-	logger = logger.Named("pool").With(
-		zap.String("name", pool.Name),
-		zap.Stringer("id", pool.ID),
+func newBranch(c Config, table *tables.Config, db dbapi.Interface, logger *zap.Logger) *branch {
+	config := c.tableConfig(table)
+	logger = logger.Named("table").With(
+		zap.String("name", table.Name),
+		zap.Stringer("id", table.ID),
 		zap.String("branch", config.Branch),
 	)
 	return &branch{
 		config: config,
 		db:     db,
 		logger: logger,
-		pool:   pool,
+		table:  table,
 	}
 }
 
 func (b *branch) run(ctx context.Context) error {
 	b.logger.Debug("compaction started")
-	head := dbid.Committish{Pool: b.pool.Name, Branch: b.config.Branch}
+	head := dbid.Committish{Table: b.table.Name, Branch: b.config.Branch}
 	it, err := newObjectIterator(ctx, b.db, &head)
 	if err != nil {
 		return err
@@ -46,7 +46,7 @@ func (b *branch) run(ctx context.Context) error {
 	vecCh := make(chan uuid.UUID)
 	group, ctx := errgroup.WithContext(ctx)
 	group.Go(func() error {
-		err := scan(ctx, it, b.pool, runCh, vecCh)
+		err := scan(ctx, it, b.table, runCh, vecCh)
 		close(runCh)
 		close(vecCh)
 		return err
@@ -55,7 +55,7 @@ func (b *branch) run(ctx context.Context) error {
 	var compacted int
 	group.Go(func() error {
 		for run := range runCh {
-			commit, err := b.db.Compact(ctx, b.pool.ID, b.config.Branch, run, api.CommitMessage{})
+			commit, err := b.db.Compact(ctx, b.table.ID, b.config.Branch, run, api.CommitMessage{})
 			if err != nil {
 				return err
 			}

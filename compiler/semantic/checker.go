@@ -61,10 +61,10 @@ func (c *checker) op(typ super.Type, op sem.Op) super.Type {
 		}
 		return op.Type
 	case *sem.HTTPScan,
-		*sem.PoolScan,
+		*sem.TableScan,
 		*sem.RobotScan,
 		*sem.DBMetaScan,
-		*sem.PoolMetaScan,
+		*sem.TableMetaScan,
 		*sem.CommitMetaScan,
 		*sem.DeleteScan:
 		return c.unknown

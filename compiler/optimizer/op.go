@@ -18,13 +18,13 @@ import (
 // See issue #2658.
 func (o *Optimizer) analyzeSortKeys(op dag.Op, in order.SortKeys) (order.SortKeys, error) {
 	switch op := op.(type) {
-	case *dag.PoolScan:
-		// Ignore in and just return the sort order of the pool.
-		pool, err := o.lookupPool(op.ID)
+	case *dag.TableScan:
+		// Ignore in and just return the sort order of the table.
+		table, err := o.lookupTable(op.ID)
 		if err != nil {
 			return nil, err
 		}
-		return pool.SortKeys, nil
+		return table.SortKeys, nil
 	case *dag.SortOp:
 		return sortKeysOfSortExprs(op.Exprs), nil
 	case *dag.TopOp:

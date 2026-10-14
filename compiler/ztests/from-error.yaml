@@ -10,14 +10,14 @@ script: |
 outputs:
   - name: stderr
     data: |
-      test: pool not found at line 1, column 6:
+      test: table not found at line 1, column 6:
       from test
            ~~~~
       ===
-      test*: pool matching glob not found at line 1, column 6:
+      test*: table matching glob not found at line 1, column 6:
       from test*
            ~~~~~
       ===
-      test: pool matching regexp not found at line 1, column 6:
+      test: table matching regexp not found at line 1, column 6:
       from /test/
            ~~~~~~

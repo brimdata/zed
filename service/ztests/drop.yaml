@@ -17,7 +17,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      pool deleted: p3
+      table deleted: p3
       ===
       {name:"p1"}
       {name:"p2"}
@@ -26,5 +26,5 @@ outputs:
     data: |
       ===
       ===
-      "p3": pool not found
+      "p3": table not found
       Post "http://127.0.0.1:1/query?ctrl=T": dial tcp 127.0.0.1:1: connect: connection refused

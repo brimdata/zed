@@ -7,7 +7,7 @@ import (
 	"github.com/superdb/super/sup"
 )
 
-// A Partition is a logical view of the records within a pool-key span, stored
+// A Partition is a logical view of the records within a sort-key span, stored
 // in one or more data objects.  This provides a way to return the list of
 // objects that should be scanned along with a span to limit the scan
 // to only the span involved.

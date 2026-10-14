@@ -54,7 +54,7 @@ func Analyze(ctx context.Context, p *parser.AST, env *exec.Environment, extInput
 func fuseInput(seq dag.Seq) dag.Seq {
 	for i := 0; i < len(seq); i++ {
 		switch seq[i].(type) {
-		case *dag.FileScan, *dag.HTTPScan, *dag.PoolScan, *dag.RobotScan:
+		case *dag.FileScan, *dag.HTTPScan, *dag.TableScan, *dag.RobotScan:
 			f := &dag.FuseOp{Kind: "FuseOp", Complete: true}
 			seq = slices.Insert(seq, i+1, dag.Op(f))
 		}
@@ -108,7 +108,7 @@ func HasSource(seq sem.Seq) bool {
 		return false
 	}
 	switch op := seq[0].(type) {
-	case *sem.FileScan, *sem.HTTPScan, *sem.PoolScan, *sem.DBMetaScan, *sem.PoolMetaScan, *sem.CommitMetaScan, *sem.DeleteScan, *sem.NullScan:
+	case *sem.FileScan, *sem.HTTPScan, *sem.TableScan, *sem.DBMetaScan, *sem.TableMetaScan, *sem.CommitMetaScan, *sem.DeleteScan, *sem.NullScan:
 		return true
 	case *sem.ForkOp:
 		for _, path := range op.Paths {

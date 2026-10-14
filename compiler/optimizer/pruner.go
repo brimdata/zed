@@ -23,7 +23,7 @@ func maybeNewRangePruner(pred dag.Expr, sortKeys order.SortKeys) dag.Expr {
 // true if comparisons in pred against literal values can for certain rule out
 // that pred would be true for any value in the from/to range.  From/to are presumed
 // to be ordered according to the order o.  This is used to prune metadata objects
-// from a scan when we know the pool key range of the object could not satisfy
+// from a scan when we know the sort key range of the object could not satisfy
 // the filter predicate of any of the values in the object.
 func newRangePruner(pred dag.Expr, sortKey order.SortKey) dag.Expr {
 	min := dag.NewCall("defuse", []dag.Expr{dag.NewThis(field.NewChain("min"))})
@@ -112,7 +112,7 @@ func rangePrunerPred(op string, literal *dag.PrimitiveExpr, min, max dag.Expr) *
 // compare returns a DAG expression for a standard comparison operator but
 // uses a call to the SuperSQL function "compare()" as standard comparisons
 // do not handle nullsmax or cross-type comparisons (which can arise when the
-// pool key value type changes).
+// sort key value type changes).
 func compare(op string, lhs, rhs dag.Expr) *dag.BinaryExpr {
 	nullsMax := &dag.PrimitiveExpr{Kind: "PrimitiveExpr", Value: "true"}
 	call := dag.NewCall("compare", []dag.Expr{lhs, rhs, nullsMax})

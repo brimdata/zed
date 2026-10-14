@@ -20,7 +20,7 @@ import (
 	"github.com/superdb/super/db/branches"
 	"github.com/superdb/super/db/commits"
 	"github.com/superdb/super/db/journal"
-	"github.com/superdb/super/db/pools"
+	"github.com/superdb/super/db/tables"
 	"github.com/superdb/super/dbid"
 	"github.com/superdb/super/sbuf"
 	"github.com/superdb/super/service/srverr"
@@ -62,35 +62,35 @@ func newRequest(w http.ResponseWriter, r *http.Request, c *Core) (*ResponseWrite
 	return nil, nil, false
 }
 
-func (r *Request) openPool(w *ResponseWriter, root *db.Root) (*db.Pool, bool) {
-	id, ok := r.PoolID(w, root)
+func (r *Request) openTable(w *ResponseWriter, root *db.Root) (*db.Table, bool) {
+	id, ok := r.TableID(w, root)
 	if !ok {
 		return nil, false
 	}
-	pool, err := root.OpenPool(r.Context(), id)
+	table, err := root.OpenTable(r.Context(), id)
 	if err != nil {
 		w.Error(err)
 		return nil, false
 	}
-	return pool, true
+	return table, true
 }
 
 func (r *Request) ID() string {
 	return api.RequestIDFromContext(r.Context())
 }
 
-func (r *Request) PoolID(w *ResponseWriter, root *db.Root) (uuid.UUID, bool) {
-	s, ok := r.StringFromPath(w, "pool")
+func (r *Request) TableID(w *ResponseWriter, root *db.Root) (uuid.UUID, bool) {
+	s, ok := r.StringFromPath(w, "table")
 	if !ok {
 		return uuid.Nil(), false
 	}
 	if id, err := dbid.ParseID(s); err == nil {
-		if _, err = root.OpenPool(r.Context(), id); err == nil {
+		if _, err = root.OpenTable(r.Context(), id); err == nil {
 			return id, true
 		}
 	}
-	id, err := root.PoolID(r.Context(), s)
-	if errors.Is(err, pools.ErrNotFound) {
+	id, err := root.TableID(r.Context(), s)
+	if errors.Is(err, tables.ErrNotFound) {
 		w.Error(err)
 		return uuid.Nil(), false
 	}
@@ -314,10 +314,10 @@ func errorResponse(e error) (status int, ae *api.Error) {
 	}
 
 	switch {
-	case errors.Is(e, branches.ErrExists) || errors.Is(e, pools.ErrExists):
+	case errors.Is(e, branches.ErrExists) || errors.Is(e, tables.ErrExists):
 		ze.Kind = srverr.Conflict
 	case errors.Is(e, branches.ErrNotFound) || errors.Is(e, commits.ErrNotFound) ||
-		errors.Is(e, pools.ErrNotFound) || errors.Is(e, fs.ErrNotExist):
+		errors.Is(e, tables.ErrNotFound) || errors.Is(e, fs.ErrNotExist):
 		ze.Kind = srverr.NotFound
 	}
 

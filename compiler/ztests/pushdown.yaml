@@ -20,19 +20,19 @@ script: |
   echo ===
   export SUPER_DB=test
   super db init -q
-  super db create -q -orderby ts pool-ts
+  super db create -q -orderby ts table-ts
   scrub() { sed -E 's/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/xxx/g'; }
-  super db compile -C -O "from 'pool-ts' | x=='hello' or x==1.0 | values a" | scrub
+  super db compile -C -O "from 'table-ts' | x=='hello' or x==1.0 | values a" | scrub
   echo ===
-  super db compile -C -O "from 'pool-ts' | x > 1 and y <= 1.0" | scrub
+  super db compile -C -O "from 'table-ts' | x > 1 and y <= 1.0" | scrub
   echo ===
-  super db compile -C -O "from 'pool-ts' | x=='hello' or x!=1.0" | scrub
+  super db compile -C -O "from 'table-ts' | x=='hello' or x!=1.0" | scrub
   echo ===
-  super db compile -C -O "from 'pool-ts' | x=='hello' or !(y==2 or y==3)" | scrub
+  super db compile -C -O "from 'table-ts' | x=='hello' or !(y==2 or y==3)" | scrub
   echo ===
-  super db compile -C -O "from 'pool-ts' | ts >= 0 and ts <= 2" | scrub
+  super db compile -C -O "from 'table-ts' | ts >= 0 and ts <= 2" | scrub
   echo ===
-  super db compile -C -O "from 'pool-ts' | ts >= 0 and ts <= 2 and x=='hello'" | scrub
+  super db compile -C -O "from 'table-ts' | ts >= 0 and ts <= 2 and x=='hello'" | scrub
 
 outputs:
   - name: stdout
@@ -127,33 +127,33 @@ outputs:
       | values c, b, d
       | output main
       ===
-      lister pool xxx commit xxx
+      lister table xxx commit xxx
       | slicer
-      | seqscan pool xxx project [a,x] filter (x=="hello" or x==1.)
+      | seqscan table xxx project [a,x] filter (x=="hello" or x==1.)
       | values a
       | output main
       ===
-      lister pool xxx commit xxx
+      lister table xxx commit xxx
       | slicer
-      | seqscan pool xxx filter (x>1 and y<=1.)
+      | seqscan table xxx filter (x>1 and y<=1.)
       | output main
       ===
-      lister pool xxx commit xxx
+      lister table xxx commit xxx
       | slicer
-      | seqscan pool xxx filter (x=="hello" or x!=1.)
+      | seqscan table xxx filter (x=="hello" or x!=1.)
       | output main
       ===
-      lister pool xxx commit xxx
+      lister table xxx commit xxx
       | slicer
-      | seqscan pool xxx filter (x=="hello" or !(y==2 or y==3))
+      | seqscan table xxx filter (x=="hello" or !(y==2 or y==3))
       | output main
       ===
-      lister pool xxx commit xxx pruner (compare(0, defuse(max), true)>0 or compare(2, defuse(min), true)<0)
+      lister table xxx commit xxx pruner (compare(0, defuse(max), true)>0 or compare(2, defuse(min), true)<0)
       | slicer
-      | seqscan pool xxx pruner (compare(0, defuse(max), true)>0 or compare(2, defuse(min), true)<0) filter (ts>=0 and ts<=2)
+      | seqscan table xxx pruner (compare(0, defuse(max), true)>0 or compare(2, defuse(min), true)<0) filter (ts>=0 and ts<=2)
       | output main
       ===
-      lister pool xxx commit xxx pruner (compare(0, defuse(max), true)>0 or compare(2, defuse(min), true)<0)
+      lister table xxx commit xxx pruner (compare(0, defuse(max), true)>0 or compare(2, defuse(min), true)<0)
       | slicer
-      | seqscan pool xxx pruner (compare(0, defuse(max), true)>0 or compare(2, defuse(min), true)<0) filter (ts>=0 and ts<=2 and x=="hello")
+      | seqscan table xxx pruner (compare(0, defuse(max), true)>0 or compare(2, defuse(min), true)<0) filter (ts>=0 and ts<=2 and x=="hello")
       | output main

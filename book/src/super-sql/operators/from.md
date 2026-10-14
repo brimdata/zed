@@ -9,11 +9,10 @@ from <entity> [ ( <options> ) ]
 from <named-query>
 ```
 where `<entity>` has the form of
-* a [text entity](../queries.md#text-entity) representing a file, URL, or pool name,
-* an [f-string](../expressions/f-strings.md) representing a file, URL, or pool name,
-* a [glob](../queries.md#glob) matching files in the local file system or pool names in a database, or
-* a [regular expression](../queries.md#regular-expression) matching pool names
-  in a database;
+* a [text entity](../queries.md#text-entity) representing a file, URL, or table,
+* an [f-string](../expressions/f-strings.md) representing a file, URL, or table,
+* a [glob](../queries.md#glob) matching files in the local file system or tables in a database, or
+* a [regular expression](../queries.md#regular-expression) matching tables in a database;
 
 `<options>` is an optional concatenation of named [options](#options); and,
 
@@ -31,8 +30,8 @@ and does not include relational joins or table subqueries, .
 
 As a pipe operator,
 `from` preserves the order of the data within a file,
-URL, or a sorted pool but when multiple sources are identified
-(e.g., as a file-system glob or regular expression matching pools),
+URL, or a sorted table but when multiple sources are identified
+(e.g., as a file-system glob or regular expression matching tables),
 the data may be read in parallel and interleaved in an undefined order.
 
 Optional arguments to `from` may be appended as a parenthesized concatenation of named [arguments](#options).
@@ -55,14 +54,14 @@ When attached to a database, the entity must be a
 [f-string](../expressions/f-strings.md),
 [glob](../queries.md#glob), or a slash-delimitated
 [regular expression](../queries.md#regular-expression).
-A regular expression matches [pools](#pools) in the attached database.
+A regular expression matches [tables](#tables) in the attached database.
 A text entity or f-string is an [URL](#urls) if it parses as an URL and otherwise,
-is presumed to be a pool name.
+is presumed to be a table.
 
 Local files are not accessible when attached to a database.
 
 > [!NOTE]
-> While pool names and file names have overlapping syntax,
+> While table names and file names have overlapping syntax,
 > their use is disambiguated by the presence or absence of an attached
 > database.
 
@@ -137,37 +136,37 @@ from /path/to/file.csv
 from file*.parq (format parquet)
 ```
 
-### Pools
+### Tables
 
-When the `<entity>` argument is recognized as a [database](../../command/db.md) pool,
+When the `<entity>` argument is recognized as a [database](../../command/db.md) table,
 the data required for the query is read from the database and
 emitted to its output.
 
-The only allowed option for a pool is the commit argument having the form
+The only allowed option for a table is the commit argument having the form
 ```
 commit <commitsh>
 ```
 where `<committish>` specifies a specific
-commit in the pool's log thereby allowing time travel.
+commit in the table's log thereby allowing time travel.
 
-The the commit argument may be abbreviated by appending to the pool name
+The the commit argument may be abbreviated by appending to the table name
 an `@` character followed by the committish, e.g.,
 ```
-from Pool (commit 36AwHUt9s8usF7pi9x3l6LOl8IB)
+from Table (commit 36AwHUt9s8usF7pi9x3l6LOl8IB)
 ```
 maybe be instead written as
 ```
-from Pool@36AwHUt9s8usF7pi9x3l6LOl8IB
+from Table@36AwHUt9s8usF7pi9x3l6LOl8IB
 ```
-When a single pool name is specified without a `commit` option, or
+When a single table is specified without a `commit` option, or
 when using a regular expression, the tip of the `main` branch
-of each pool is accessed.
+of each table is accessed.
 
 It is an error to specify a format option when the entity is
-is a pool.
+is a table.
 
 >[!NOTE]
-> Metadata from database pools also may be sourced using `from`.
+> Metadata from database tables also may be sourced using `from`.
 > This will be documented in a future release of SuperDB.
 
 ### URLs
@@ -211,27 +210,27 @@ These options cannot be used with S3 URLs.
 To combine data from multiple sources using pipe operators, `from` may be
 used in combination with other operators like [`fork`](fork.md) and [`join`](join.md).
 
-For example, multiple pools can be accessed in parallel
+For example, multiple tables can be accessed in parallel
 and combined in undefined order:
 ```
 fork
-  ( from PoolOne | op1 | op2 | ... )
-  ( from PoolTwo | op1 | op2 | ... )
+  ( from TableOne | op1 | op2 | ... )
+  ( from TableTwo | op1 | op2 | ... )
 | ...
 ```
 or joined according to a join condition:
 ```
 fork
-  ( from PoolOne | op1 | op2 | ... )
-  ( from PoolTwo | op1 | op2 | ... )
+  ( from TableOne | op1 | op2 | ... )
+  ( from TableTwo | op1 | op2 | ... )
 | join as {left,right} on left.key=right.key
 | ...
 ```
 Alternatively, the right-hand leg of the join may be written as a subquery
 of join:
 ```
-from PoolOne | op1 | op2 | ...
-| join ( from PoolTwo | op1 | op2 | ... )
+from TableOne | op1 | op2 | ...
+| join ( from TableTwo | op1 | op2 | ... )
     as {left,right} on left.key=right.key
 | ...
 ```
@@ -333,11 +332,11 @@ echo '{number:1,word:"one"} {number:2,word:"two"} {number:3,word:"three"}' |
   super db load -q -use numbers -
 super db -f line -c '
   from :branches
-  | values pool.name || "@" || branch.name
+  | values table.name || "@" || branch.name
   | sort'
 ```
 
-The database then contains the two pools and three branches:
+The database then contains the two tables and three branches:
 
 ```mdtest-output
 coinflips@main
@@ -351,7 +350,7 @@ The following file `hello.sup` is also used.
 {greeting:"hello world!"}
 ```
 
-_Source data from the `main` branch of a pool_
+_Source data from the `main` branch of a table_
 ```mdtest-command
 super db -db example -s -c 'from coinflips'
 ```
@@ -362,7 +361,7 @@ super db -db example -s -c 'from coinflips'
 
 ---
 
-_Source data from a specific branch of a pool_
+_Source data from a specific branch of a table_
 ```mdtest-command
 super db -db example -s -c 'from coinflips@trial'
 ```
@@ -374,7 +373,7 @@ super db -db example -s -c 'from coinflips@trial'
 
 ---
 
-_Count the number of values in the `main` branch of all pools_
+_Count the number of values in the `main` branch of all tables_
 ```mdtest-command
 super db -db example -s -c 'from * | count()'
 ```
@@ -384,7 +383,7 @@ super db -db example -s -c 'from * | count()'
 
 ---
 
-_Join the data from multiple pools_
+_Join the data from multiple tables_
 
 ```mdtest-command
 super db -db example -s -c '
@@ -421,10 +420,10 @@ super db -db example -s -c '
 
 ---
 
-_Use an f-string to source data from pool names computed at run time_
+_Use an f-string to source data from table names computed at run time_
 ```mdtest-command
 super db -db example -s -c '
-  from :pools
+  from :tables
   | from f"{name}"
   | sort this'
 ```

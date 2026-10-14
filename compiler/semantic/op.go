@@ -67,8 +67,8 @@ func (t *translator) fromSource(entity ast.FromSource, args []ast.OpArg, seq sem
 	switch entity := entity.(type) {
 	case *ast.GlobExpr:
 		if t.env.IsAttached() {
-			// XXX need to get fused type from pool
-			return t.fromPoolRegexp(entity, reglob.Reglob(entity.Pattern), entity.Pattern, "glob", args), nil, ""
+			// XXX need to get fused type from table
+			return t.fromTableRegexp(entity, reglob.Reglob(entity.Pattern), entity.Pattern, "glob", args), nil, ""
 		}
 		// XXX should fuse the types across the glob instead of unknown
 		op := t.fromFileGlob(entity, entity.Pattern, args)
@@ -81,8 +81,8 @@ func (t *translator) fromSource(entity ast.FromSource, args []ast.OpArg, seq sem
 			t.error(entity, errors.New("cannot use regular expression with from operator on local file system"))
 			return seq, badType, ""
 		}
-		// XXX need to get fused type from pool
-		return t.fromPoolRegexp(entity, entity.Pattern, entity.Pattern, "regexp", args), t.checker.unknown, ""
+		// XXX need to get fused type from table
+		return t.fromTableRegexp(entity, entity.Pattern, entity.Pattern, "regexp", args), t.checker.unknown, ""
 	case *ast.Text:
 		if seq, typ := t.scope.lookupQuery(t, entity.Text); seq != nil {
 			return seq, typ, entity.Text
@@ -267,7 +267,7 @@ func (t *translator) fromName(node ast.Node, name string, args []ast.OpArg) (sem
 	}
 	prefix, _, _ := strings.Cut(filepath.Base(name), ".")
 	if t.env.IsAttached() {
-		return t.pool(node, name, args), prefix
+		return t.table(node, name, args), prefix
 	}
 	return t.file(node, name, args), prefix
 }
@@ -407,15 +407,15 @@ func decodeStrings(val *super.Value) ([]string, error) {
 	return []string{val.AsString()}, nil
 }
 
-func (t *translator) fromPoolRegexp(node ast.Node, re, orig, which string, args []ast.OpArg) sem.Seq {
-	poolNames, err := t.matchPools(re, orig, which)
+func (t *translator) fromTableRegexp(node ast.Node, re, orig, which string, args []ast.OpArg) sem.Seq {
+	tableNames, err := t.matchTables(re, orig, which)
 	if err != nil {
 		t.error(node, err)
 		return sem.Seq{badOp}
 	}
 	var paths []sem.Seq
-	for _, name := range poolNames {
-		paths = append(paths, sem.Seq{t.pool(node, name, args)})
+	for _, name := range tableNames {
+		paths = append(paths, sem.Seq{t.table(node, name, args)})
 	}
 	return sem.Seq{&sem.ForkOp{Paths: paths}}
 }
@@ -452,9 +452,9 @@ func (t *translator) sortExpr(sch relScope, s ast.SortExpr, reverse bool, inType
 	return sem.SortExpr{Node: s, Expr: e, Order: o, Nulls: n}
 }
 
-func (t *translator) pool(node ast.Node, poolName string, args []ast.OpArg) sem.Op {
+func (t *translator) table(node ast.Node, tableName string, args []ast.OpArg) sem.Op {
 	opArgs := t.opArgs(args, "commit", "meta", "tap")
-	poolID, err := t.env.PoolID(t.ctx, poolName)
+	tableID, err := t.env.TableID(t.ctx, tableName)
 	if err != nil {
 		t.error(node, err)
 		return badOp
@@ -463,7 +463,7 @@ func (t *translator) pool(node ast.Node, poolName string, args []ast.OpArg) sem.
 	commit, commitLoc := t.textArg(opArgs, "commit")
 	if commit != "" {
 		if commitID, err = dbid.ParseID(commit); err != nil {
-			commitID, err = t.env.CommitObject(t.ctx, poolID, commit)
+			commitID, err = t.env.CommitObject(t.ctx, tableID, commit)
 			if err != nil {
 				t.error(commitLoc, err)
 				return badOp
@@ -474,7 +474,7 @@ func (t *translator) pool(node ast.Node, poolName string, args []ast.OpArg) sem.
 	if meta != "" {
 		if _, ok := dag.CommitMetas[meta]; ok {
 			if commitID == uuid.Nil() {
-				commitID, err = t.env.CommitObject(t.ctx, poolID, "main")
+				commitID, err = t.env.CommitObject(t.ctx, tableID, "main")
 				if err != nil {
 					t.error(metaLoc, err)
 					return badOp
@@ -485,16 +485,16 @@ func (t *translator) pool(node ast.Node, poolName string, args []ast.OpArg) sem.
 			return &sem.CommitMetaScan{
 				Node:   node,
 				Meta:   meta,
-				Pool:   poolID,
+				Table:  tableID,
 				Commit: commitID,
 				Tap:    tap,
 			}
 		}
-		if _, ok := dag.PoolMetas[meta]; ok {
-			return &sem.PoolMetaScan{
+		if _, ok := dag.TableMetas[meta]; ok {
+			return &sem.TableMetaScan{
 				Node: node,
 				Meta: meta,
-				ID:   poolID,
+				ID:   tableID,
 			}
 		}
 		t.error(metaLoc, fmt.Errorf("unknown metadata type %q", meta))
@@ -502,16 +502,16 @@ func (t *translator) pool(node ast.Node, poolName string, args []ast.OpArg) sem.
 	}
 	if commitID == uuid.Nil() {
 		// This trick here allows us to default to the main branch when
-		// there is a "from pool" operator with no meta query or commit object.
-		commitID, err = t.env.CommitObject(t.ctx, poolID, "main")
+		// there is a "from table" operator with no meta query or commit object.
+		commitID, err = t.env.CommitObject(t.ctx, tableID, "main")
 		if err != nil {
 			t.error(node, err)
 			return badOp
 		}
 	}
-	return &sem.PoolScan{
+	return &sem.TableScan{
 		Node:   node,
-		ID:     poolID,
+		ID:     tableID,
 		Commit: commitID,
 	}
 }
@@ -533,7 +533,7 @@ func (t *translator) deleteScan(op *ast.Delete) sem.Op {
 		t.error(op, errors.New("deletion requires database"))
 		return badOp
 	}
-	poolID, err := t.env.PoolID(t.ctx, op.Pool)
+	tableID, err := t.env.TableID(t.ctx, op.Table)
 	if err != nil {
 		t.error(op, err)
 		return badOp
@@ -542,7 +542,7 @@ func (t *translator) deleteScan(op *ast.Delete) sem.Op {
 	if op.Branch != "" {
 		var err error
 		if commitID, err = dbid.ParseID(op.Branch); err != nil {
-			commitID, err = t.env.CommitObject(t.ctx, poolID, op.Branch)
+			commitID, err = t.env.CommitObject(t.ctx, tableID, op.Branch)
 			if err != nil {
 				t.error(op, err)
 				return badOp
@@ -551,28 +551,28 @@ func (t *translator) deleteScan(op *ast.Delete) sem.Op {
 	}
 	return &sem.DeleteScan{
 		Node:   op,
-		ID:     poolID,
+		ID:     tableID,
 		Commit: commitID,
 	}
 }
 
-func (t *translator) matchPools(pattern, origPattern, patternDesc string) ([]string, error) {
+func (t *translator) matchTables(pattern, origPattern, patternDesc string) ([]string, error) {
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return nil, err
 	}
-	pools, err := t.env.DB().ListPools(t.ctx)
+	tables, err := t.env.DB().ListTables(t.ctx)
 	if err != nil {
 		return nil, err
 	}
 	var matches []string
-	for _, p := range pools {
-		if re.MatchString(p.Name) {
-			matches = append(matches, p.Name)
+	for _, t := range tables {
+		if re.MatchString(t.Name) {
+			matches = append(matches, t.Name)
 		}
 	}
 	if len(matches) == 0 {
-		return nil, fmt.Errorf("%s: pool matching %s not found", origPattern, patternDesc)
+		return nil, fmt.Errorf("%s: table matching %s not found", origPattern, patternDesc)
 	}
 	return matches, nil
 }
@@ -1051,9 +1051,9 @@ func (t *translator) semOp(o ast.Op, seq sem.Seq, inType super.Type) (sem.Seq, s
 			t.error(o, errors.New("load operator cannot be used without an attached database"))
 			return sem.Seq{badOp}, badType
 		}
-		poolID, err := dbid.ParseID(o.Pool.Text)
+		tableID, err := dbid.ParseID(o.Table.Text)
 		if err != nil {
-			poolID, err = t.env.PoolID(t.ctx, o.Pool.Text)
+			tableID, err = t.env.TableID(t.ctx, o.Table.Text)
 			if err != nil {
 				t.error(o, err)
 				return append(seq, badOp), badType
@@ -1066,7 +1066,7 @@ func (t *translator) semOp(o ast.Op, seq sem.Seq, inType super.Type) (sem.Seq, s
 		meta, _ := t.textArg(opArgs, "meta")
 		return append(seq, &sem.LoadOp{
 			Node:    o,
-			Pool:    poolID,
+			Table:   tableID,
 			Branch:  branch,
 			Author:  author,
 			Message: message,

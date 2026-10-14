@@ -2,19 +2,19 @@ script: |
   export SUPER_DB=test
   super db init -q
   super db create -q test
-  super db compile -C -dag 'const POOL = "test" from f"{POOL}"' | sed -E "s/[0-9a-f-]{36}/XXX/"
+  super db compile -C -dag 'const TABLE = "test" from f"{TABLE}"' | sed -E "s/[0-9a-f-]{36}/XXX/"
   echo "==="
   super compile -C -dag -dynamic 'const FILE = "A.sup" from f"{FILE}"'
   echo "==="
   super db compile -C -dag 'const URL = "http://brimdata.io" from f"{URL}"'
-  ! super db compile -C -dag 'const POOL = 3.14 from f"{POOL}"'
+  ! super db compile -C -dag 'const TABLE = 3.14 from f"{TABLE}"'
   ! super db compile -C -dag 'const FILE = 127.0.0.1 from f"{FILE}"'
   ! super db compile -C -dag 'const URL = true from f"{URL}"'
 
 outputs:
   - name: stdout
     data: |
-      pool XXX
+      table XXX
       | output main
       ===
       file A.sup format sup
@@ -24,12 +24,12 @@ outputs:
       | output main
   - name: stderr
     data: |
-      3.14: pool not found at line 1, column 24:
-      const POOL = 3.14 from f"{POOL}"
-                             ~~~~~~~~~
-      127.0.0.1: pool not found at line 1, column 29:
+      3.14: table not found at line 1, column 25:
+      const TABLE = 3.14 from f"{TABLE}"
+                              ~~~~~~~~~~
+      127.0.0.1: table not found at line 1, column 29:
       const FILE = 127.0.0.1 from f"{FILE}"
                                   ~~~~~~~~~
-      true: pool not found at line 1, column 23:
+      true: table not found at line 1, column 23:
       const URL = true from f"{URL}"
                             ~~~~~~~~

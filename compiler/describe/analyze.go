@@ -29,7 +29,7 @@ type (
 		Kind string `json:"kind"`
 		Meta string `json:"meta"`
 	}
-	Pool struct {
+	Table struct {
 		Kind string    `json:"kind"`
 		Name string    `json:"name"`
 		ID   uuid.UUID `json:"id"`
@@ -44,7 +44,7 @@ type (
 )
 
 func (*DBMeta) Source() {}
-func (*Pool) Source()   {}
+func (*Table) Source()  {}
 func (*Path) Source()   {}
 func (*Null) Source()   {}
 
@@ -122,14 +122,14 @@ func describeSources(ctx context.Context, root *db.Root, o dag.Op) ([]Source, er
 		return sources, nil
 	case *dag.HTTPScan:
 		return []Source{&Path{Kind: "Path", URI: o.URL}}, nil
-	case *dag.PoolScan:
-		return sourceOfPool(ctx, root, o.ID)
+	case *dag.TableScan:
+		return sourceOfTable(ctx, root, o.ID)
 	case *dag.ListerScan:
-		return sourceOfPool(ctx, root, o.Pool)
+		return sourceOfTable(ctx, root, o.Table)
 	case *dag.SeqScan:
-		return sourceOfPool(ctx, root, o.Pool)
+		return sourceOfTable(ctx, root, o.Table)
 	case *dag.CommitMetaScan:
-		return sourceOfPool(ctx, root, o.Pool)
+		return sourceOfTable(ctx, root, o.Table)
 	case *dag.DBMetaScan:
 		return []Source{&DBMeta{Kind: "DBMeta", Meta: o.Meta}}, nil
 	default:
@@ -137,13 +137,13 @@ func describeSources(ctx context.Context, root *db.Root, o dag.Op) ([]Source, er
 	}
 }
 
-func sourceOfPool(ctx context.Context, root *db.Root, id uuid.UUID) ([]Source, error) {
-	p, err := root.OpenPool(ctx, id)
+func sourceOfTable(ctx context.Context, root *db.Root, id uuid.UUID) ([]Source, error) {
+	p, err := root.OpenTable(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return []Source{&Pool{
-		Kind: "Pool",
+	return []Source{&Table{
+		Kind: "Table",
 		ID:   id,
 		Name: p.Name,
 	}}, nil

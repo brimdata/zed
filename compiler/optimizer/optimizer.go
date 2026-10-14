@@ -163,7 +163,7 @@ func (o *Optimizer) OptimizeDeleter(main *dag.Main, replicas int) error {
 	}
 	lister := &dag.ListerScan{
 		Kind:   "ListerScan",
-		Pool:   scan.ID,
+		Table:  scan.ID,
 		Commit: scan.Commit,
 	}
 	sortKeys, err := o.sortKeysOfSource(lister)
@@ -172,7 +172,7 @@ func (o *Optimizer) OptimizeDeleter(main *dag.Main, replicas int) error {
 	}
 	deleter := &dag.DeleterScan{
 		Kind:  "DeleterScan",
-		Pool:  scan.ID,
+		Table: scan.ID,
 		Where: filter.Expr,
 		//XXX KeyPruner?
 	}
@@ -215,16 +215,16 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 		// on the source op and zero out the source's filter.
 		filter, chain := matchFilter(chain)
 		switch op := seq[0].(type) {
-		case *dag.PoolScan:
+		case *dag.TableScan:
 			o.nent++
-			// Here we transform a PoolScan into a Lister followed by one or more chains
+			// Here we transform a TableScan into a Lister followed by one or more chains
 			// of slicers and sequence scanners.
 			lister := &dag.ListerScan{
 				Kind:   "ListerScan",
-				Pool:   op.ID,
+				Table:  op.ID,
 				Commit: op.Commit,
 			}
-			// Check to see if we can add a range pruner when the pool key is used
+			// Check to see if we can add a range pruner when the sort key is used
 			// in a normal filtering operation.
 			sortKeys, err := o.sortKeysOfSource(op)
 			if err != nil {
@@ -241,7 +241,7 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 			}
 			seq = append(seq, &dag.SeqScan{
 				Kind:      "SeqScan",
-				Pool:      op.ID,
+				Table:     op.ID,
 				Commit:    op.Commit,
 				Filter:    filter,
 				KeyPruner: lister.KeyPruner,
@@ -262,7 +262,7 @@ func (o *Optimizer) optimizeSourcePaths(seq dag.Seq) (dag.Seq, error) {
 				if err != nil {
 					return nil, err
 				}
-				// Check to see if we can add a range pruner when the pool key is used
+				// Check to see if we can add a range pruner when the sort key is used
 				// in a normal filtering operation.
 				op.KeyPruner = maybeNewRangePruner(filter, sortKeys)
 				// Delete the downstream operators when we are tapping the object list.
@@ -351,7 +351,7 @@ func (o *Optimizer) propagateSortKeyOp(op dag.Op, parents []order.SortKeys) ([]o
 			sortKeys = nil
 		}
 		return []order.SortKeys{sortKeys}, nil
-	case *dag.PoolScan, *dag.ListerScan, *dag.SeqScan:
+	case *dag.TableScan, *dag.ListerScan, *dag.SeqScan:
 		out, err := o.sortKeysOfSource(op)
 		return []order.SortKeys{out}, err
 	default:
@@ -366,18 +366,18 @@ func (o *Optimizer) sortKeysOfSource(op dag.Op) (order.SortKeys, error) {
 		return nil, nil
 	case *dag.HTTPScan:
 		return nil, nil
-	case *dag.PoolScan:
+	case *dag.TableScan:
 		return o.sortKey(op.ID)
 	case *dag.ListerScan:
-		return o.sortKey(op.Pool)
+		return o.sortKey(op.Table)
 	case *dag.SeqScan:
-		return o.sortKey(op.Pool)
+		return o.sortKey(op.Table)
 	case *dag.CommitMetaScan:
 		if op.Tap && op.Meta == "objects" {
 			// For a tap into the object stream, we compile the downstream
 			// DAG as if it were a normal query (so the optimizer can prune
 			// objects etc.) but we execute it in the end as a meta-query.
-			return o.sortKey(op.Pool)
+			return o.sortKey(op.Table)
 		}
 		return nil, nil //XXX is this right?
 	default:
@@ -386,19 +386,19 @@ func (o *Optimizer) sortKeysOfSource(op dag.Op) (order.SortKeys, error) {
 }
 
 func (o *Optimizer) sortKey(id uuid.UUID) (order.SortKeys, error) {
-	pool, err := o.lookupPool(id)
+	table, err := o.lookupTable(id)
 	if err != nil {
 		return nil, err
 	}
-	return pool.SortKeys, nil
+	return table.SortKeys, nil
 }
 
-func (o *Optimizer) lookupPool(id uuid.UUID) (*db.Pool, error) {
+func (o *Optimizer) lookupTable(id uuid.UUID) (*db.Table, error) {
 	if o.db == nil {
 		return nil, errors.New("internal error: database operation requires database operating context")
 	}
-	// This is fast because of the pool cache in the database.
-	return o.db.OpenPool(o.ctx, id)
+	// This is fast because of the table cache in the database.
+	return o.db.OpenTable(o.ctx, id)
 }
 
 // matchFilter attempts to find a filter from the front seq
@@ -830,8 +830,8 @@ func setPushdownUnordered(seq dag.Seq, unordered bool) bool {
 		case *dag.AggregateOp:
 			unordered = !isOrderedAggregate(op)
 		case *dag.CombineOp, *dag.DistinctOp, *dag.HashJoinOp, *dag.JoinOp, *dag.SortOp, *dag.TopOp,
-			*dag.HTTPScan, *dag.PoolScan,
-			*dag.CommitMetaScan, *dag.DBMetaScan, *dag.PoolMetaScan:
+			*dag.HTTPScan, *dag.TableScan,
+			*dag.CommitMetaScan, *dag.DBMetaScan, *dag.TableMetaScan:
 			unordered = true
 		case *dag.FileScan:
 			op.Pushdown.Unordered = unordered

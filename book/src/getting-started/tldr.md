@@ -44,7 +44,7 @@ super -o out.parquet -c fuse file.json
 ```
 super -c "1.+(1/2.)+(1/3.)+(1/4.)"
 ```
-## Search all values in a database pool called logs for keyword "alert" and level >= 2
+## Search all values in the logs table for keyword "alert" and level >= 2
 ```
 super db -c "from logs | ? alert level >= 2"
 ```

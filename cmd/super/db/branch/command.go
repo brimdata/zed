@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/superdb/super/cli/outputflags"
-	"github.com/superdb/super/cli/poolflags"
+	"github.com/superdb/super/cli/tableflags"
 	"github.com/superdb/super/cmd/super/db"
 	"github.com/superdb/super/compiler/srcfiles"
 	"github.com/superdb/super/db/api"
@@ -31,7 +31,7 @@ type Command struct {
 	*db.Command
 	delete      bool
 	outputFlags outputflags.Flags
-	poolFlags   poolflags.Flags
+	tableFlags  tableflags.Flags
 }
 
 func init() {
@@ -43,7 +43,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.delete, "d", false, "delete the branch instead of creating it")
 	c.outputFlags.Format = "db"
 	c.outputFlags.SetFlags(f)
-	c.poolFlags.SetFlags(f)
+	c.tableFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -64,30 +64,30 @@ func (c *Command) Run(args []string) error {
 		return c.list(ctx, db)
 	}
 	branchName := args[0]
-	head, err := c.poolFlags.HEAD()
+	head, err := c.tableFlags.HEAD()
 	if err != nil {
 		return err
 	}
-	poolName := head.Pool
-	if poolName == "" {
-		return errors.New("a pool name must be included: pool@branch")
+	tableName := head.Table
+	if tableName == "" {
+		return errors.New("a table name must be included: table@branch")
 	}
-	poolID, err := dbid.ParseID(poolName)
+	tableID, err := dbid.ParseID(tableName)
 	if err != nil {
-		poolID, err = db.PoolID(ctx, poolName)
+		tableID, err = db.TableID(ctx, tableName)
 		if err != nil {
 			return err
 		}
 	}
 	parentCommit, err := dbid.ParseID(head.Branch)
 	if err != nil {
-		parentCommit, err = db.CommitObject(ctx, poolID, head.Branch)
+		parentCommit, err = db.CommitObject(ctx, tableID, head.Branch)
 		if err != nil {
 			return err
 		}
 	}
 	if c.delete {
-		if err := db.RemoveBranch(ctx, poolID, branchName); err != nil {
+		if err := db.RemoveBranch(ctx, tableID, branchName); err != nil {
 			return err
 		}
 		if !c.DBFlags.Quiet {
@@ -95,7 +95,7 @@ func (c *Command) Run(args []string) error {
 		}
 		return nil
 	}
-	if err := db.CreateBranch(ctx, poolID, branchName, parentCommit); err != nil {
+	if err := db.CreateBranch(ctx, tableID, branchName, parentCommit); err != nil {
 		return err
 	}
 	if !c.DBFlags.Quiet {
@@ -105,15 +105,15 @@ func (c *Command) Run(args []string) error {
 }
 
 func (c *Command) list(ctx context.Context, db api.Interface) error {
-	head, err := c.poolFlags.HEAD()
+	head, err := c.tableFlags.HEAD()
 	if err != nil {
 		return err
 	}
-	poolName := head.Pool
-	if poolName == "" {
-		return errors.New("must be on a checked out branch to list the branches in the same pool")
+	tableName := head.Table
+	if tableName == "" {
+		return errors.New("must be on a checked out branch to list the branches in the same table")
 	}
-	query := fmt.Sprintf("from '%s':branches", poolName)
+	query := fmt.Sprintf("from '%s':branches", tableName)
 	if c.outputFlags.Format == "db" {
 		c.outputFlags.WriterOpts.DB.Head = head.Branch
 	}

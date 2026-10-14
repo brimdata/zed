@@ -27,7 +27,7 @@ type Writeable interface {
 	DeleteObject(uuid.UUID) error
 }
 
-// A snapshot summarizes the pool state at any point in
+// A snapshot summarizes the table state at any point in
 // the commit object tree.
 // XXX redefine snapshot as type map instead of struct
 type Snapshot struct {

@@ -1366,8 +1366,8 @@ func isCorrelated(seq sem.Seq) bool {
 		*sem.FileScan,
 		*sem.HTTPScan,
 		*sem.NullScan,
-		*sem.PoolMetaScan,
-		*sem.PoolScan:
+		*sem.TableMetaScan,
+		*sem.TableScan:
 		return false
 	case *sem.ForkOp:
 		return slices.ContainsFunc(op.Paths, isCorrelated)

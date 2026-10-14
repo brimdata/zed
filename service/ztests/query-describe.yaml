@@ -5,7 +5,7 @@ script: |
   for file in multifrom.spq agg.spq agg-no-keys.spq two-channels.spq agg-sort.spq scope.spq auto-combined-channels.spq; do
     echo // === $file ===
     query="$(cat $file | jq -Rsa .)"
-    curl -H "Accept: application/json" -d "{\"query\":$query,\"head\":{\"pool\":\"test1\"}}" $SUPER_DB/query/describe |
+    curl -H "Accept: application/json" -d "{\"query\":$query,\"head\":{\"table\":\"test1\"}}" $SUPER_DB/query/describe |
       super -J -c 'sources := (unnest sources | id := "XXX" | collect(this))' -
   done
 
@@ -50,12 +50,12 @@ outputs:
       {
         "sources": [
           {
-            "kind": "Pool",
+            "kind": "Table",
             "name": "test1",
             "id": "XXX"
           },
           {
-            "kind": "Pool",
+            "kind": "Table",
             "name": "test2",
             "id": "XXX"
           }
@@ -79,7 +79,7 @@ outputs:
       {
         "sources": [
           {
-            "kind": "Pool",
+            "kind": "Table",
             "name": "test1",
             "id": "XXX"
           }
@@ -103,7 +103,7 @@ outputs:
       {
         "sources": [
           {
-            "kind": "Pool",
+            "kind": "Table",
             "name": "test1",
             "id": "XXX"
           }
@@ -120,12 +120,12 @@ outputs:
       {
         "sources": [
           {
-            "kind": "Pool",
+            "kind": "Table",
             "name": "test1",
             "id": "XXX"
           },
           {
-            "kind": "Pool",
+            "kind": "Table",
             "name": "test2",
             "id": "XXX"
           }
@@ -158,7 +158,7 @@ outputs:
       {
         "sources": [
           {
-            "kind": "Pool",
+            "kind": "Table",
             "name": "test1",
             "id": "XXX"
           }
@@ -186,7 +186,7 @@ outputs:
       {
         "sources": [
           {
-            "kind": "Pool",
+            "kind": "Table",
             "name": "test1",
             "id": "XXX"
           }
@@ -215,7 +215,7 @@ outputs:
       {
         "sources": [
           {
-            "kind": "Pool",
+            "kind": "Table",
             "name": "test1",
             "id": "XXX"
           }

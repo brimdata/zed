@@ -34,14 +34,14 @@ type VersionResponse struct {
 	Version string `json:"version"`
 }
 
-type PoolPostRequest struct {
+type TablePostRequest struct {
 	Name      string         `json:"name"`
 	SortKeys  order.SortKeys `json:"sort_keys"`
 	ObjectCap uint64         `json:"object_cap"`
 	FrameCap  uint64         `json:"frame_cap"`
 }
 
-type PoolPutRequest struct {
+type TablePutRequest struct {
 	Name string `json:"name"`
 }
 
@@ -76,18 +76,18 @@ type CommitResponse struct {
 
 type EventBranchCommit struct {
 	CommitID uuid.UUID `super:"commit_id"`
-	PoolID   uuid.UUID `super:"pool_id"`
+	TableID  uuid.UUID `super:"table_id"`
 	Branch   string    `super:"branch"`
 	Parent   string    `super:"parent"`
 }
 
-type EventPool struct {
-	PoolID uuid.UUID `super:"pool_id"`
+type EventTable struct {
+	TableID uuid.UUID `super:"table_id"`
 }
 
 type EventBranch struct {
-	PoolID uuid.UUID `super:"pool_id"`
-	Branch string    `super:"branch"`
+	TableID uuid.UUID `super:"table_id"`
+	Branch  string    `super:"branch"`
 }
 
 type QueryRequest struct {
