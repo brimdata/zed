@@ -1,0 +1,17 @@
+# This previously output values in the wrong order due to a
+# vector/vbuild.DynamicBuilder bug in handling a vector.Dyanmic
+# containing same-type vectors.
+script: |
+  super -f bsup -c 'from in.sup | fuse' | super -i bsup -s -
+
+inputs:
+  - name: in.sup
+    data: &in_sup |
+      "a"
+      1
+      "b"
+      2
+  
+outputs:
+  - name: stdout
+    data: *in_sup
