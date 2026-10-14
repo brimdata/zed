@@ -399,26 +399,6 @@ func (c *Connection) Vacuum(ctx context.Context, tableName, revision string, dry
 	return res, err
 }
 
-func (c *Connection) AddVectors(ctx context.Context, tableName, revision string, objectIDs []uuid.UUID, message api.CommitMessage) (api.CommitResponse, error) {
-	return c.doVector(ctx, tableName, revision, objectIDs, message, http.MethodPost)
-}
-
-func (c *Connection) DeleteVectors(ctx context.Context, tableName, revision string, objectIDs []uuid.UUID, message api.CommitMessage) (api.CommitResponse, error) {
-	return c.doVector(ctx, tableName, revision, objectIDs, message, http.MethodDelete)
-}
-
-// XXX
-func (c *Connection) doVector(ctx context.Context, tableName, revision string, objectIDs []uuid.UUID, message api.CommitMessage, method string) (api.CommitResponse, error) {
-	path := urlPath("tableName", tableName, "revision", revision, "vector")
-	req := c.NewRequest(ctx, method, path, api.VectorRequest{ObjectIDs: objectIDs})
-	if err := encodeCommitMessage(req, message); err != nil {
-		return api.CommitResponse{}, err
-	}
-	var res api.CommitResponse
-	err := c.doAndUnmarshal(req, &res)
-	return res, err
-}
-
 func (c *Connection) SubscribeEvents(ctx context.Context) (*EventsClient, error) {
 	req := c.NewRequest(ctx, http.MethodGet, "/events", nil)
 	req.Header.Set("Accept", api.MediaTypeSUP)

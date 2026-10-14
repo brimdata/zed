@@ -123,7 +123,3 @@ type VacateResponse struct {
 type VacuumResponse struct {
 	ObjectIDs []uuid.UUID `super:"object_ids"`
 }
-
-type VectorRequest struct {
-	ObjectIDs []uuid.UUID `super:"object_ids"`
-}
