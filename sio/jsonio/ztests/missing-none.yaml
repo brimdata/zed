@@ -48,3 +48,29 @@ outputs:
     data: |
       {event:"a",count:1}
       {event:null,count:1}
+
+---
+
+script: |
+  super -f bsup -o in.bsup in.json
+  super -s -I query.spq
+
+inputs:
+  - name: in.json
+    data: |
+      {"kind":"commit","commit":{"rev":"a","collection":"c"}}
+      {"kind":"identity","identity":{"did":"e"}}
+  - name: query.spq
+    data: |
+      SELECT
+        commit.collection AS event,
+        count() AS count
+      FROM 'in.bsup'
+      GROUP BY event
+      ORDER BY event
+
+outputs:
+  - name: stdout
+    data: |
+      {event:"c",count:1}
+      {event:null,count:1}

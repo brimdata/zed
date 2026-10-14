@@ -52,16 +52,17 @@ func (d *DotExpr) Eval(vec vector.Any) vector.Any {
 }
 
 func (d *DotExpr) eval(outerVecs ...vector.Any) vector.Any {
-	vec := outerVecs[0]
-	var missing bool
 	var eval func(...vector.Any) vector.Any
 	eval = func(innerVecs ...vector.Any) vector.Any {
-		switch val := vector.Under(innerVecs[0]).(type) {
+		on := innerVecs[0]
+		ripped := innerVecs[1]
+		switch val := vector.Under(ripped).(type) {
 		case *vector.Null:
 			if d.nullish {
 				return val
 			}
 		case *vector.None:
+			//XXX this should have noneish check
 			return val
 		case *vector.Record:
 			i, ok := val.Typ.IndexOfField(d.key)
@@ -69,17 +70,30 @@ func (d *DotExpr) eval(outerVecs ...vector.Any) vector.Any {
 				if d.nullish {
 					return vector.NewNull(val.Len())
 				}
-				missing = true
-				return vector.NewWrappedError(d.sctx, fmt.Sprintf("no such field %s", sup.QuotedName(d.key)), innerVecs[0])
+				return vector.NewWrappedError(d.sctx, fmt.Sprintf("no such field %s", sup.QuotedName(d.key)), val)
 			}
 			out := val.Fields[i]
 			if _, ok := out.(*vector.None); ok {
-				return vector.NewWrappedError(d.sctx, fmt.Sprintf("no such field %s", sup.QuotedName(d.key)), innerVecs[0])
+				return vector.NewWrappedError(d.sctx, fmt.Sprintf("no such field %s", sup.QuotedName(d.key)), val)
 			}
-			if hasNone(out) {
-				missing = true
+			if !hasMissingUnion(out) {
+				return out
 			}
-			return out
+			return vector.Apply(vector.ApplyDefuseMissings, func(vecs ...vector.Any) vector.Any {
+
+				on := vecs[0]
+				unripped := vecs[1]
+				ripped := vecs[2]
+				if _, ok := ripped.(*vector.Missing); ok {
+					if d.nullish {
+						return vector.NewNull(ripped.Len())
+					}
+					//XXX will check noneish here like nullish above in
+					// a susequent PR
+					return vector.NewWrappedError(d.sctx, fmt.Sprintf("no such field %s", sup.QuotedName(d.key)), on)
+				}
+				return unripped
+			}, vector.AddNoRip(on), vector.AddNoRip(out), out)
 		case *vector.TypeValue:
 			var errs []uint32
 			typvals := vector.NewTypeValueEmpty()
@@ -101,7 +115,13 @@ func (d *DotExpr) eval(outerVecs ...vector.Any) vector.Any {
 			keyVec := vector.NewConstString(d.key, val.Len())
 			return indexMap(d.sctx, val, keyVec)
 		case *vector.View:
-			return vector.Pick(eval(val.Any), val.Index)
+			if pushed := vector.PushView(val); pushed != vector.Any(val) {
+				return eval(on, pushed)
+			}
+			// PushView doesn't handle this kind (e.g., TypeValue), so use the
+			// underlying vector as its own "on" to keep lengths aligned. Error
+			// values on this path wrap the ripped value instead of the outer one.
+			return vector.Pick(eval(val.Any, val.Any), val.Index)
 		}
 		op := "."
 		if d.noneish {
@@ -109,21 +129,24 @@ func (d *DotExpr) eval(outerVecs ...vector.Any) vector.Any {
 		} else if d.nullish {
 			op = "??."
 		}
-		return vector.NewWrappedError(d.sctx, fmt.Sprintf("'%s': applied to non-record", op), innerVecs[0])
+		return vector.NewWrappedError(d.sctx, fmt.Sprintf("'%s': applied to non-record", op), on)
 	}
-	out := vector.Apply(vector.ApplyRipFusions|vector.ApplyRipUnions, eval, vec)
-	// If there were any structured errors or none values (e.g., because we hit a none
-	// inside a fusion and thus should be an error), then we take the slow path
-	// by defusing and starting over.  One simple optimization we can do is okPush
-	// to indicate that this reference is wrapped in an ok() or is_ok(), in which case,
-	// the on field of the structured error will be discarded and thus does not need
-	// to be correct.  There are a number of other ways to avoid this slow path but let's
-	// get it working first before we make it fast.
-	// XXX we need to wire up okPush
-	if !d.okPush && missing && d.hasFusion.Check(vec.Type()) {
-		return vector.Apply(vector.ApplyRipFusions|vector.ApplyRipUnions, d.eval, d.defuse.Eval(vec))
+	vec := outerVecs[0]
+	return vector.Apply(vector.ApplyRipFusions|vector.ApplyRipUnions, eval, vector.AddNoRip(vec), vec)
+}
+
+func hasMissingUnion(vec vector.Any) bool {
+	switch vec := vec.(type) {
+	case *vector.Union:
+		return hasNone(vec.Dynamic())
+	case *vector.Fusion:
+		return hasMissingUnion(vec.Values)
+	case *vector.Dynamic:
+		return slices.IndexFunc(vec.Values, hasMissingUnion) >= 0
+	case *vector.View:
+		return hasMissingUnion(vec.Any)
 	}
-	return out
+	return false
 }
 
 func hasNone(vec vector.Any) bool {
@@ -132,8 +155,6 @@ func hasNone(vec vector.Any) bool {
 		return vec.Len() > 0
 	case *vector.Union:
 		return hasNone(vec.Dynamic())
-	case *vector.Option:
-		return hasNone(vec.Any)
 	case *vector.Fusion:
 		return hasNone(vec.Values)
 	case *vector.Dynamic:

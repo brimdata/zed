@@ -208,7 +208,7 @@ input: |
 
 output: |
   fusion({y:1}::(none|{y:int64}),<{y:int64}>)
-  error({message:"no such field x",on:{}})
+  error({message:"no such field x",on:{x:fusion(none::(none|{y:int64}),<none>)}})
 
 ---
 
