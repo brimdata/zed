@@ -154,7 +154,7 @@ func (b *Builder) lookupTable(id uuid.UUID) (*db.Table, error) {
 	if b.env == nil || b.env.DB() == nil {
 		return nil, errors.New("internal error: database operation requires database operating context")
 	}
-	// This is fast because of the tablea cache in the database.
+	// This is fast because of the table cache in the database.
 	return b.env.DB().OpenTable(b.rctx.Context, id)
 }
 

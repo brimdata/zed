@@ -360,25 +360,6 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 			dataFilter = &dagFilter{nil, o.Filter}
 		}
 		return op.NewRobot(b.rctx, b.env, parent, e, o.Format, b.newPushdown(nil, nil, nil, dataFilter, false), b.progress), nil
-	case *dag.TableScan:
-		if parent != nil {
-			return nil, errors.New("internal error: table scan cannot have a parent operator")
-		}
-		// Here we convert TableScan to lister->slicer->seqscan for the slow path as
-		// optimizer should do this conversion, but this allows us to run
-		// unoptimized scans too.
-		table, err := b.lookupTable(o.ID)
-		if err != nil {
-			return nil, err
-		}
-		l, err := op.NewLister(b.rctx.Context, b.mctx, table, o.Commit, nil)
-		if err != nil {
-			return nil, err
-		}
-		slicer := op.NewSlicer(b.mctx, l)
-		return op.NewTableScanner(b.rctx, slicer, table, nil, nil, b.progress), nil
-	case *dag.TableMetaScan:
-		return op.NewTableMetaScanner(b.rctx.Context, b.sctx(), b.env.DB(), o.ID, o.Meta)
 	case *dag.SeqScan:
 		table, err := b.lookupTable(o.Table)
 		if err != nil {
@@ -411,6 +392,25 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 		return op.NewSort(b.rctx, parent, exprs, o.Reverse), nil
 	case *dag.TailOp:
 		return op.NewTail(parent, o.Count), nil
+	case *dag.TableScan:
+		if parent != nil {
+			return nil, errors.New("internal error: table scan cannot have a parent operator")
+		}
+		// Here we convert TableScan to lister->slicer->seqscan for the slow path as
+		// optimizer should do this conversion, but this allows us to run
+		// unoptimized scans too.
+		table, err := b.lookupTable(o.ID)
+		if err != nil {
+			return nil, err
+		}
+		l, err := op.NewLister(b.rctx.Context, b.mctx, table, o.Commit, nil)
+		if err != nil {
+			return nil, err
+		}
+		slicer := op.NewSlicer(b.mctx, l)
+		return op.NewTableScanner(b.rctx, slicer, table, nil, nil, b.progress), nil
+	case *dag.TableMetaScan:
+		return op.NewTableMetaScanner(b.rctx.Context, b.sctx(), b.env.DB(), o.ID, o.Meta)
 	case *dag.UnnestOp:
 		e, err := b.compileVamExpr(o.Expr)
 		if err != nil {

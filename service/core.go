@@ -171,6 +171,9 @@ func (c *Core) addAPIServerRoutes() {
 	c.routerAPI.Handle("/auth/method", c.handler(handleAuthMethodGet)).Methods("GET")
 	c.authhandle("/compile", handleCompile).Methods("POST")
 	c.authhandle("/events", handleEvents).Methods("GET")
+	c.authhandle("/query", handleQuery).Methods("OPTIONS", "POST")
+	c.authhandle("/query/describe", handleQueryDescribe).Methods("OPTIONS", "POST")
+	c.authhandle("/query/status/{requestID}", handleQueryStatus).Methods("GET")
 	c.authhandle("/table", handleTablePost).Methods("POST")
 	c.authhandle("/table/{table}", handleTableDelete).Methods("DELETE")
 	c.authhandle("/table/{table}", handleBranchPost).Methods("POST")
@@ -185,9 +188,6 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/table/{table}/revision/{revision}/vacuum", handleVacuum).Methods("POST")
 	c.authhandle("/table/{table}/stats", handleTableStats).Methods("GET")
 	c.authhandle("/table/{table}/vacate", handleVacate).Methods("POST")
-	c.authhandle("/query", handleQuery).Methods("OPTIONS", "POST")
-	c.authhandle("/query/describe", handleQueryDescribe).Methods("OPTIONS", "POST")
-	c.authhandle("/query/status/{requestID}", handleQueryStatus).Methods("GET")
 }
 
 func (c *Core) handler(f func(*Core, *ResponseWriter, *Request)) http.Handler {

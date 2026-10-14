@@ -353,9 +353,9 @@ func (*FileScan) opNode()       {}
 func (*HTTPScan) opNode()       {}
 func (*ListerScan) opNode()     {}
 func (*NullScan) opNode()       {}
+func (*RobotScan) opNode()      {}
 func (*TableMetaScan) opNode()  {}
 func (*TableScan) opNode()      {}
-func (*RobotScan) opNode()      {}
 func (*SeqScan) opNode()        {}
 
 var Pass = &PassOp{Kind: "PassOp"}
