@@ -115,7 +115,9 @@ func (d *Dematerializer) parentPull(done bool) (Batch, error) {
 }
 
 func WriteVec(w sio.Writer, vec vector.Any) error {
-	for _, val := range Materialize(vec).Values() {
+	var b scode.Builder
+	for i := range vec.Len() {
+		val := vector.ValueAt(&b, vec, i)
 		if err := w.Write(val); err != nil {
 			return err
 		}
