@@ -23,7 +23,7 @@ type Reader struct {
 	sctx       *super.Context
 	ctx        context.Context
 	stream     *stream
-	projection field.List
+	projection field.Projection
 
 	hasClosed atomic.Bool
 }
@@ -32,15 +32,15 @@ func NewReader(ctx context.Context, sctx *super.Context, r io.Reader, p vio.Push
 	if inputCap == 0 {
 		inputCap = defaultInputCap
 	}
-	var fields field.List
+	var proj field.Projection
 	if p != nil {
-		fields = p.Projection().Paths()
+		proj = p.Projection()
 	}
 	return &Reader{
 		sctx:       sctx,
 		ctx:        ctx,
 		stream:     newStream(ctx, r, concurrentReaders, inputCap),
-		projection: fields,
+		projection: proj,
 	}
 }
 
@@ -82,7 +82,7 @@ func preorderErr(idx uint32, start int, table *vector.BytesTable, err error) err
 
 func (r *Reader) newBuilder() jsonvec.Builder {
 	if r.projection != nil {
-		return jsonvec.NewProjectionBuilder(r.projection)
+		return jsonvec.NewProjectionBuilder(r.projection.Paths())
 	}
 	return jsonvec.NewBuilder()
 }
