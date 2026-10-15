@@ -1,6 +1,8 @@
 script: |
   export SUPER_DB=test
   super db init -q
+  super db ls -s
+  echo ===
   super db create -q -orderby ts:desc logs
   super db load -q -use logs babble.sup
   super db ls -f bsup | super -S -c "drop id,ts" -
@@ -17,6 +19,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
+      ===
       type "order.Which" = string
       type "field.Path" = [string]
       type "order.SortKey" = {

@@ -1,5 +1,7 @@
 script: |
   source service.sh
+  super db ls -s
+  echo ===
   super db create p1
   super db create p2
   echo ===
@@ -21,6 +23,7 @@ inputs:
 outputs:
   - name: stdout
     regexp: |
+      ===
       table created: p1 [0-9a-f-]{36}
       table created: p2 [0-9a-f-]{36}
       ===
