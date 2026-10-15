@@ -1,0 +1,9 @@
+spq: pass
+
+flags: -f csv
+
+input: |
+  {a:none::(int64|none)}
+
+output: "a\n\
+  \n"
