@@ -18,7 +18,6 @@ import (
 	"github.com/superdb/super/runtime/op"
 	samexpr "github.com/superdb/super/runtime/sam/expr"
 	"github.com/superdb/super/runtime/sam/op/top"
-	"github.com/superdb/super/runtime/sam/op/uniq"
 	"github.com/superdb/super/sbuf"
 	"github.com/superdb/super/vector"
 	"github.com/superdb/super/vector/vio"
@@ -109,8 +108,6 @@ func (b *Builder) compileLeaf(o dag.Op, parent sbuf.Puller) (sbuf.Puller, error)
 			return nil, err
 		}
 		return top.New(b.sctx(), parent, v.Limit, exprs, v.Reverse), nil
-	case *dag.UniqOp:
-		return uniq.New(b.rctx, parent, v.Cflag), nil
 	default:
 		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
 	}
