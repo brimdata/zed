@@ -17,8 +17,6 @@ import (
 	"github.com/superdb/super/runtime/expr"
 	"github.com/superdb/super/runtime/op"
 	samexpr "github.com/superdb/super/runtime/sam/expr"
-	"github.com/superdb/super/runtime/sam/op/top"
-	"github.com/superdb/super/sbuf"
 	"github.com/superdb/super/vector"
 	"github.com/superdb/super/vector/vio"
 )
@@ -98,19 +96,6 @@ func (b *Builder) lookupType(id int) (super.Type, error) {
 		return nil, fmt.Errorf("internal error: type ID %d not found in types table", id)
 	}
 	return typ, nil
-}
-
-func (b *Builder) compileLeaf(o dag.Op, parent sbuf.Puller) (sbuf.Puller, error) {
-	switch v := o.(type) {
-	case *dag.TopOp:
-		exprs, err := b.compileSortExprs(v.Exprs)
-		if err != nil {
-			return nil, err
-		}
-		return top.New(b.sctx(), parent, v.Limit, exprs, v.Reverse), nil
-	default:
-		return nil, fmt.Errorf("unknown DAG operator type: %v", v)
-	}
 }
 
 func (b *Builder) compileAssignmentsToLvals(assignments []dag.Assignment) ([]*samexpr.Lval, []*samexpr.Lval, error) {
