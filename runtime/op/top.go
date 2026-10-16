@@ -1,30 +1,32 @@
-package top
+package op
 
 import (
 	"container/heap"
+	"slices"
 
 	"github.com/superdb/super"
 	"github.com/superdb/super/runtime/sam/expr"
 	"github.com/superdb/super/runtime/sam/op/sort"
-	"github.com/superdb/super/sbuf"
+	"github.com/superdb/super/scode"
+	"github.com/superdb/super/vector"
+	"github.com/superdb/super/vector/vio"
 )
 
-// Top produces the first N values that sort would produce with the same arguments.
-type Op struct {
+type Top struct {
 	sctx         *super.Context
-	parent       sbuf.Puller
+	parent       vio.Puller
 	limit        int
 	exprs        []expr.SortExpr
 	guessReverse bool
 
+	builder scode.Builder
+	compare expr.CompareFn
 	eos     bool
 	records *recordSlice
-	compare expr.CompareFn
 }
 
-// New returns an operator that produces the first limit
-func New(sctx *super.Context, parent sbuf.Puller, limit int, exprs []expr.SortExpr, guessReverse bool) *Op {
-	return &Op{
+func NewTop(sctx *super.Context, parent vio.Puller, limit int, exprs []expr.SortExpr, guessReverse bool) *Top {
+	return &Top{
 		sctx:         sctx,
 		parent:       parent,
 		limit:        limit,
@@ -33,57 +35,60 @@ func New(sctx *super.Context, parent sbuf.Puller, limit int, exprs []expr.SortEx
 	}
 }
 
-func (o *Op) Pull(done bool) (sbuf.Batch, error) {
-	if o.eos {
-		o.eos = false
+func (t *Top) Pull(done bool) (vector.Any, error) {
+	if t.eos {
+		t.eos = false
 		return nil, nil
 	}
 	for {
-		batch, err := o.parent.Pull(done)
+		vec, err := t.parent.Pull(done)
 		if err != nil {
 			return nil, err
 		}
-		if batch == nil {
-			if o.records == nil {
+		if vec == nil {
+			if t.records == nil {
 				return nil, nil
 			}
-			o.eos = true
-			return o.sorted(), nil
+			t.eos = true
+			return t.sorted(), nil
 		}
-		vals := batch.Values()
-		for i := range vals {
-			o.consume(vals[i])
+		for i := range vec.Len() {
+			t.consume(vector.ValueAt(&t.builder, vec, i))
 		}
-		batch.Unref()
 	}
 }
 
-func (o *Op) consume(rec super.Value) {
-	if o.records == nil {
-		if o.compare == nil {
-			comparator := sort.NewComparator(o.sctx, o.exprs, rec, o.guessReverse)
+func (t *Top) consume(val super.Value) {
+	if t.records == nil {
+		if t.compare == nil {
+			comparator := sort.NewComparator(t.sctx, t.exprs, val, t.guessReverse)
 			// package heap implements a min-heap.  Invert the comparison result to get a max-heap.
-			o.compare = func(a, b super.Value) int { return comparator.Compare(a, b) * -1 }
+			t.compare = func(a, b super.Value) int { return comparator.Compare(a, b) * -1 }
 		}
-		o.records = newRecordSlice(o.compare)
-		heap.Init(o.records)
+		t.records = newRecordSlice(t.compare)
+		heap.Init(t.records)
 	}
-	if o.records.Len() < o.limit || o.compare(o.records.Index(0), rec) < 0 {
-		heap.Push(o.records, rec.Copy())
+	if t.records.Len() < t.limit || t.compare(t.records.Index(0), val) < 0 {
+		heap.Push(t.records, val.Copy())
 	}
-	if o.records.Len() > o.limit {
-		heap.Pop(o.records)
+	if t.records.Len() > t.limit {
+		heap.Pop(t.records)
 	}
 }
 
-func (o *Op) sorted() sbuf.Batch {
-	out := make([]super.Value, o.records.Len())
-	for i := o.records.Len() - 1; i >= 0; i-- {
-		out[i] = heap.Pop(o.records).(super.Value)
+func (t *Top) sorted() vector.Any {
+	// Transform t.record.vals from a max-heap to an ascending list that we
+	// can use to write values to a vector builder in ascending order.
+	vals := t.records.vals
+	for i := range slices.Backward(vals) {
+		vals[i] = heap.Pop(t.records).(super.Value)
 	}
-	// clear records
-	o.records = nil
-	return sbuf.NewArray(out)
+	t.records = nil
+	b := vector.NewDynamicValueBuilder()
+	for _, val := range vals {
+		b.Write(val)
+	}
+	return b.Build(t.sctx)
 }
 
 type recordSlice struct {

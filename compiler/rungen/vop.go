@@ -411,6 +411,12 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 		return op.NewTableScanner(b.rctx, slicer, table, nil, nil, b.progress), nil
 	case *dag.TableMetaScan:
 		return op.NewTableMetaScanner(b.rctx.Context, b.sctx(), b.env.DB(), o.ID, o.Meta)
+	case *dag.TopOp:
+		exprs, err := b.compileSortExprs(o.Exprs)
+		if err != nil {
+			return nil, err
+		}
+		return op.NewTop(b.sctx(), parent, o.Limit, exprs, o.Reverse), nil
 	case *dag.UniqOp:
 		return op.NewUniq(b.sctx(), parent, o.Cflag), nil
 	case *dag.UnnestOp:
@@ -426,15 +432,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 		}
 		return op.NewValues(b.sctx(), parent, exprs), nil
 	default:
-		var sbufParent sbuf.Puller
-		if parent != nil {
-			sbufParent = sbuf.NewMaterializer(parent)
-		}
-		sbufPuller, err := b.compileLeaf(o, sbufParent)
-		if err != nil {
-			return nil, err
-		}
-		return sbuf.NewDematerializer(b.sctx(), sbufPuller), nil
+		return nil, fmt.Errorf("unknown DAG operator %T", o)
 	}
 }
 
