@@ -411,6 +411,8 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 		return op.NewTableScanner(b.rctx, slicer, table, nil, nil, b.progress), nil
 	case *dag.TableMetaScan:
 		return op.NewTableMetaScanner(b.rctx.Context, b.sctx(), b.env.DB(), o.ID, o.Meta)
+	case *dag.UniqOp:
+		return op.NewUniq(b.sctx(), parent, o.Cflag), nil
 	case *dag.UnnestOp:
 		e, err := b.compileVamExpr(o.Expr)
 		if err != nil {
