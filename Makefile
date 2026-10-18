@@ -83,6 +83,14 @@ compiler/parser/parser.go: compiler/parser/parser.peg go.mod
 .PHONY: peg
 peg: compiler/parser/parser.go
 
+# Compare the performance of two builds of super on a small data set.
+# BASE defaults to the merge-base with origin/main, TARGET defaults to the
+# working tree, and SYSTEMS (a comma-separated list) defaults to all of them.
+# See perf/canary/README.md.
+.PHONY: perf
+perf:
+	@go run ./perf/canary $(if $(BASE),-base '$(BASE)') $(if $(TARGET),-target '$(TARGET)') $(if $(SYSTEMS),-systems '$(SYSTEMS)') $(PERF_CANARY_FLAGS)
+
 .PHONY: markdown-lint
 markdown-lint:
 	@npm install --no-save markdownlint-cli@0.35.0
