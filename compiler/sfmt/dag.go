@@ -305,9 +305,15 @@ func (c *canonDAG) op(o dag.Op) {
 		c.write(":%s", o.Meta)
 	case *dag.FileScan:
 		c.next()
-		c.write("file %s", strings.Join(o.Paths, ","))
-		if o.Format != "" {
-			c.write(" format %s", o.Format)
+		c.write("file ")
+		for i, p := range o.Paths {
+			if i > 0 {
+				c.write(", ")
+			}
+			c.write(p)
+			if f := o.Formats[i]; f != "" {
+				c.write(" format %s", f)
+			}
 		}
 		if o.Type != "" {
 			c.write(" type %s", o.Type)

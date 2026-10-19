@@ -281,10 +281,7 @@ func (t *translator) asFormatArg(args []ast.OpArg) string {
 func (t *translator) file(n ast.Node, name string, args []ast.OpArg) sem.Op {
 	format := t.asFormatArg(args)
 	if format == "" {
-		format = t.env.ReaderOpts.Format
-	}
-	if format == "" {
-		format = sio.FormatFromPath(name)
+		format = t.fileFormat(name)
 	}
 	typ, err := t.fileType(name, format)
 	if err != nil {
@@ -292,11 +289,21 @@ func (t *translator) file(n ast.Node, name string, args []ast.OpArg) sem.Op {
 		typ = badType
 	}
 	return &sem.FileScan{
-		Node:   n,
-		Type:   typ,
-		Paths:  []string{name},
-		Format: format,
+		Node:    n,
+		Type:    typ,
+		Paths:   []string{name},
+		Formats: []string{format},
 	}
+}
+
+func (t *translator) fileFormat(name string) string {
+	if f := t.env.ReaderOpts.Format; f != "" {
+		return f
+	}
+	if f := sio.FormatFromPath(name); f != "" {
+		return f
+	}
+	return ""
 }
 
 func (t *translator) fileType(path, format string) (super.Type, error) {
@@ -602,14 +609,16 @@ func (t *translator) semOp(o ast.Op, seq sem.Seq, inType super.Type) (sem.Seq, s
 		}
 		return seq, typ
 	case *ast.FileScan:
-		format := t.env.ReaderOpts.Format
 		fuser := t.checker.newFuser()
 		paths := slices.Clone(o.Paths)
+		var formats []string
 		for i, p := range paths {
 			if p == "-" {
 				p = "stdio:stdin"
 				paths[i] = p
 			}
+			format := t.fileFormat(p)
+			formats = append(formats, format)
 			typ, err := t.fileType(p, format)
 			if typ == nil || err != nil {
 				if err != nil {
@@ -625,10 +634,10 @@ func (t *translator) semOp(o ast.Op, seq sem.Seq, inType super.Type) (sem.Seq, s
 			typ = fuser.Type()
 		}
 		return append(seq, &sem.FileScan{
-			Node:   o,
-			Type:   typ,
-			Paths:  paths,
-			Format: format,
+			Node:    o,
+			Type:    typ,
+			Paths:   paths,
+			Formats: formats,
 		}), typ
 	case *ast.FromOp:
 		seq, typ, _ := t.fromSource(o.Item.Source, o.Item.Args, seq)

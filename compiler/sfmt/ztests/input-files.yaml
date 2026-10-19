@@ -1,14 +1,14 @@
 script: |
   # Command line input files do not appear in the AST.
-  super compile -C pass /dev/null /dev/zero
+  super compile -C pass a.sup b.bsup
   echo ===
-  super compile -C -dynamic -dag pass /dev/null /dev/zero
+  super compile -C -dynamic -dag pass a.sup b.bsup
 
 outputs:
   - name: stdout
     data: |
       pass
       ===
-      file /dev/null,/dev/zero
+      file a.sup format sup, b.bsup format bsup
       | pass
       | output main
