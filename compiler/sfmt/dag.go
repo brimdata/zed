@@ -289,50 +289,50 @@ func (c *canonDAG) seq(seq dag.Seq) {
 	}
 }
 
-func (c *canonDAG) op(p dag.Op) {
-	switch p := p.(type) {
+func (c *canonDAG) op(o dag.Op) {
+	switch o := o.(type) {
 	//
 	// Scanners in alphabetical order.
 	//
 	case *dag.CommitMetaScan:
 		c.next()
-		c.write("table %s@%s:%s", p.Table, p.Commit, p.Meta)
-		if p.Tap {
+		c.write("table %s@%s:%s", o.Table, o.Commit, o.Meta)
+		if o.Tap {
 			c.write(" tap")
 		}
 	case *dag.DBMetaScan:
 		c.next()
-		c.write(":%s", p.Meta)
+		c.write(":%s", o.Meta)
 	case *dag.FileScan:
 		c.next()
-		c.write("file %s", strings.Join(p.Paths, ","))
-		if p.Format != "" {
-			c.write(" format %s", p.Format)
+		c.write("file %s", strings.Join(o.Paths, ","))
+		if o.Format != "" {
+			c.write(" format %s", o.Format)
 		}
-		if p.Type != "" {
-			c.write(" type %s", p.Type)
+		if o.Type != "" {
+			c.write(" type %s", o.Type)
 		}
-		if p.Pushdown.Unordered {
+		if o.Pushdown.Unordered {
 			c.write(" unordered")
 		}
-		if p.Pushdown.HasProjection {
-			c.project(p.Pushdown.Projection)
+		if o.Pushdown.HasProjection {
+			c.project(o.Pushdown.Projection)
 		}
-		c.scanFilter("meta-filter", p.Pushdown.MetaFilter)
-		c.scanFilter("search-filter", p.Pushdown.SearchFilter)
-		if p.Pushdown.DataFilter != nil && p.Pushdown.DataFilter.HasProjection {
-			c.scanFilter("data-filter", p.Pushdown.DataFilter)
+		c.scanFilter("meta-filter", o.Pushdown.MetaFilter)
+		c.scanFilter("search-filter", o.Pushdown.SearchFilter)
+		if o.Pushdown.DataFilter != nil && o.Pushdown.DataFilter.HasProjection {
+			c.scanFilter("data-filter", o.Pushdown.DataFilter)
 		}
 	case *dag.HTTPScan:
 		c.next()
-		c.write("get %s", p.URL)
+		c.write("get %s", o.URL)
 	case *dag.ListerScan:
 		c.next()
 		c.open("lister")
-		c.write(" table %s commit %s", p.Table, p.Commit)
-		if p.KeyPruner != nil {
+		c.write(" table %s commit %s", o.Table, o.Commit)
+		if o.KeyPruner != nil {
 			c.write(" pruner (")
-			c.expr(p.KeyPruner, "")
+			c.expr(o.KeyPruner, "")
 			c.write(")")
 		}
 		c.close()
@@ -342,60 +342,60 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.RobotScan:
 		c.next()
 		c.write("robot ")
-		c.expr(p.Expr, "")
-		if p.Format != "" {
-			c.write(" format %s", p.Format)
+		c.expr(o.Expr, "")
+		if o.Format != "" {
+			c.write(" format %s", o.Format)
 		}
-		if p.Filter != nil {
+		if o.Filter != nil {
 			c.write(" filter (")
-			c.expr(p.Filter, "")
+			c.expr(o.Filter, "")
 			c.write(")")
 		}
 	case *dag.SeqScan:
 		c.next()
 		c.open("seqscan")
-		c.write(" table %s", p.Table)
-		if p.KeyPruner != nil {
+		c.write(" table %s", o.Table)
+		if o.KeyPruner != nil {
 			c.write(" pruner (")
-			c.expr(p.KeyPruner, "")
+			c.expr(o.KeyPruner, "")
 			c.write(")")
 		}
-		if len(p.Fields) > 0 {
-			c.project(p.Fields)
+		if len(o.Fields) > 0 {
+			c.project(o.Fields)
 		}
-		if p.Filter != nil {
+		if o.Filter != nil {
 			c.write(" filter (")
-			c.expr(p.Filter, "")
+			c.expr(o.Filter, "")
 			c.write(")")
 		}
 		c.close()
 	case *dag.TableScan:
 		c.next()
-		c.write("table %s", p.ID)
+		c.write("table %s", o.ID)
 	case *dag.TableMetaScan:
 		c.next()
-		c.write("table %s:%s", p.ID, p.Meta)
+		c.write("table %s:%s", o.ID, o.Meta)
 	//
 	// Operators in alphabeticl order.
 	//
 	case *dag.AggregateOp:
 		c.next()
 		c.open("aggregate")
-		if p.PartialsIn {
+		if o.PartialsIn {
 			c.write(" partials-in")
 		}
-		if p.PartialsOut {
+		if o.PartialsOut {
 			c.write(" partials-out")
 		}
 		c.ret()
 		c.open()
-		c.assignments(p.Aggs)
-		if len(p.Keys) != 0 {
+		c.assignments(o.Aggs)
+		if len(o.Keys) != 0 {
 			c.write(" by ")
-			c.assignments(p.Keys)
+			c.assignments(o.Keys)
 		}
-		if p.Limit != 0 {
-			c.write(" -with limit %d", p.Limit)
+		if o.Limit != 0 {
+			c.write(" -with limit %d", o.Limit)
 		}
 		c.close()
 		c.close()
@@ -405,41 +405,41 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.CountOp:
 		c.next()
 		c.write("count {")
-		if p.Expr != nil {
-			c.recordElems(p.Expr.(*dag.RecordExpr).Elems)
+		if o.Expr != nil {
+			c.recordElems(o.Expr.(*dag.RecordExpr).Elems)
 			c.write(",")
 		}
-		c.write("%s}", p.Alias)
+		c.write("%s}", o.Alias)
 	case *dag.CutOp:
 		c.next()
 		c.write("cut ")
-		c.assignments(p.Args)
+		c.assignments(o.Args)
 	case *dag.DebugOp:
 		c.next()
 		c.write("debug ")
-		c.expr(p.Expr, "")
-		if p.Filter != nil {
+		c.expr(o.Expr, "")
+		if o.Filter != nil {
 			c.write(" filter (")
-			c.expr(p.Filter, "filter")
+			c.expr(o.Filter, "filter")
 			c.write(")")
 		}
 	case *dag.DistinctOp:
 		c.next()
 		c.write("distinct ")
-		c.expr(p.Expr, "")
+		c.expr(o.Expr, "")
 	case *dag.DropOp:
 		c.next()
 		c.write("drop ")
-		c.exprs(p.Args)
+		c.exprs(o.Args)
 	case *dag.FilterOp:
 		c.next()
 		c.open("where ")
-		c.expr(p.Expr, "")
+		c.expr(o.Expr, "")
 		c.close()
 	case *dag.ForkOp:
 		c.next()
 		c.open("fork")
-		for _, seq := range p.Paths {
+		for _, seq := range o.Paths {
 			c.ret()
 			c.write("(")
 			c.open()
@@ -456,59 +456,59 @@ func (c *canonDAG) op(p dag.Op) {
 		c.write("fuse")
 	case *dag.HashJoinOp:
 		c.next()
-		c.write("%s hashjoin as {%s,%s} on ", p.Style, p.LeftAlias, p.RightAlias)
-		c.expr(p.LeftKey, "")
+		c.write("%s hashjoin as {%s,%s} on ", o.Style, o.LeftAlias, o.RightAlias)
+		c.expr(o.LeftKey, "")
 		c.write("==")
-		c.expr(p.RightKey, "")
+		c.expr(o.RightKey, "")
 	case *dag.HeadOp:
 		c.next()
-		c.write("head %d", p.Count)
+		c.write("head %d", o.Count)
 	case *dag.JoinOp:
 		c.next()
 		c.open()
-		c.write("%s join as {%s,%s}", p.Style, p.LeftAlias, p.RightAlias)
-		if p.Cond != nil {
+		c.write("%s join as {%s,%s}", o.Style, o.LeftAlias, o.RightAlias)
+		if o.Cond != nil {
 			c.write(" on ")
-			c.expr(p.Cond, "")
+			c.expr(o.Cond, "")
 		}
 		c.close()
 	case *dag.LoadOp:
 		c.next()
-		c.write("load %s", p.Table)
-		if p.Branch != "" {
-			c.write("@%s", p.Branch)
+		c.write("load %s", o.Table)
+		if o.Branch != "" {
+			c.write("@%s", o.Branch)
 		}
-		if p.Author != "" {
-			c.write(" author %s", p.Author)
+		if o.Author != "" {
+			c.write(" author %s", o.Author)
 		}
-		if p.Message != "" {
-			c.write(" message %s", p.Message)
+		if o.Message != "" {
+			c.write(" message %s", o.Message)
 		}
-		if p.Meta != "" {
-			c.write(" meta %s", p.Meta)
+		if o.Meta != "" {
+			c.write(" meta %s", o.Meta)
 		}
 	case *dag.MergeOp:
 		c.next()
 		c.write("merge")
-		c.sortExprs(p.Exprs)
+		c.sortExprs(o.Exprs)
 	case *dag.OutputOp:
 		c.next()
-		c.write("output %s", p.Name)
+		c.write("output %s", o.Name)
 	case *dag.PassOp:
 		c.next()
 		c.write("pass")
 	case *dag.PutOp:
 		c.next()
 		c.write("put ")
-		c.assignments(p.Args)
+		c.assignments(o.Args)
 	case *dag.RenameOp:
 		c.next()
 		c.write("rename ")
-		c.assignments(p.Args)
+		c.assignments(o.Args)
 	case *dag.ScatterOp:
 		c.next()
 		c.open("scatter")
-		for _, seq := range p.Paths {
+		for _, seq := range o.Paths {
 			c.ret()
 			c.write("(")
 			c.open()
@@ -522,7 +522,7 @@ func (c *canonDAG) op(p dag.Op) {
 		c.flush()
 	case *dag.SkipOp:
 		c.next()
-		c.write("skip %d", p.Count)
+		c.write("skip %d", o.Count)
 	case *dag.SlicerOp:
 		c.next()
 		c.open("slicer")
@@ -530,18 +530,18 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.SortOp:
 		c.next()
 		c.write("sort")
-		if p.Reverse {
+		if o.Reverse {
 			c.write(" -r")
 		}
-		c.sortExprs(p.Exprs)
+		c.sortExprs(o.Exprs)
 	case *dag.SwitchOp:
 		c.next()
 		c.open("switch")
-		if p.Expr != nil {
+		if o.Expr != nil {
 			c.write(" ")
-			c.expr(p.Expr, "")
+			c.expr(o.Expr, "")
 		}
-		for _, k := range p.Cases {
+		for _, k := range o.Cases {
 			c.ret()
 			if k.Expr != nil {
 				c.write("case ")
@@ -561,30 +561,30 @@ func (c *canonDAG) op(p dag.Op) {
 		c.flush()
 	case *dag.TailOp:
 		c.next()
-		c.write("tail %d", p.Count)
+		c.write("tail %d", o.Count)
 	case *dag.TopOp:
 		c.next()
 		c.write("top")
-		if p.Reverse {
+		if o.Reverse {
 			c.write(" -r")
 		}
-		c.write(" %d", p.Limit)
-		c.sortExprs(p.Exprs)
+		c.write(" %d", o.Limit)
+		c.sortExprs(o.Exprs)
 	case *dag.UniqOp:
 		c.next()
 		c.write("uniq")
-		if p.Cflag {
+		if o.Cflag {
 			c.write(" -c")
 		}
 	case *dag.UnnestOp:
-		c.unnest(p)
+		c.unnest(o)
 	case *dag.ValuesOp:
 		c.next()
 		c.write("values ")
-		c.exprs(p.Exprs)
+		c.exprs(o.Exprs)
 	default:
 		c.next()
-		c.open("unknown operator: %T", p)
+		c.open("unknown operator: %T", o)
 		c.close()
 	}
 }

@@ -11,15 +11,15 @@ import (
 	"github.com/superdb/super/sup"
 )
 
-func AST(p ast.Seq) string {
-	if len(p) == 0 {
+func AST(seq ast.Seq) string {
+	if len(seq) == 0 {
 		return ""
 	}
 	c := &canon{shared: shared{formatter{tab: 2}}, head: true, first: true}
-	if scope, ok := p[0].(*ast.ScopeOp); ok {
+	if scope, ok := seq[0].(*ast.ScopeOp); ok {
 		c.scope(scope, false)
 	} else {
-		c.seq(p)
+		c.seq(seq)
 	}
 	c.flush()
 	return c.String()
@@ -461,14 +461,14 @@ func (c *canon) seq(seq ast.Seq) {
 	}
 }
 
-func (c *canon) op(p ast.Op) {
-	switch p := p.(type) {
+func (c *canon) op(o ast.Op) {
+	switch o := o.(type) {
 	case *ast.ScopeOp:
-		c.scope(p, true)
+		c.scope(o, true)
 	case *ast.ForkOp:
 		c.next()
 		c.open("fork")
-		for _, p := range p.Paths {
+		for _, p := range o.Paths {
 			c.ret()
 			c.write("(")
 			c.open()
@@ -483,11 +483,11 @@ func (c *canon) op(p ast.Op) {
 	case *ast.SwitchOp:
 		c.next()
 		c.write("switch")
-		if p.Expr != nil {
+		if o.Expr != nil {
 			c.write(" ")
-			c.expr(p.Expr, "")
+			c.expr(o.Expr, "")
 		}
-		for _, k := range p.Cases {
+		for _, k := range o.Cases {
 			c.ret()
 			if k.Expr != nil {
 				c.write("case ")
@@ -508,86 +508,86 @@ func (c *canon) op(p ast.Op) {
 	case *ast.FromOp:
 		c.next()
 		c.write("from ")
-		c.fromItem(p.Item)
+		c.fromItem(o.Item)
 	case *ast.AggregateOp:
 		c.next()
 		c.open("aggregate")
 		c.ret()
 		c.open()
-		c.assignments(p.Aggs)
-		if len(p.Keys) != 0 {
+		c.assignments(o.Aggs)
+		if len(o.Keys) != 0 {
 			c.write(" by ")
-			c.assignments(p.Keys)
+			c.assignments(o.Keys)
 		}
-		if p.Limit != 0 {
-			c.write(" -with limit %d", p.Limit)
+		if o.Limit != 0 {
+			c.write(" -with limit %d", o.Limit)
 		}
 		c.close()
 		c.close()
 	case *ast.CallOp:
 		c.next()
-		c.write("call %s ", sup.QuotedName(p.Name.Name))
-		c.funcOrExprs(p.Args)
+		c.write("call %s ", sup.QuotedName(o.Name.Name))
+		c.funcOrExprs(o.Args)
 	case *ast.CountOp:
 		c.next()
 		c.write("count ")
-		c.expr(p.Expr, "")
+		c.expr(o.Expr, "")
 	case *ast.CutOp:
 		c.next()
 		c.write("cut ")
-		c.assignments(p.Args)
+		c.assignments(o.Args)
 	case *ast.DistinctOp:
 		c.next()
 		c.write("distinct ")
-		c.expr(p.Expr, "")
+		c.expr(o.Expr, "")
 	case *ast.DropOp:
 		c.next()
 		c.write("drop ")
-		c.exprs(p.Args)
+		c.exprs(o.Args)
 	case *ast.SortOp:
 		c.next()
 		c.write("sort")
-		if p.Reverse {
+		if o.Reverse {
 			c.write(" -r")
 		}
-		c.sortExprs(p.Exprs)
+		c.sortExprs(o.Exprs)
 	case *ast.LoadOp:
 		c.next()
-		c.write("load %s", sup.QuotedString(p.Table.Text))
-		c.opArgs(p.Args)
+		c.write("load %s", sup.QuotedString(o.Table.Text))
+		c.opArgs(o.Args)
 	case *ast.HeadOp:
 		c.next()
 		c.open("head")
-		if p.Count != nil {
+		if o.Count != nil {
 			c.write(" ")
-			c.expr(p.Count, "")
+			c.expr(o.Count, "")
 		}
 		c.close()
 	case *ast.TailOp:
 		c.next()
 		c.open("tail")
-		if p.Count != nil {
+		if o.Count != nil {
 			c.write(" ")
-			c.expr(p.Count, "")
+			c.expr(o.Count, "")
 		}
 		c.close()
 	case *ast.UniqOp:
 		c.next()
 		c.write("uniq")
-		if p.Cflag {
+		if o.Cflag {
 			c.write(" -c")
 		}
 	case *ast.PassOp:
 		c.next()
 		c.write("pass")
 	case *ast.ExprOp:
-		if agg := isAggFunc(p.Expr); agg != nil {
+		if agg := isAggFunc(o.Expr); agg != nil {
 			c.op(agg)
 			return
 		}
 		c.next()
 		var which string
-		e := p.Expr
+		e := o.Expr
 		if IsSearch(e) {
 			which = "search "
 		} else if IsBool(e) {
@@ -608,92 +608,92 @@ func (c *canon) op(p ast.Op) {
 	case *ast.SearchOp:
 		c.next()
 		c.open("search ")
-		c.expr(p.Expr, "")
+		c.expr(o.Expr, "")
 		c.close()
 	case *ast.WhereOp:
 		c.next()
 		c.open("where ")
-		c.expr(p.Expr, "")
+		c.expr(o.Expr, "")
 		c.close()
 	case *ast.TopOp:
 		c.next()
 		c.write("top")
-		if p.Reverse {
+		if o.Reverse {
 			c.write(" -r")
 		}
-		if p.Limit != nil {
+		if o.Limit != nil {
 			c.write(" ")
-			c.expr(p.Limit, "")
+			c.expr(o.Limit, "")
 		}
-		c.sortExprs(p.Exprs)
+		c.sortExprs(o.Exprs)
 	case *ast.PutOp:
 		c.next()
 		c.write("put ")
-		c.assignments(p.Args)
+		c.assignments(o.Args)
 	case *ast.RenameOp:
 		c.next()
 		c.write("rename ")
-		c.assignments(p.Args)
+		c.assignments(o.Args)
 	case *ast.FuseOp:
 		c.next()
 		c.write("fuse")
 	case *ast.JoinOp:
 		c.next()
-		if p.Style != "" {
-			c.write("%s ", p.Style)
+		if o.Style != "" {
+			c.write("%s ", o.Style)
 		}
 		c.write("join")
-		if p.RightInput != nil {
+		if o.RightInput != nil {
 			c.open(" (")
 			c.head = true
-			c.seq(p.RightInput)
+			c.seq(o.RightInput)
 			c.close()
 			c.ret()
 			c.flush()
 			c.write(")")
 		}
-		if p.Alias != nil {
-			c.write(" as {%s,%s}", p.Alias.Left.Name, p.Alias.Right.Name)
+		if o.Alias != nil {
+			c.write(" as {%s,%s}", o.Alias.Left.Name, o.Alias.Right.Name)
 		}
-		c.joinCond(p.Cond)
+		c.joinCond(o.Cond)
 	case *ast.AssignmentOp:
 		c.next()
 		which := "put "
-		if isAggAssignments(p.Assignments) {
+		if isAggAssignments(o.Assignments) {
 			which = "aggregate "
 		}
 		c.open(which)
-		c.assignments(p.Assignments)
+		c.assignments(o.Assignments)
 		c.close()
 	case *ast.MergeOp:
 		c.next()
 		c.write("merge")
-		c.sortExprs(p.Exprs)
+		c.sortExprs(o.Exprs)
 	case *ast.UnnestOp:
-		c.unnest(p)
+		c.unnest(o)
 	case *ast.ValuesOp:
 		c.next()
 		c.write("values ")
-		c.exprs(p.Exprs)
+		c.exprs(o.Exprs)
 	case *ast.SQLOp:
-		c.sqlQueryBody(p.Body)
+		c.sqlQueryBody(o.Body)
 	case *ast.OutputOp:
 		c.next()
-		c.write("output %s", p.Name.Name)
+		c.write("output %s", o.Name.Name)
 	case *ast.DebugOp:
 		c.next()
 		c.write("debug")
-		if p.Expr != nil {
+		if o.Expr != nil {
 			c.write(" ")
-			c.expr(p.Expr, "")
+			c.expr(o.Expr, "")
 		}
-		if p.Filter != nil {
+		if o.Filter != nil {
 			c.write(" filter (")
-			c.expr(p.Filter, "")
+			c.expr(o.Filter, "")
 			c.write(")")
 		}
 	default:
-		panic(p)
+		panic(o)
 	}
 }
 
