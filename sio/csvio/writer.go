@@ -11,7 +11,6 @@ import (
 	"github.com/superdb/super"
 	"github.com/superdb/super/runtime/sam/expr"
 	"github.com/superdb/super/sbuf"
-	"github.com/superdb/super/scode"
 	"github.com/superdb/super/sup"
 	"github.com/superdb/super/vector"
 )
@@ -89,34 +88,31 @@ func (w *Writer) Write(rec super.Value) error {
 		w.types[rec.Type().ID()] = struct{}{}
 	}
 	w.strings = w.strings[:0]
-	fields := recType.Fields
-	for i, it := 0, rec.Bytes().Iter(); i < len(fields) && !it.Done(); i++ {
+	it := rec.Bytes().Iter()
+	for _, f := range recType.Fields {
+		if it.Done() {
+			return errors.New("CSV output encountered malformed value")
+		}
 		var s string
-		elem := it.Next()
-		val := super.NewValue(fields[i].Type, elem).Under()
+		val := super.NewValue(f.Type, it.Next()).Under()
 		switch id := val.Type().ID(); {
 		case id == super.IDBytes && len(val.Bytes()) == 0:
 			// We want "" instead of "0x" for a zero-length value.
 		case id == super.IDString:
 			s = string(val.Bytes())
 		case id == super.IDNull || id == super.IDNone:
-		default:
-			s = formatValue(val.Type(), val.Bytes())
+		case id < super.IDTypeComplex:
+			// Avoid SUP decoration.
+			s = sup.FormatPrimitive(val.Type(), val.Bytes())
 			if super.IsFloat(id) && strings.HasSuffix(s, ".") {
 				s = strings.TrimSuffix(s, ".")
 			}
+		default:
+			s = sup.FormatValue(val)
 		}
 		w.strings = append(w.strings, s)
 	}
 	return w.encoder.Write(w.strings)
-}
-
-func formatValue(typ super.Type, bytes scode.Bytes) string {
-	// Avoid SUP decoration.
-	if typ.ID() < super.IDTypeComplex {
-		return sup.FormatPrimitive(super.TypeUnder(typ), bytes)
-	}
-	return sup.FormatValue(super.NewValue(typ, bytes))
 }
 
 func fieldNamesEqual(a, b []super.Field) bool {
