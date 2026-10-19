@@ -54,7 +54,7 @@ func main() {
 		}
 		s := val.Deref("s")
 		if s.IsMissing() {
-			s = super.NewMissing().Ptr()
+			s = super.Missing.Ptr()
 		}
 		fmt.Println(sup.String(s))
 	}
@@ -142,7 +142,7 @@ func main() {
 		}
 		s := val.Deref("s")
 		if s.IsMissing() {
-			s = super.NewMissing().Ptr()
+			s = super.Missing.Ptr()
 		}
 		fmt.Println(sup.String(s))
 	}
