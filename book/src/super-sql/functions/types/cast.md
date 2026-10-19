@@ -65,7 +65,7 @@ null
 # expected output
 {b:"2"}
 {b:"4"}
-{b:error("missing")}
+{b:error("no such field b")}
 null::(null|{b:string})
 ```
 

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/RoaringBitmap/roaring/v2"
-	"github.com/superdb/super"
 	"github.com/superdb/super/runtime/expr"
 	"github.com/superdb/super/vector"
 	"github.com/superdb/super/vector/vio"
@@ -38,7 +37,7 @@ func (s *Switch) forward(vec vector.Any) bool {
 			// Clone because iteration results are undefined if the bitmap is modified.
 			for it := errMap.Clone().Iterator(); it.HasNext(); {
 				i := it.Next()
-				if isErrorMissing(maskVec, i) {
+				if isMissing(maskVec, i) {
 					errMap.Remove(i)
 				}
 			}
@@ -77,19 +76,12 @@ func (s *Switch) forward(vec vector.Any) bool {
 	return true
 }
 
-func isErrorMissing(vec vector.Any, i uint32) bool {
+func isMissing(vec vector.Any, i uint32) bool {
 	vec = vector.Under(vec)
 	if dynVec, ok := vec.(*vector.Dynamic); ok {
 		vec = dynVec.Values[dynVec.Tags[i]]
 		i = dynVec.ForwardTagMap()[i]
 	}
-	errVec, ok := vec.(*vector.Error)
-	if !ok {
-		return false
-	}
-	if errVec.Vals.Type().ID() != super.IDString {
-		return false
-	}
-	s := vector.StringValue(errVec.Vals, i)
-	return s == string(super.Missing)
+	_, ok := vec.(*vector.Missing)
+	return ok
 }

@@ -15,7 +15,7 @@ A field's path name is represented by an array of strings since the dot
 separator is an unreliable indicator of field boundaries as `.` itself
 can appear in a field name.
 
-`error("missing")` is returned if `r` is not a record.
+An error is returned if `r` is not a record.
 
 ## Examples
 
@@ -58,5 +58,5 @@ values {f:fields(this)}
 # input
 1
 # expected output
-{f:error("missing")}
+{f:error("fields: not a record")}
 ```

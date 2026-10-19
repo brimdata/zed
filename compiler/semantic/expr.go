@@ -89,7 +89,6 @@ func (t *translator) expr(e ast.Expr, inType super.Type) (sem.Expr, super.Type) 
 				errlocs = append(errlocs, errs)
 			}
 		} else {
-			elseExpr = sem.NewStringError(e, "missing")
 			elseType = t.checker.unknown
 		}
 		if len(errlocs) == 2 {

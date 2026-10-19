@@ -140,7 +140,7 @@ func (c *cast) toRecord(from super.Value, to *super.TypeRecord) (super.Value, bo
 			if optionType, ok := f.Type.(*super.TypeOption); ok {
 				val2 = optionType.None()
 			} else {
-				val2 = c.sctx.Missing()
+				val2 = c.sctx.NewErrorf("no such field %s", sup.QuotedName(f.Name))
 			}
 		} else {
 			var ok bool
