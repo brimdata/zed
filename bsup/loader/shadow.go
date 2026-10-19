@@ -90,6 +90,8 @@ func newShadow(bctx *bsup.Context, id bsup.ID) shadow {
 		return newNull(meta)
 	case *bsup.None:
 		return newNone(meta)
+	case *bsup.Missing:
+		return newMissing(meta)
 	case *bsup.TypeValue:
 		return newTypeValue(bctx, meta)
 	case *bsup.Const:

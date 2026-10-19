@@ -184,10 +184,10 @@ fork
 # input
 
 # expected output
-{x:1::(int64|missing),y:2::(int64|missing),z:none::(int64|missing)}
-{x:3::(int64|missing),y:4::(int64|missing),z:none::(int64|missing)}
-{x:5::(int64|missing),y:6::(int64|missing),z:none::(int64|missing)}
-{x:none::(int64|missing),y:none::(int64|missing),z:2::(int64|missing)}
-{x:none::(int64|missing),y:none::(int64|missing),z:3::(int64|missing)}
+{x:1::(int64|missing),y:2::(int64|missing),z:missing::(int64|missing)}
+{x:3::(int64|missing),y:4::(int64|missing),z:missing::(int64|missing)}
+{x:5::(int64|missing),y:6::(int64|missing),z:missing::(int64|missing)}
+{x:missing::(int64|missing),y:missing::(int64|missing),z:2::(int64|missing)}
+{x:missing::(int64|missing),y:missing::(int64|missing),z:3::(int64|missing)}
 ```
 ---

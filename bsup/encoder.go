@@ -141,6 +141,8 @@ func NewPrimitiveEncoder(bctx *Context, vec vector.Any, root bool) Encoder {
 	case *vector.Null:
 		return NewNullEncoder(vec.Len())
 	case *vector.Missing:
+		return NewMissingEncoder(vec.Len())
+	case *vector.None:
 		return NewNoneEncoder(vec.Len())
 	default:
 		panic(fmt.Sprintf("unsupported type in BSUP file: %T", vec))

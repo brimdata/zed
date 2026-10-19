@@ -82,13 +82,13 @@ input: |
   {y:"foo"}
 
 output: |
-  {x:1::(int64|missing),y:none::(string|missing),ts:none::(time|missing),a:none::(missing|[bool]),b:none::(missing|[int64])}
-  {x:none::(int64|missing),y:"2"::(string|missing),ts:none::(time|missing),a:none::(missing|[bool]),b:none::(missing|[int64])}
-  {x:none::(int64|missing),y:none::(string|missing),ts:none::(time|missing),a:none::(missing|[bool]),b:[1,2]::(missing|[int64])}
-  {x:none::(int64|missing),y:none::(string|missing),ts:none::(time|missing),a:[true,false]::(missing|[bool]),b:none::(missing|[int64])}
-  {x:none::(int64|missing),y:none::(string|missing),ts:2025-06-02T00:00:00Z::(time|missing),a:none::(missing|[bool]),b:none::(missing|[int64])}
-  {x:none::(int64|missing),y:none::(string|missing),ts:2025-06-01T00:00:00Z::(time|missing),a:none::(missing|[bool]),b:none::(missing|[int64])}
-  {x:none::(int64|missing),y:"foo"::(string|missing),ts:none::(time|missing),a:none::(missing|[bool]),b:none::(missing|[int64])}
+  {x:1::(int64|missing),y:missing::(string|missing),ts:missing::(time|missing),a:missing::(missing|[bool]),b:missing::(missing|[int64])}
+  {x:missing::(int64|missing),y:"2"::(string|missing),ts:missing::(time|missing),a:missing::(missing|[bool]),b:missing::(missing|[int64])}
+  {x:missing::(int64|missing),y:missing::(string|missing),ts:missing::(time|missing),a:missing::(missing|[bool]),b:[1,2]::(missing|[int64])}
+  {x:missing::(int64|missing),y:missing::(string|missing),ts:missing::(time|missing),a:[true,false]::(missing|[bool]),b:missing::(missing|[int64])}
+  {x:missing::(int64|missing),y:missing::(string|missing),ts:2025-06-02T00:00:00Z::(time|missing),a:missing::(missing|[bool]),b:missing::(missing|[int64])}
+  {x:missing::(int64|missing),y:missing::(string|missing),ts:2025-06-01T00:00:00Z::(time|missing),a:missing::(missing|[bool]),b:missing::(missing|[int64])}
+  {x:missing::(int64|missing),y:"foo"::(string|missing),ts:missing::(time|missing),a:missing::(missing|[bool]),b:missing::(missing|[int64])}
 
 ---
 

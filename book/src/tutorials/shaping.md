@@ -476,8 +476,8 @@ blend
 {y:"foo"}
 {x:2,y:"bar"}
 # expected output
-{x:1::(int64|missing),y:none::(string|missing)}
-{x:none::(int64|missing),y:"foo"::(string|missing)}
+{x:1::(int64|missing),y:missing::(string|missing)}
+{x:missing::(int64|missing),y:"foo"::(string|missing)}
 {x:2::(int64|missing),y:"bar"::(string|missing)}
 ```
 

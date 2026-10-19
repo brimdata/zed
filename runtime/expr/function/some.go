@@ -24,6 +24,8 @@ func (s *Some) call(args ...vector.Any) vector.Any {
 	switch vec.Kind() {
 	case vector.KindError, vector.KindOption, vector.KindMissing:
 		return vec
+	case vector.KindNone:
+		return vector.NewStringError(s.sctx, "some: none must be cast to an option type", vec.Len())
 	default:
 		return vector.NewOptionSome(s.sctx.LookupTypeOption(vec.Type()), vec)
 	}

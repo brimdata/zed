@@ -1388,6 +1388,7 @@ Literal
   / BooleanLiteral
   / NullLiteral
   / NoneLiteral
+  / MissingLiteral
 
 SubnetLiteral
   = v:IP6Net !IdentifierRest {
@@ -1422,9 +1423,13 @@ BooleanLiteral
 NullLiteral
   = NULL { return newPrimitive(c, "null", ""), nil }
 
-// a bare none has type missing
+// The singleton none value has no use other than being cast to an
+// option type, e.g., none::int64, which yields the none of option(int64).
 NoneLiteral
-  = NONE { return newPrimitive(c, "missing", ""), nil }
+  = NONE { return newPrimitive(c, "none", ""), nil }
+
+MissingLiteral
+  = MISSING { return newPrimitive(c, "missing", ""), nil }
   
 BytesLiteral
   = "0x" HexDigit* {
@@ -1612,7 +1617,7 @@ PrimitiveType
       / "duration" / "time"
       / "bytes"
       / "ip" / "net"
-      / "type" / "null" / "missing" / "all" ) {
+      / "type" / "null" / "missing" / "none" / "all" ) {
             return &ast.TypePrimitive{
                 Kind: "TypePrimitive",
                 Name: string(c.text),
@@ -1706,7 +1711,8 @@ IdentifierRest
 
 IDGuard
   = BooleanLiteral
-  / NoneLiteral
+  / NONE
+  / MISSING
   / NullLiteral
   / NaN
   / Infinity
@@ -2526,6 +2532,7 @@ LOAD       = "LOAD"i            !IdentifierRest
 MATERIALIZED = "MATERIALIZED"i  !IdentifierRest
 MAP        = "MAP"i             !IdentifierRest
 MERGE      = "MERGE"i           !IdentifierRest
+MISSING    = "MISSING"i         !IdentifierRest
 NONE       = "NONE"i            !IdentifierRest
 NOT        = "NOT"i             !IdentifierRest
 NULL       = "NULL"i            !IdentifierRest

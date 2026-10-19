@@ -47,7 +47,7 @@ func (d *Defuse) eval(in super.Value) super.Value {
 	case *super.TypeArray:
 		elems := d.parseArrayOrSet(typ.Type, in.Bytes())
 		if len(elems) == 0 {
-			typ := d.sctx.LookupTypeArray(super.TypeNull)
+			typ := d.sctx.LookupTypeArray(super.TypeNone)
 			return super.NewValue(typ, nil)
 		}
 		elemType, bytes := d.unify(elems)
@@ -55,7 +55,7 @@ func (d *Defuse) eval(in super.Value) super.Value {
 	case *super.TypeSet:
 		elems := d.parseArrayOrSet(typ.Type, in.Bytes())
 		if len(elems) == 0 {
-			typ := d.sctx.LookupTypeArray(super.TypeNull)
+			typ := d.sctx.LookupTypeSet(super.TypeNone)
 			return super.NewValue(typ, nil)
 		}
 		elemType, bytes := d.unify(elems)

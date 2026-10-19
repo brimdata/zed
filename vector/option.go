@@ -6,17 +6,16 @@ import (
 )
 
 // An option value is stored as any vector with its option type.
-// The Any field is a Missing vector for none option values and any
+// The Any field is a None vector for none option values and any
 // other vector for some option values.  When somes or nones are
 // mixed into a single Option vector, then Any is a two-element
 // Dynamic with the first value a some and the second value a none.
 // This design relies upon super.OptionSomeTag=0 and super.OptionNoneTag=1.
-// Note that the Missing vector use here is arbitrary: we just need a singleton
-// type that cannot otherwise be an option type because we need to
-// distinguish the flavors of option (pure some / pure none / both)
-// by the vector type of Any.  The only way to access the noneness
-// of an option type is by expressing it through coalesce which provides
-// the subtitute value for the nones.
+// Since none cannot be the type of an option's some value, the flavor of
+// option (pure some / pure none / both) is determined by the vector type
+// of Any.  The only way to access the noneness of an option type is by
+// expressing it through coalesce which provides the subtitute value for
+// the nones.
 type Option struct {
 	Typ *super.TypeOption
 	Any
@@ -29,10 +28,10 @@ func NewOptionSome(typ *super.TypeOption, vec Any) *Option {
 }
 
 func NewOptionNone(typ *super.TypeOption, noneLen uint32) *Option {
-	return &Option{Typ: typ, Any: NewMissing(noneLen)}
+	return &Option{Typ: typ, Any: NewNone(noneLen)}
 }
 
-func NewOption(typ *super.TypeOption, tags []uint32, some Any, none *Missing) *Option {
+func NewOption(typ *super.TypeOption, tags []uint32, some Any, none *None) *Option {
 	return &Option{typ, NewDynamic(tags, []Any{some, none})}
 }
 
@@ -42,7 +41,7 @@ func NewOptionFromRLE(sctx *super.Context, some Any, n uint32, rle []uint32) *Op
 	if noneLen == 0 {
 		panic("can't be zero")
 	}
-	return NewOption(optionType, tags, some, NewMissing(noneLen))
+	return NewOption(optionType, tags, some, NewNone(noneLen))
 }
 
 func (*Option) Kind() Kind {
@@ -55,7 +54,7 @@ func (o *Option) Type() super.Type {
 
 func (o *Option) SomeLen() uint32 {
 	switch vec := o.Any.(type) {
-	case *Missing:
+	case *None:
 		return 0
 	case *Dynamic:
 		return vec.Values[0].Len()
@@ -67,9 +66,9 @@ func (o *Option) SomeLen() uint32 {
 func (o *Option) Serialize(b *scode.Builder, slot uint32) {
 	tag := super.OptionNoneTag
 	switch vec := o.Any.(type) {
-	case *Missing:
+	case *None:
 	case *Dynamic:
-		if vec.TypeOf(slot) != super.TypeMissing {
+		if vec.TypeOf(slot) != super.TypeNone {
 			tag = super.OptionSomeTag
 		}
 	default:
@@ -83,12 +82,12 @@ func (o *Option) Serialize(b *scode.Builder, slot uint32) {
 	b.EndContainer()
 }
 
-func (o *Option) Apply(f func([]uint32, Any, *Missing) Any) Any {
+func (o *Option) Apply(f func([]uint32, Any, *None) Any) Any {
 	switch vec := o.Any.(type) {
-	case *Missing:
+	case *None:
 		return f(nil, nil, vec)
 	case *Dynamic:
-		return f(vec.Tags, vec.Values[0], vec.Values[1].(*Missing))
+		return f(vec.Tags, vec.Values[0], vec.Values[1].(*None))
 	default:
 		return f(nil, vec, nil)
 	}
@@ -96,7 +95,7 @@ func (o *Option) Apply(f func([]uint32, Any, *Missing) Any) Any {
 
 func (o *Option) Coaelesce(defaults Any) Any {
 	switch vec := o.Any.(type) {
-	case *Missing:
+	case *None:
 		return defaults
 	case *Dynamic:
 		defaults = Pick(defaults, noneIndex(vec.Tags))

@@ -87,16 +87,16 @@ func (f *Fuser) fuse(a, b Type) Type {
 		}
 	case *TypeArray:
 		if b, ok := b.(*TypeArray); ok {
-			return f.fusion(f.sctx.LookupTypeArray(f.fuse(a.Type, b.Type)))
+			return f.fusion(f.sctx.LookupTypeArray(f.fuseElem(a.Type, b.Type)))
 		}
 	case *TypeSet:
 		if b, ok := b.(*TypeSet); ok {
-			return f.fusion(f.sctx.LookupTypeSet(f.fuse(a.Type, b.Type)))
+			return f.fusion(f.sctx.LookupTypeSet(f.fuseElem(a.Type, b.Type)))
 		}
 	case *TypeMap:
 		if b, ok := b.(*TypeMap); ok {
-			keyType := f.fuse(a.KeyType, b.KeyType)
-			valType := f.fuse(a.ValType, b.ValType)
+			keyType := f.fuseElem(a.KeyType, b.KeyType)
+			valType := f.fuseElem(a.ValType, b.ValType)
 			return f.fusion(f.sctx.LookupTypeMap(keyType, valType))
 		}
 	case *TypeUnion:
@@ -146,6 +146,19 @@ func (f *Fuser) fuse(a, b Type) Type {
 	}
 	// Neither a nor b can be an anonymous union at this point.
 	return f.fusion(f.sctx.MustLookupTypeUnion([]Type{a, b}))
+}
+
+// fuseElem fuses the element types of two containers.  The element type
+// of an empty container is none, which has no values so is absorbed by
+// the other element type.
+func (f *Fuser) fuseElem(a, b Type) Type {
+	if a == TypeNone {
+		return b
+	}
+	if b == TypeNone {
+		return a
+	}
+	return f.fuse(a, b)
 }
 
 func isAll(t Type) bool {

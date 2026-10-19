@@ -93,6 +93,7 @@ var (
 	TypeType    = &TypeOfType{}
 	TypeNull    = &TypeOfNull{}
 	TypeMissing = &TypeOfMissing{}
+	TypeNone    = &TypeOfNone{}
 	TypeAll     = &TypeOfAll{}
 )
 
@@ -131,23 +132,24 @@ const (
 	IDNull        = 29
 	IDMissing     = 30
 	IDAll         = 31
-	IDTypeComplex = 32
+	IDNone        = 32
+	IDTypeComplex = 33
 )
 
 // Encodings for complex type values.
 
 const (
-	TypeValueRecord  = 32
-	TypeValueArray   = 33
-	TypeValueSet     = 34
-	TypeValueMap     = 35
-	TypeValueUnion   = 36
-	TypeValueEnum    = 37
-	TypeValueError   = 38
-	TypeValueNameDef = 39
-	TypeValueNameRef = 40
-	TypeValueFusion  = 41
-	TypeValueOption  = 42
+	TypeValueRecord  = 33
+	TypeValueArray   = 34
+	TypeValueSet     = 35
+	TypeValueMap     = 36
+	TypeValueUnion   = 37
+	TypeValueEnum    = 38
+	TypeValueError   = 39
+	TypeValueNameDef = 40
+	TypeValueNameRef = 41
+	TypeValueFusion  = 42
+	TypeValueOption  = 43
 	TypeValueMax     = TypeValueOption
 )
 
@@ -221,6 +223,8 @@ func LookupPrimitive(name string) Type {
 		return TypeNull
 	case "missing":
 		return TypeMissing
+	case "none":
+		return TypeNone
 	case "all":
 		return TypeAll
 	}
@@ -271,6 +275,8 @@ func PrimitiveName(typ Type) string {
 		return "null"
 	case *TypeOfMissing:
 		return "missing"
+	case *TypeOfNone:
+		return "none"
 	case *TypeOfAll:
 		return "all"
 	default:
@@ -328,6 +334,8 @@ func LookupPrimitiveByID(id int) (Type, error) {
 		return TypeNull, nil
 	case IDMissing:
 		return TypeMissing, nil
+	case IDNone:
+		return TypeNone, nil
 	case IDAll:
 		return TypeAll, nil
 	}

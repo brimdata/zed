@@ -1,4 +1,4 @@
-spq: cut z,x:=none,q:=1
+spq: cut z,x:=missing,q:=1
 
 input: |
   {}

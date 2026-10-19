@@ -52,7 +52,15 @@ func (c *cast) Cast(from super.Value, to super.Type) (super.Value, bool) {
 		if from.IsNone() {
 			return optionType.None(), true
 		}
-		val, ok := c.Cast(from.Unwrap(), optionType.Type)
+		from = from.Unwrap()
+		switch super.TypeUnder(from.DeunionIntoNameds().Type()) {
+		case super.TypeNone:
+			// Casting none to an option type yields that option's none.
+			return optionType.None(), true
+		case super.TypeMissing:
+			return c.missingError(), false
+		}
+		val, ok := c.Cast(from, optionType.Type)
 		if !ok {
 			return val, ok
 		}
@@ -71,15 +79,19 @@ func (c *cast) Cast(from super.Value, to super.Type) (super.Value, bool) {
 		super.BuildUnion(&b, union.TagOf(super.TypeNull), nil)
 		return super.NewValue(union, b.Bytes().Body()), true
 	case fromType == super.TypeMissing:
-		// Casting a none::missing value to a non option type.  Automatically convert
-		// the target type to it's option form.
-		if _, ok := super.TypeUnder(to).(*super.TypeUnion); !ok {
-			// As in SUP, a cast applied to an untyped none implieds an
-			// option type, except for unions, which casts the none to
-			// a member of the union.  If you want to cast to an option union,
-			// you need to be explicit and specify the option type.  So
-			// here we check that this is not a union and fall through below
-			// if it is.
+		// Casting missing is an error except to a union with a
+		// missing member, which is handled by toUnion below.
+		if !unionHas(to, super.TypeMissing) {
+			return c.missingError(), false
+		}
+	case fromType == super.TypeNone:
+		// Casting none to a non-option type T is shorthand for casting
+		// it to option(T) except for a union with a none member, which
+		// is handled by toUnion below.
+		if super.TypeUnder(to) == super.TypeNone {
+			return super.NewValue(to, nil), true
+		}
+		if !unionHas(to, super.TypeNone) {
 			return c.sctx.LookupTypeOption(to).None(), true
 		}
 	}
@@ -116,6 +128,10 @@ func (c *cast) Cast(from super.Value, to super.Type) (super.Value, bool) {
 		val := caster.Eval(from)
 		return val, !val.IsError()
 	}
+}
+
+func (c *cast) missingError() super.Value {
+	return c.sctx.NewErrorf("cannot cast missing (consider ??)")
 }
 
 func (c *cast) error(from super.Value, to super.Type) (super.Value, bool) {
@@ -283,6 +299,11 @@ func (c *cast) toUnion(from super.Value, to *super.TypeUnion) (super.Value, bool
 	var b scode.Builder
 	super.BuildUnion(&b, tag, from.Bytes())
 	return super.NewValue(to, b.Bytes().Body()), true
+}
+
+func unionHas(typ, member super.Type) bool {
+	union, ok := super.TypeUnder(typ).(*super.TypeUnion)
+	return ok && slices.Contains(union.Types, member)
 }
 
 func singletonUnionMissing(types []super.Type) (super.Type, bool) {

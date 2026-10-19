@@ -26,6 +26,8 @@ func Pick(val Any, index []uint32) Any {
 		return NewError(val.Typ, Pick(val.Vals, index))
 	case *Missing:
 		return NewMissing(uint32(len(index)))
+	case *None:
+		return NewNone(uint32(len(index)))
 	case *NoRip:
 		return &NoRip{Pick(val.Any, index)}
 	case *Null:
@@ -46,13 +48,13 @@ func Pick(val Any, index []uint32) Any {
 		return &Named{val.Typ, Pick(val.Any, index)}
 	case *Option:
 		switch vec := val.Any.(type) {
-		case *Missing:
+		case *None:
 			return NewOptionNone(val.Typ, uint32(len(index)))
 		case *Dynamic:
 			tags, someIndex := optionTags(vec, index)
 			noneLen := uint32(len(tags) - len(someIndex))
 			some := Pick(vec.Values[super.OptionSomeTag], someIndex)
-			return NewOption(val.Typ, tags, some, NewMissing(noneLen))
+			return NewOption(val.Typ, tags, some, NewNone(noneLen))
 		default:
 			return NewOptionSome(val.Typ, Pick(val.Any, index))
 		}

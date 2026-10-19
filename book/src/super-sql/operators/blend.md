@@ -35,8 +35,8 @@ blend
 {a:1}
 {b:2}
 # expected output
-{a:1::(int64|missing),b:none::(int64|missing)}
-{a:none::(int64|missing),b:2::(int64|missing)}
+{a:1::(int64|missing),b:missing::(int64|missing)}
+{a:missing::(int64|missing),b:2::(int64|missing)}
 ```
 
 ---
@@ -63,6 +63,6 @@ blend
 {a:[1,2]}
 {a:["foo","bar"],b:10.0.0.1}
 # expected output
-{a:[1,2]::[int64|string],b:none::(ip|missing)}
+{a:[1,2]::[int64|string],b:missing::(ip|missing)}
 {a:["foo","bar"]::[int64|string],b:10.0.0.1::(ip|missing)}
 ```

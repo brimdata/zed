@@ -82,6 +82,8 @@ func NewValueBuilder(typ super.Type) ValueBuilder {
 		return newTypeValueValueBuilder()
 	case *super.TypeOfMissing:
 		return &missingValueBuilder{}
+	case *super.TypeOfNone:
+		return &noneValueBuilder{}
 	case *super.TypeOfNull:
 		return &nullValueBuilder{}
 	case *super.TypeRecord:
@@ -326,7 +328,7 @@ func (o *optionValueBuilder) Build(sctx *super.Context) Any {
 		return NewOptionSome(o.typ, o.values.Build(sctx))
 	}
 	some := o.values.Build(sctx)
-	return NewOption(o.typ, o.tags, some, NewMissing(uint32(o.nones)))
+	return NewOption(o.typ, o.tags, some, NewNone(uint32(o.nones)))
 }
 
 type enumValueBuilder struct {
@@ -500,6 +502,18 @@ func (m *missingValueBuilder) Write(scode.Bytes) {
 
 func (m *missingValueBuilder) Build(*super.Context) Any {
 	return NewMissing(m.len)
+}
+
+type noneValueBuilder struct {
+	len uint32
+}
+
+func (n *noneValueBuilder) Write(scode.Bytes) {
+	n.len++
+}
+
+func (n *noneValueBuilder) Build(*super.Context) Any {
+	return NewNone(n.len)
 }
 
 func DefuseAny(vec *Fusion) Any {

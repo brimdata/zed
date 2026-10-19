@@ -89,6 +89,7 @@ func write(w io.Writer, vec Any, indent, prefix string) {
 	case *TypeValue:
 	case *Null:
 	case *Missing:
+	case *None:
 	case *Empty:
 
 	case *Record:
@@ -151,7 +152,7 @@ func write(w io.Writer, vec Any, indent, prefix string) {
 
 func optionStyle(vec Any) string {
 	switch vec.(type) {
-	case *Missing:
+	case *None:
 		return "none"
 	case *Dynamic:
 		return "both"

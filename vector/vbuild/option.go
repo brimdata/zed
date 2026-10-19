@@ -21,7 +21,7 @@ func (o *optionBuilder) Write(vec vector.Any) {
 		return
 	}
 	option := vector.PushView(vec).(*vector.Option)
-	option.Apply(func(tags []uint32, some vector.Any, none *vector.Missing) vector.Any {
+	option.Apply(func(tags []uint32, some vector.Any, none *vector.None) vector.Any {
 		if some == nil {
 			n := none.Len()
 			for range n {
@@ -53,5 +53,5 @@ func (o *optionBuilder) Build() vector.Any {
 	if o.nones == 0 {
 		return vector.NewOptionSome(o.typ, some)
 	}
-	return vector.NewOption(o.typ, o.tags, some, vector.NewMissing(o.nones))
+	return vector.NewOption(o.typ, o.tags, some, vector.NewNone(o.nones))
 }

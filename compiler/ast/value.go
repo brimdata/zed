@@ -72,10 +72,6 @@ type (
 		Kind  string `json:"kind" unpack:""`
 		Value Value  `json:"value"`
 	}
-	None struct {
-		Kind string `json:"kind" unpack:""`
-		Type Type   `json:"type"`
-	}
 )
 
 func (*Primitive) valueNode()       {}
@@ -87,7 +83,6 @@ func (*TypeValue) valueNode()       {}
 func (*Error) valueNode()           {}
 func (*Fusion) valueNode()          {}
 func (*Some) valueNode()            {}
-func (*None) valueNode()            {}
 func (*DoubleQuoteExpr) valueNode() {}
 
 func (*Primitive) ExprAST() {}

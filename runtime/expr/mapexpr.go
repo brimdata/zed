@@ -29,9 +29,9 @@ func NewMapExpr(sctx *super.Context, entries []Entry) *MapExpr {
 
 func (m *MapExpr) Eval(this vector.Any) vector.Any {
 	if len(m.entries) == 0 {
-		mtyp := m.sctx.LookupTypeMap(super.TypeMissing, super.TypeMissing)
+		mtyp := m.sctx.LookupTypeMap(super.TypeNone, super.TypeNone)
 		offsets := make([]uint32, this.Len()+1)
-		c := vector.NewNull(0)
+		c := vector.NewNone(0)
 		return vector.NewMap(mtyp, offsets, c, c)
 	}
 	var vecs []vector.Any
