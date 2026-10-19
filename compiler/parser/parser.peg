@@ -1388,6 +1388,7 @@ Literal
   / BooleanLiteral
   / NullLiteral
   / NoneLiteral
+  / MissingLiteral
 
 SubnetLiteral
   = v:IP6Net !IdentifierRest {
@@ -1422,9 +1423,26 @@ BooleanLiteral
 NullLiteral
   = NULL { return newPrimitive(c, "null", ""), nil }
 
-// a bare none has type missing
 NoneLiteral
-  = NONE { return newPrimitive(c, "missing", ""), nil }
+  = NONE __ "::" __ typ:(TypeAsValue / IDExpr) {
+      return &ast.BinaryExpr{
+        Kind: "BinaryExpr",
+        Op: "::",
+        LHS: newPrimitive(c, "missing", ""),
+        RHS: typ.(ast.Expr),
+        Loc: loc(c),
+      }, nil
+    }
+  / NONE {
+      // We have an ast placeholder for this to generate a better error.
+      return &ast.BadNone{
+        Kind: "BadNone",
+        Loc: loc(c),
+      }, nil
+    }
+
+MissingLiteral
+  = MISSING { return newPrimitive(c, "missing", ""), nil }
   
 BytesLiteral
   = "0x" HexDigit* {
@@ -1706,7 +1724,8 @@ IdentifierRest
 
 IDGuard
   = BooleanLiteral
-  / NoneLiteral
+  / NONE
+  / MISSING
   / NullLiteral
   / NaN
   / Infinity
@@ -2526,6 +2545,7 @@ LOAD       = "LOAD"i            !IdentifierRest
 MATERIALIZED = "MATERIALIZED"i  !IdentifierRest
 MAP        = "MAP"i             !IdentifierRest
 MERGE      = "MERGE"i           !IdentifierRest
+MISSING    = "MISSING"i         !IdentifierRest
 NONE       = "NONE"i            !IdentifierRest
 NOT        = "NOT"i             !IdentifierRest
 NULL       = "NULL"i            !IdentifierRest

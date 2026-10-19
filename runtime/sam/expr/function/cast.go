@@ -52,7 +52,12 @@ func (c *cast) Cast(from super.Value, to super.Type) (super.Value, bool) {
 		if from.IsNone() {
 			return optionType.None(), true
 		}
-		val, ok := c.Cast(from.Unwrap(), optionType.Type)
+		from = from.Unwrap()
+		if super.TypeUnder(from.DeunionIntoNameds().Type()) == super.TypeMissing {
+			// Casting missing to an option type yields that option's none.
+			return optionType.None(), true
+		}
+		val, ok := c.Cast(from, optionType.Type)
 		if !ok {
 			return val, ok
 		}
@@ -71,11 +76,11 @@ func (c *cast) Cast(from super.Value, to super.Type) (super.Value, bool) {
 		super.BuildUnion(&b, union.TagOf(super.TypeNull), nil)
 		return super.NewValue(union, b.Bytes().Body()), true
 	case fromType == super.TypeMissing:
-		// Casting a none::missing value to a non option type.  Automatically convert
+		// Casting a missing value to a non option type.  Automatically convert
 		// the target type to it's option form.
 		if _, ok := super.TypeUnder(to).(*super.TypeUnion); !ok {
-			// As in SUP, a cast applied to an untyped none implieds an
-			// option type, except for unions, which casts the none to
+			// As in SUP, a cast applied to a missing value implies an
+			// option type, except for unions, which casts the missing to
 			// a member of the union.  If you want to cast to an option union,
 			// you need to be explicit and specify the option type.  So
 			// here we check that this is not a union and fall through below

@@ -14,7 +14,7 @@ type shared struct {
 func (s *shared) literal(e ast.Primitive) {
 	switch e.Type {
 	case "missing":
-		s.write("none")
+		s.write("missing")
 	case "null":
 		s.write(e.Type)
 	case "string", "error":

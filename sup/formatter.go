@@ -158,7 +158,12 @@ func (f *formatter) nameOf(typ super.Type) string {
 
 func (f *formatter) formatValueAndDecorate(typ super.Type, bytes scode.Bytes) {
 	known := f.hasName(typ)
-	f.formatValue(0, typ, bytes, known, false, false)
+	if known && isOptionNone(super.TypeUnder(typ), bytes) {
+		// A none of a named option type is decorated by the type name.
+		f.build("none")
+	} else {
+		f.formatValue(0, typ, bytes, known, false, false)
+	}
 	f.decorate(typ, false, isOptionNone(typ, bytes), 0)
 }
 
@@ -172,14 +177,19 @@ func isOptionNone(typ super.Type, bytes scode.Bytes) bool {
 
 func (f *formatter) formatValue(indent int, typ super.Type, bytes scode.Bytes, parentKnown, decorate, isOptField bool) {
 	known := parentKnown || f.hasName(typ)
-	var empty, isOptionNone bool
+	var empty, isNone bool
 	switch t := typ.(type) {
 	default:
 		f.startColorPrimitive(typ)
 		formatPrimitive(&f.builder, typ, bytes)
 		f.endColor()
 	case *super.TypeNamed:
-		f.formatValue(indent, t.Type, bytes, known, false, isOptField)
+		if !parentKnown && isOptionNone(super.TypeUnder(t), bytes) {
+			// A none of a named option type is decorated by the type name.
+			f.build("none")
+		} else {
+			f.formatValue(indent, t.Type, bytes, known, false, isOptField)
+		}
 	case *super.TypeRecord:
 		f.formatRecord(indent, t, bytes, known)
 	case *super.TypeArray:
@@ -229,8 +239,15 @@ func (f *formatter) formatValue(indent int, typ super.Type, bytes scode.Bytes, p
 	case *super.TypeOption:
 		typ, bytes := t.Decode(bytes)
 		if typ == nil {
-			f.build("none")
-			isOptionNone = true
+			if parentKnown {
+				// The option type is implied by a parent decorator so
+				// we format the none as missing, which the decorator
+				// turns back into this option's none.
+				f.build("missing")
+			} else {
+				f.build("none")
+				isNone = true
+			}
 		} else {
 			if !isOptField {
 				f.build("some(")
@@ -246,7 +263,7 @@ func (f *formatter) formatValue(indent int, typ super.Type, bytes scode.Bytes, p
 		f.endColor()
 	}
 	if decorate && !parentKnown {
-		f.decorate(typ, empty, isOptionNone, indent)
+		f.decorate(typ, empty, isNone, indent)
 	}
 }
 
@@ -368,14 +385,19 @@ func (f *formatter) isImplied(typ super.Type) bool {
 
 func (f *formatter) formatRecord(indent int, typ *super.TypeRecord, bytes scode.Bytes, known bool) {
 	f.build("{")
-	if len(typ.Fields) == 0 {
-		f.build("}")
-		return
-	}
 	indent += f.tab
 	sep := f.newline
+	var n int
 	it := bytes.Iter()
 	for _, field := range typ.Fields {
+		elem := it.Next()
+		if known && isOptionNone(super.TypeUnder(field.Type), elem) {
+			// When the record type is implied by a parent decorator,
+			// optional fields that are none are omitted as the decorator
+			// fills them back in.
+			continue
+		}
+		n++
 		f.build(sep)
 		f.startColor(color.Blue)
 		f.indent(indent, QuotedName(field.Name))
@@ -388,9 +410,12 @@ func (f *formatter) formatRecord(indent int, typ *super.TypeRecord, bytes scode.
 		if f.tab > 0 {
 			f.build(" ")
 		}
-		elem := it.Next()
 		f.formatValue(indent, field.Type, elem, known, true, isOptField)
 		sep = "," + f.newline
+	}
+	if n == 0 {
+		f.build("}")
+		return
 	}
 	f.build(f.newline)
 	f.indent(indent-f.tab, "}")
@@ -554,7 +579,7 @@ func formatPrimitive(b *strings.Builder, typ super.Type, bytes scode.Bytes) {
 	case *super.TypeOfNull:
 		b.WriteString("null")
 	case *super.TypeOfMissing:
-		b.WriteString("none")
+		b.WriteString("missing")
 	case *super.TypeOfAll:
 		// Write out all values as byte encoded as they only place
 		// they may appear is inside of a fusion(all), which includes

@@ -93,6 +93,8 @@ func (c *canon) expr(e ast.Expr, parent string) {
 		}
 	case *ast.Primitive:
 		c.literal(*e)
+	case *ast.BadNone:
+		c.write("none")
 	case *ast.IDExpr:
 		c.write(e.Name)
 	case *ast.DoubleQuoteExpr:

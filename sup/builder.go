@@ -51,7 +51,7 @@ func buildValue(b *scode.Builder, val Value) error {
 	case *Null:
 		b.Append(nil)
 		return nil
-	case *None:
+	case *Missing:
 		typ := val.Type()
 		if super.TypeUnder(typ) != super.TypeMissing {
 			// option nones should have been converted to Option
@@ -59,7 +59,7 @@ func buildValue(b *scode.Builder, val Value) error {
 			panic(typ)
 
 		}
-		// This is a none::missing
+		// This is a missing value
 		b.Append(nil)
 		return nil
 	}
@@ -191,7 +191,7 @@ func buildRecord(b *scode.Builder, val *Record) error {
 	b.BeginContainer()
 	for k, v := range val.fields {
 		if super.TypeUnder(v.Type()) == super.TypeMissing {
-			return fmt.Errorf("none::missing assigned to field %s", super.TypeUnder(val.Type()).(*super.TypeRecord).Fields[k].Name)
+			return fmt.Errorf("missing value assigned to field %s", super.TypeUnder(val.Type()).(*super.TypeRecord).Fields[k].Name)
 		}
 		if err := buildValue(b, v); err != nil {
 			return err
@@ -261,7 +261,7 @@ func buildFusion(b *scode.Builder, f *Fusion) error {
 }
 
 func buildOption(b *scode.Builder, o *Option) error {
-	if _, ok := o.value.(*None); ok {
+	if o.value == nil {
 		super.BuildNone(b)
 	} else {
 		super.BeginSomeContainer(b)

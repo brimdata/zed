@@ -1,0 +1,104 @@
+# Decorators are pushed down into container elements and record fields
+# so that missing values become option nones and absent optional fields
+# are filled in with nones.
+spq: pass
+
+flags: -i sup
+
+input: |
+  [1,missing]::[option(int64)]
+  set[1,missing]::set[option(int64)]
+  map{1:missing,2:"a"}::map{int64:option(string)}
+  {a:1}::{a:int64,b?:string}
+  {b:2,a:1}::{a:int64,b:int64}
+  {a:missing}::{a:option(int64)}
+  [{a:1},{a:2,b?:"x"}]::[{a:int64,b?:string}]
+  some([1,missing])::option([option(int64)])
+  none::int64
+  none::option(int64)
+  missing
+
+output: |
+  [some(1),none::int64]
+  set[none::int64,some(1)]
+  map{1:none::string,2:some("a")}
+  {a:1,b?:none::string}
+  {a:1,b:2}
+  {a?:none::int64}
+  [{a:1,b?:none::string},{a:2,b?:"x"}]
+  some([some(1),none::int64])
+  none::int64
+  none::int64
+  missing
+
+---
+
+# Optional fields that are none are omitted when implied by a named type.
+spq: pass
+
+flags: -i sup
+
+input: &input |
+  type List={val:int64,next?:List}
+  {val:1,next?:{val:2,next?:{val:3}}}::List
+  type Arr=[option(int64)]
+  [some(1),missing]::Arr
+  type O=option(int64)
+  none::O
+
+output: *input
+
+---
+
+spq: pass
+
+flags: -i sup
+
+input: none
+
+error: |
+  stdio:stdin: line 1: parse error: none must have a type (e.g., none::int64)
+
+---
+
+spq: pass
+
+flags: -i sup
+
+input: '{a:1}::{a:int64,b:string}'
+
+error: |
+  stdio:stdin: non-optional field "b" of record decorator "{a:int64,b:string}" not present in record value
+
+---
+
+spq: pass
+
+flags: -i sup
+
+input: '{a:1,c:2}::{a:int64,b?:string}'
+
+error: |
+  stdio:stdin: record decorator incompatible with record value: "{a:int64,b?:string}"
+
+---
+
+spq: pass
+
+flags: -i sup
+
+input: '{a?:1}::{a:int64}'
+
+error: |
+  stdio:stdin: cannot decorate an option value with a non-option type
+
+---
+
+spq: pass
+
+flags: -i sup
+
+input: none::missing
+
+error: |
+  stdio:stdin: none value cannot have type missing

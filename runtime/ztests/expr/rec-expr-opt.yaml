@@ -60,7 +60,7 @@ spq: values {x?:this}
 flags: -dynamic
 
 input: |
-  none
+  missing
 
 output: |
   {}

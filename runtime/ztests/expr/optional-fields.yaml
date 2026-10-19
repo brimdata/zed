@@ -180,13 +180,13 @@ output: |
 spq: values this?.x
 
 input: |
-  none
+  missing
   none::int64
   {x:1}
   {x?:1}
 
 output: |
-  none
+  missing
   none::int64
   1
   some(1)
@@ -196,7 +196,7 @@ output: |
 spq: values this?.x?.y
 
 input: |
-  none
+  missing
   none::int64
   {x:1}
   {x?:1}
@@ -204,7 +204,7 @@ input: |
   {x:{y?:none::int64}}
 
 output: |
-  none
+  missing
   none::int64
   error({message:"'?.': applied to non-record",on:1})
   error({message:"'?.': applied to non-record",on?:1})

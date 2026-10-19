@@ -2,7 +2,7 @@ spq: pass
 
 flags: -i sup
 
-input: '{x?:none}'
+input: '{x?:missing}'
 
 error: |
-  stdio:stdin: none::missing assigned to field x
+  stdio:stdin: missing value assigned to field x

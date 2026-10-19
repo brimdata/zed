@@ -20,3 +20,7 @@ func (p *Parser) errorf(msg string, args ...any) error {
 func (p *Parser) error(msg string) error {
 	return fmt.Errorf("line %d: parse error: %s", p.lexer.line, msg)
 }
+
+func (p *Parser) err(e error) error {
+	return fmt.Errorf("line %d: parse error: %w", p.lexer.line, e)
+}

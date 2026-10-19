@@ -45,8 +45,8 @@ spq: |
 
 output: |
   type List={val:string,next?:List}
-  {val:"1",next?:none}::List
-  {val:"2",next?:{val:"3",next?:none}}::List
+  {val:"1"}::List
+  {val:"2",next?:{val:"3"}}::List
 
 ---
 
@@ -61,4 +61,4 @@ input: |
 output: |
   type List={val:string,next?:List}
   none::List
-  some({val:"3",next?:none}::List)
+  some({val:"3"}::List)

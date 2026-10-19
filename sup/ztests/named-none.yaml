@@ -17,10 +17,10 @@ flags: -i sup
 
 input: |
   type foo=missing
-  {a:none::foo}
+  {a:missing::foo}
 
 error: |
-  stdio:stdin: none::missing assigned to field a
+  stdio:stdin: missing value assigned to field a
 
 ---
 
@@ -28,20 +28,20 @@ spq: pass
 
 input: &input |
   type foo=missing
-  none::foo
+  missing::foo
 
 output: *input
 
 ---
 
-spq: values this ?? none::bar
+spq: values this ?? missing::bar
 
 input: |
   type foo=missing
   type bar=foo
-  none::foo
+  missing::foo
 
 output: |
   type foo=missing
   type bar=foo
-  none::bar
+  missing::bar

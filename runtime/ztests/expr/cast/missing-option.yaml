@@ -1,0 +1,31 @@
+# Casting missing to an option type yields the option's none and
+# none::T is shorthand for the none of option(T).
+spq: |
+  values
+    cast(missing,<option(int64)>),
+    [1,missing]::[option(int64)],
+    {a:[missing,1]}::{a:[option(int64)]},
+    cast(missing::(int64|missing),<option(int64)>),
+    missing::option(string),
+    none::int64,
+    none::option(int64),
+    missing
+
+output: |
+  none::int64
+  [some(1),none::int64]
+  {a:[none::int64,some(1)]}
+  none::int64
+  none::string
+  none::int64
+  none::int64
+  missing
+
+---
+
+spq: values 1, none
+
+error: |
+  none must have a type (e.g., none::int64) at line 1, column 11:
+  values 1, none
+            ~~~~

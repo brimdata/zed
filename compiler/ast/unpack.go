@@ -16,6 +16,7 @@ var unpacker = unpack.New(
 	ArrayExpr{},
 	AssertOp{},
 	AssignmentOp{},
+	BadNone{},
 	BinaryExpr{},
 	CallExpr{},
 	CallOp{},
