@@ -44,11 +44,11 @@ func (d *DotExpr) Eval(this super.Value) super.Value {
 	case *super.TypeRecord:
 		i, ok := d.fieldIndex(typ)
 		if !ok {
-			return d.sctx.Missing()
+			return super.Missing
 		}
 		bytes, idx := getNthFromRecord(typ, val.Bytes(), i)
 		if idx < 0 {
-			return d.sctx.Missing()
+			return super.Missing
 		}
 		return super.NewValue(typ.Fields[i].Type, bytes)
 	case *super.TypeMap:
@@ -56,7 +56,7 @@ func (d *DotExpr) Eval(this super.Value) super.Value {
 	case *super.TypeOfType:
 		return d.evalTypeOfType(val.Bytes())
 	}
-	return d.sctx.Missing()
+	return super.Missing
 }
 
 func (d *DotExpr) fieldIndex(typ *super.TypeRecord) (int, bool) {
@@ -85,5 +85,5 @@ func (d *DotExpr) evalTypeOfType(b scode.Bytes) super.Value {
 			return d.sctx.LookupTypeValue(typ)
 		}
 	}
-	return d.sctx.Missing()
+	return super.Missing
 }

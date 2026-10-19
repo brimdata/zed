@@ -51,11 +51,11 @@ func (f *Fields) Call(args ...vector.Any) vector.Any {
 		inner := vector.NewArray(f.innerTyp, inOffs, s)
 		out := vector.NewArray(f.outerTyp, outOffs, inner)
 		if len(errs) > 0 {
-			return vector.Combine(out, errs, vector.NewStringError(f.sctx, "missing", uint32(len(errs))))
+			return vector.Combine(out, errs, vector.NewStringError(f.sctx, "fields: not a record", uint32(len(errs))))
 		}
 		return out
 	default:
-		return vector.NewStringError(f.sctx, "missing", val.Len())
+		return vector.NewStringError(f.sctx, "fields: not a record", val.Len())
 	}
 }
 

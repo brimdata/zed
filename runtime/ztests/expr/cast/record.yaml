@@ -15,9 +15,9 @@ input: |
   error("bad")
 
 output: |
-  {a:error("missing"),b:error("missing"),c:error("missing"),d:error("missing")}
-  {a:1,b:"{}",c:error("missing"),d:error("missing")}
-  {a:error("missing"),b:"1",c:error({message:"cannot cast to {}",on:2}),d:error("missing")}
+  {a:error("no such field a"),b:error("no such field b"),c:error("no such field c"),d:error("no such field d")}
+  {a:1,b:"{}",c:error("no such field c"),d:error("no such field d")}
+  {a:error("no such field a"),b:"1",c:error({message:"cannot cast to {}",on:2}),d:error("no such field d")}
   {a:1,b:"2",c:{},d:[{e:"4",f:5},{e:"7",f:6},error({message:"cannot cast to {e:string,f:int64}",on:8})]}
   {a:7,b:"6",c:null::(null|{}),d:[{e:"1",f:2},{e:"4",f:3},error({message:"cannot cast to {e:string,f:int64}",on:5})]}
   {a:1,b:"2",c:{},d:[]::[{e:string,f:int64}]}

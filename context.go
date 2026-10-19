@@ -478,7 +478,7 @@ func (c *Context) LookupTypeValue(typ Type) Value {
 	typ, err := c.LookupByValue(tv)
 	if err != nil {
 		// This shouldn't happen.
-		return c.Missing()
+		return Missing
 	}
 	return c.LookupTypeValue(typ)
 }
@@ -714,10 +714,6 @@ func MustDecodeID(b []byte) (uint32, []byte) {
 		panic(b)
 	}
 	return uint32(v), b[n:]
-}
-
-func (c *Context) Missing() Value {
-	return NewValue(c.StringTypeError(), Missing)
 }
 
 func (c *Context) NewErrorf(format string, args ...any) Value {

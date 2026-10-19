@@ -14,6 +14,7 @@ import (
 	"github.com/superdb/super/order"
 	"github.com/superdb/super/pkg/field"
 	"github.com/superdb/super/runtime/exec"
+	"github.com/superdb/super/sup"
 )
 
 type Optimizer struct {
@@ -592,10 +593,11 @@ func liftFilterOps(seq dag.Seq) dag.Seq {
 				if !ok {
 					return e
 				}
-				e1, ok := fields[this.Chain[0].ID]
+				key := this.Chain[0].ID
+				e1, ok := fields[key]
 				if !ok {
 					if spread == nil {
-						return newErrorMissing()
+						return noSuchField(key)
 					}
 					// Copy spread so f and y don't share dag.Exprs.
 					e, liftOK = addChainToExpr(dag.CopyExpr(spread), this.Chain)
@@ -638,10 +640,11 @@ func mergeValuesOps(seq dag.Seq) dag.Seq {
 				if !ok {
 					return e
 				}
-				v1Expr, ok := v1TopLevelFields[this.Chain.Path()[0]]
+				id := this.Chain.Path()[0]
+				v1Expr, ok := v1TopLevelFields[id]
 				if !ok {
 					if v1TopLevelSpread == nil {
-						return newErrorMissing()
+						return noSuchField(id)
 					}
 					e, mergeOK = addChainToExpr(v1TopLevelSpread, this.Chain)
 					return e
@@ -865,6 +868,7 @@ func isOrderedAggregate(agg *dag.AggregateOp) bool {
 	})
 }
 
-func newErrorMissing() dag.Expr {
-	return dag.NewCall("error", []dag.Expr{&dag.PrimitiveExpr{Kind: "PrimitiveExpr", Value: `"missing"`}})
+func noSuchField(key string) dag.Expr {
+	msg := fmt.Sprintf("no such field %s", sup.QuotedName(key))
+	return dag.NewCall("error", []dag.Expr{&dag.PrimitiveExpr{Kind: "PrimitiveExpr", Value: sup.QuotedString(msg)}})
 }

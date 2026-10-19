@@ -54,7 +54,7 @@ func main() {
 		}
 		s := val.Deref("s")
 		if s.IsMissing() {
-			s = sctx.Missing().Ptr()
+			s = super.Missing.Ptr()
 		}
 		fmt.Println(sup.String(s))
 	}
@@ -132,7 +132,6 @@ func main() {
 	}
 	defer q.Pull(true)
 	reader := sbuf.PullerReader(sbuf.NewMaterializer(q))
-	sctx := super.NewContext()
 	for {
 		val, err := reader.Read()
 		if err != nil {
@@ -143,7 +142,7 @@ func main() {
 		}
 		s := val.Deref("s")
 		if s.IsMissing() {
-			s = sctx.Missing().Ptr()
+			s = super.Missing.Ptr()
 		}
 		fmt.Println(sup.String(s))
 	}

@@ -14,4 +14,4 @@ output: |
   [["r","a"],["r","b"],["s"]]
   [["r","a"],["s"]]
   [["r","a"],["r","b"],["s"]]
-  error("missing")
+  error("fields: not a record")

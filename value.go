@@ -15,7 +15,8 @@ import (
 )
 
 var (
-	Null = Value{typ: TypeNull}
+	Missing = Value{typ: TypeMissing}
+	Null    = Value{typ: TypeNull}
 
 	False = NewBool(false)
 	True  = NewBool(true)
@@ -267,13 +268,7 @@ func (v Value) IsError() bool {
 }
 
 func (v *Value) IsMissing() bool {
-	if v == nil {
-		return true
-	}
-	if typ, ok := v.Type().(*TypeError); ok {
-		return typ.IsMissing(v.Bytes())
-	}
-	return false
+	return v == nil || v.Type() == TypeMissing
 }
 
 // Equal reports whether p and v have the same type and the same BSUP
@@ -452,7 +447,7 @@ func (v Value) Unwrap() Value {
 }
 
 func (v Value) DeoptionWithMissing(sctx *Context) Value {
-	return v.Coalesce(sctx.Missing())
+	return v.Coalesce(Missing)
 }
 
 func (v Value) IsNone() bool {
