@@ -17,7 +17,7 @@ var Detach = &charm.Spec{
 	Usage: "detach",
 	Short: "detach the attached database and remove any saved service credentials",
 	Long: `
-See https://superdb.org/command/db.html#super-db-auth
+See https://superdb.org/command/db.html#super-db-detach
 `,
 	New: NewDetachCommand,
 }

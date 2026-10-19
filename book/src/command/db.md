@@ -219,7 +219,7 @@ super db -f db -c "from logs:objects"
 * [compact](#super-db-compact) compact data objects on a table branch
 * [create](#super-db-create) create a new table in a database
 * [delete](#super-db-delete) delete data from a table
-* [detach](#super-db-attach) detach local CLI from database
+* [detach](#super-db-detach) detach local CLI from database
 * [drop](#super-db-drop) remove a table from a database
 * [init](#super-db-init) create and initialize a new database
 * [load](#super-db-load) load data into database
