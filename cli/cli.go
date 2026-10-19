@@ -122,14 +122,3 @@ func runMemProfile(path string) {
 	pprof.Lookup("allocs").WriteTo(f, 0)
 	f.Close()
 }
-
-func FileExists(path string) bool {
-	if path == "-" {
-		return true
-	}
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return !info.IsDir()
-}
