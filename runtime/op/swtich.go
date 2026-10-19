@@ -80,7 +80,6 @@ func isMissing(vec vector.Any, i uint32) bool {
 	vec = vector.Under(vec)
 	if dynVec, ok := vec.(*vector.Dynamic); ok {
 		vec = dynVec.Values[dynVec.Tags[i]]
-		i = dynVec.ForwardTagMap()[i]
 	}
 	_, ok := vec.(*vector.Missing)
 	return ok
