@@ -67,7 +67,6 @@ func NewString(s string) Value          { return Value{TypeString, unsafe.String
 func NewIP(a netip.Addr) Value          { return NewValue(TypeIP, EncodeIP(a)) }
 func NewNet(p netip.Prefix) Value       { return NewValue(TypeNet, EncodeNet(p)) }
 func NewTypeValue(t Type) Value         { return NewValue(TypeType, EncodeTypeValue(t)) }
-func NewMissing() Value                 { return NewValue(TypeMissing, nil) }
 
 func boolToUint64(b bool) uint64 {
 	if b {
@@ -448,7 +447,7 @@ func (v Value) Unwrap() Value {
 }
 
 func (v Value) DeoptionWithMissing(sctx *Context) Value {
-	return v.Coalesce(NewMissing())
+	return v.Coalesce(Missing)
 }
 
 func (v Value) IsNone() bool {
