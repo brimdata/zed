@@ -25,7 +25,7 @@ func (s *Some) call(args ...vector.Any) vector.Any {
 	case vector.KindError, vector.KindOption, vector.KindMissing:
 		return vec
 	default:
-		return vector.NewSome(s.sctx.LookupTypeOption(vec.Type()), vec)
+		return vector.NewOptionSome(s.sctx.LookupTypeOption(vec.Type()), vec)
 	}
 }
 

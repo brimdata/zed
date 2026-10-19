@@ -47,13 +47,14 @@ func Pick(val Any, index []uint32) Any {
 	case *Option:
 		switch vec := val.Any.(type) {
 		case *Missing:
-			return NewNone(val.Typ, uint32(len(index)))
+			return NewOptionNone(val.Typ, uint32(len(index)))
 		case *Dynamic:
-			tags, someIndex, noneLen := optionTags(index, vec)
+			tags, someIndex := optionTags(vec, index)
+			noneLen := uint32(len(tags) - len(someIndex))
 			some := Pick(vec.Values[super.OptionSomeTag], someIndex)
 			return NewOption(val.Typ, tags, some, NewMissing(noneLen))
 		default:
-			return NewSome(val.Typ, Pick(val.Any, index))
+			return NewOptionSome(val.Typ, Pick(val.Any, index))
 		}
 	case nil:
 		return nil
@@ -76,22 +77,19 @@ func viewForUnionOrDynamic(index, tags, forward []uint32, values []Any) ([]uint3
 	return resultTags, results
 }
 
-func optionTags(index []uint32, d *Dynamic) ([]uint32, []uint32, uint32) {
+func optionTags(d *Dynamic, index []uint32) ([]uint32, []uint32) {
 	tags := d.Tags
 	forward := d.ForwardTagMap()
-	var noneLen uint32
 	newTags := make([]uint32, 0, len(index))
 	var someIndex []uint32
 	for _, slot := range index {
 		newTag := tags[slot]
 		newTags = append(newTags, newTag)
-		if newTag == super.OptionNoneTag {
-			noneLen++
-		} else {
+		if newTag == super.OptionSomeTag {
 			someIndex = append(someIndex, forward[slot])
 		}
 	}
-	return newTags, someIndex, noneLen
+	return newTags, someIndex
 }
 
 // ReversePick is like Pick but it builds the vector from the elements

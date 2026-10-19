@@ -451,7 +451,6 @@ func (v Value) Unwrap() Value {
 	return v
 }
 
-// to its underlying value.  It does not Deunion union values that are named types.
 func (v Value) DeoptionWithMissing(sctx *Context) Value {
 	return v.Coalesce(sctx.Missing())
 }

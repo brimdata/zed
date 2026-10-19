@@ -48,10 +48,10 @@ func (o *optionBuilder) Write(vec vector.Any) {
 func (o *optionBuilder) Build() vector.Any {
 	some := o.values.Build()
 	if some.Len() == 0 {
-		return vector.NewNone(o.typ, o.nones)
+		return vector.NewOptionNone(o.typ, o.nones)
 	}
 	if o.nones == 0 {
-		return vector.NewSome(o.typ, some)
+		return vector.NewOptionSome(o.typ, some)
 	}
 	return vector.NewOption(o.typ, o.tags, some, vector.NewMissing(o.nones))
 }

@@ -308,19 +308,19 @@ func (u *Upcast) toOption(vec vector.Any, to *super.TypeOption) vector.Any {
 	case *vector.Option:
 		return vec.Apply(func(tags []uint32, some vector.Any, none *vector.Missing) vector.Any {
 			if some == nil {
-				return vector.NewNone(to, none.Len())
+				return vector.NewOptionNone(to, none.Len())
 			}
 			some = u.upcast(some, to.Type)
 			if some == nil {
 				return nil
 			}
 			if none == nil {
-				return vector.NewSome(to, some)
+				return vector.NewOptionSome(to, some)
 			}
 			return vector.NewOption(to, tags, some, none)
 		})
 	case *vector.Missing:
-		return vector.NewNone(to, vec.Len())
+		return vector.NewOptionNone(to, vec.Len())
 	case *vector.View:
 		return u.toOption(vector.PushView(vec), to)
 	}
@@ -328,5 +328,5 @@ func (u *Upcast) toOption(vec vector.Any, to *super.TypeOption) vector.Any {
 	if vec == nil {
 		return nil
 	}
-	return vector.NewSome(to, vec)
+	return vector.NewOptionSome(to, vec)
 }

@@ -12,7 +12,7 @@ import (
 // Dynamic with the first value a some and the second value a none.
 // This design relies upon super.OptionSomeTag=0 and super.OptionNoneTag=1.
 // Note that the Missing vector use here is arbitrary: we just need a singleton
-// type that is cannot otherwise be an option type because we need to
+// type that cannot otherwise be an option type because we need to
 // distinguish the flavors of option (pure some / pure none / both)
 // by the vector type of Any.  The only way to access the noneness
 // of an option type is by expressing it through coalesce which provides
@@ -24,11 +24,11 @@ type Option struct {
 
 var _ Any = (*Option)(nil)
 
-func NewSome(typ *super.TypeOption, vec Any) *Option {
+func NewOptionSome(typ *super.TypeOption, vec Any) *Option {
 	return &Option{Typ: typ, Any: vec}
 }
 
-func NewNone(typ *super.TypeOption, noneLen uint32) *Option {
+func NewOptionNone(typ *super.TypeOption, noneLen uint32) *Option {
 	return &Option{Typ: typ, Any: NewMissing(noneLen)}
 }
 

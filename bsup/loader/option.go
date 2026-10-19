@@ -59,11 +59,11 @@ func (o *option) project(loader *FrameLoader, projection field.Projection) vecto
 	optionType := typ.(*super.TypeOption)
 	vec := o.values.project(loader, projection)
 	if vec.Kind() == vector.KindMissing {
-		return vector.NewNone(optionType, vec.Len())
+		return vector.NewOptionNone(optionType, vec.Len())
 	}
 	noneLen := o.len - vec.Len()
 	if noneLen == 0 {
-		return vector.NewSome(optionType, vec)
+		return vector.NewOptionSome(optionType, vec)
 	}
 	tags := o.load(loader)
 	return vector.NewOption(optionType, tags, vec, vector.NewMissing(noneLen))

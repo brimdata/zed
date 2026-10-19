@@ -212,8 +212,8 @@ func AddNoRip(vec Any) Any {
 func ripOption(o *Option) Any {
 	if d, ok := o.Any.(*Dynamic); ok {
 		optionType := super.TypeUnder(o.Type()).(*super.TypeOption)
-		some := NewSome(optionType, d.Values[super.OptionSomeTag])
-		none := NewNone(optionType, d.Values[super.OptionNoneTag].Len())
+		some := NewOptionSome(optionType, d.Values[super.OptionSomeTag])
+		none := NewOptionNone(optionType, d.Values[super.OptionNoneTag].Len())
 		return NewDynamic(d.Tags, []Any{some, none})
 	}
 	return o
