@@ -185,12 +185,8 @@ func (p *Parser) matchPrimitive() (*ast.Primitive, error) {
 	var typ string
 	if s == "true" || s == "false" {
 		typ = "bool"
-	} else if s == "null" {
-		typ = "null"
-	} else if s == "missing" {
-		typ = "missing"
-	} else if s == "none" {
-		typ = "none"
+	} else if s == "null" || s == "missing" || s == "none" {
+		typ = s
 	} else if _, err := strconv.ParseInt(s, 10, 64); err == nil {
 		typ = "int64"
 	} else if _, err := strconv.ParseUint(s, 10, 64); err == nil {

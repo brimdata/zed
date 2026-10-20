@@ -48,13 +48,7 @@ func buildValue(b *scode.Builder, val Value) error {
 		return buildFusion(b, val)
 	case *Option:
 		return buildOption(b, val)
-	case *Null:
-		b.Append(nil)
-		return nil
-	case *Missing:
-		b.Append(nil)
-		return nil
-	case *None:
+	case *Missing, *None, *Null:
 		b.Append(nil)
 		return nil
 	}

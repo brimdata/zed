@@ -621,13 +621,11 @@ var errNoneOperand = errors.New("illegal use of none value")
 // checkNone reports an error if typ is the type of the singleton none
 // (or a union containing it), which may only be cast to an option type.
 func (t *translator) checkNone(loc ast.Node, typ super.Type) {
-	if typ, ok := typ.(*super.TypeFusion); ok {
-		t.checkNone(loc, typ.Type)
-		return
-	}
 	switch typ := super.TypeUnder(typ).(type) {
 	case *super.TypeOfNone:
 		t.error(loc, errNoneOperand)
+	case *super.TypeFusion:
+		t.checkNone(loc, typ.Type)
 	case *super.TypeUnion:
 		if slices.Contains(typ.Types, super.Type(super.TypeNone)) {
 			t.error(loc, errNoneOperand)
