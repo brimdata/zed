@@ -18,11 +18,11 @@ output: |
   1
   1
   1
-  error({message:"'.': applied to non-record",on:null})
+  error("cannot access field 'b' of null")
   none::option(int64|string)
-  error({message:"'.': applied to non-record",on:1})
-  error({message:"'.': applied to non-record",on:error({message:"no such field a",on:{}})})
-  error({message:"'.': applied to non-record",on:error({message:"'.': applied to non-record",on:null})})
+  error("cannot access field 'b' of int64")
+  error("no such field a")
+  error("cannot access field 'a' of null")
 
 ---
 

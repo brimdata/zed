@@ -376,7 +376,7 @@ echo '{s:"foo", val:1}{s:"bar"}' | super -s -c 'cut val' -
 produces
 ```mdtest-output
 {val:1}
-{val:error({message:"no such field val",on:{s:"bar"}})}
+{val:error("no such field val")}
 ```
 
 ### Union Types

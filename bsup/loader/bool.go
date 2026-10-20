@@ -27,11 +27,7 @@ func (b *bool_) length() uint32 {
 func (*bool_) unmarshal(*bsup.Context, field.Projection) {}
 
 func (b *bool_) project(loader *FrameLoader, projection field.Projection) vector.Any {
-	vec := vector.NewBool(b.load(loader))
-	if len(projection) > 0 {
-		return vector.NewWrappedError(loader.sctx, "'.': applied to non-record", vec)
-	}
-	return vec
+	return vector.NewBool(b.load(loader))
 }
 
 func (b *bool_) load(loader *FrameLoader) bitvec.Bits {

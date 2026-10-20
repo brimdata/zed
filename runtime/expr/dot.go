@@ -48,101 +48,109 @@ func NewDottedExpr(sctx *super.Context, f field.Chain) Evaluator {
 }
 
 func (d *DotExpr) Eval(vec vector.Any) vector.Any {
-	return vector.Apply(vector.ApplyNone, d.eval, d.entity.Eval(vec))
+	return vector.Apply(vector.ApplyRipFusions|vector.ApplyRipUnions|vector.ApplyRipOptions, d.eval, d.entity.Eval(vec))
 }
 
-func (d *DotExpr) eval(outerVecs ...vector.Any) vector.Any {
-	var eval func(...vector.Any) vector.Any
-	eval = func(innerVecs ...vector.Any) vector.Any {
-		on := innerVecs[0]
-		ripped := innerVecs[1]
-		switch val := vector.Under(ripped).(type) {
-		case *vector.Null:
-			if d.nullish {
-				return val
-			}
-		case *vector.Missing:
-			// XXX TBD - this should be an error
-			return val
-		case *vector.Option:
-			// This is either a pure some or a pure none since we called
-			// Apply with RipOptions.  For option nones with ?. access
-			// we just return the none as in its option form.
-			if _, ok := val.Any.(*vector.None); ok {
-				if d.noneish {
-					return val
-				}
-				return vector.NewWrappedError(d.sctx, fmt.Sprintf(".: encountered none dereferencing field %s (consider ?.)", sup.QuotedName(d.key)), val)
-			}
-			return eval(on, val.Any)
-		case *vector.Record:
-			i, ok := val.Typ.IndexOfField(d.key)
-			if !ok {
-				if d.nullish {
-					return vector.NewNull(val.Len())
-				}
-				return vector.NewWrappedError(d.sctx, fmt.Sprintf("no such field %s", sup.QuotedName(d.key)), val)
-			}
-			out := val.Fields[i]
-			if _, ok := out.(*vector.Missing); ok {
-				return vector.NewWrappedError(d.sctx, fmt.Sprintf("no such field %s", sup.QuotedName(d.key)), val)
-			}
-			if !hasUnionMissing(out) {
-				return out
-			}
-			return vector.Apply(vector.ApplyDefuseMissings, func(vecs ...vector.Any) vector.Any {
-				on := vecs[0]
-				unripped := vecs[1]
-				ripped := vecs[2]
-				if _, ok := ripped.(*vector.Missing); ok {
-					if d.nullish {
-						return vector.NewNull(ripped.Len())
-					}
-					//XXX will check noneish here like nullish above in
-					// a susequent PR
-					return vector.NewWrappedError(d.sctx, fmt.Sprintf("no such field %s", sup.QuotedName(d.key)), on)
-				}
-				return unripped
-			}, vector.AddNoRip(on), vector.AddNoRip(out), out)
-		case *vector.TypeValue:
-			var errs []uint32
-			typvals := vector.NewTypeValueEmpty()
-			for i := range val.Len() {
-				typ := val.Value(i)
-				if typ, ok := super.TypeUnder(typ).(*super.TypeRecord); ok {
-					if typ, ok := typ.TypeOfField(d.key); ok {
-						typvals.Append(typ)
-						continue
-					}
-				}
-				errs = append(errs, i)
-			}
-			if len(errs) > 0 {
-				return vector.NewCombinedError(d.sctx, fmt.Sprintf("no such field %s", sup.QuotedName(d.key)), typvals, val, errs)
-			}
-			return typvals
-		case *vector.Map:
-			keyVec := vector.NewConstString(d.key, val.Len())
-			return indexMap(d.sctx, val, keyVec)
-		case *vector.View:
-			if pushed := vector.PushView(val); pushed != vector.Any(val) {
-				return eval(on, pushed)
-			}
-			// PushView doesn't handle this kind (e.g., TypeValue), so use the
-			// underlying vector as its own "on" to keep lengths aligned. Error
-			// values on this path wrap the ripped value instead of the outer one.
-			return vector.Pick(eval(val.Any, val.Any), val.Index)
+func (d *DotExpr) eval(vecs ...vector.Any) vector.Any {
+	vec := vecs[0]
+	switch vec := vector.Under(vec).(type) {
+	case *vector.Null:
+		if d.nullish {
+			return vec
 		}
-		op := "."
+	case *vector.Missing:
 		if d.noneish {
-			op = "?."
-		} else if d.nullish {
-			op = "??."
+			return vec
 		}
-		return vector.NewWrappedError(d.sctx, fmt.Sprintf("'%s': applied to non-record", op), on)
+		return d.noFieldErr(vec)
+	case *vector.Option:
+		// This is either a pure some or a pure none since we called
+		// Apply with RipOptions.  For option nones with ?. access
+		// we just return the none as in its option form.
+		if _, ok := vec.Any.(*vector.None); ok {
+			if d.noneish {
+				return vec
+			}
+			return vector.NewStringError(d.sctx, fmt.Sprintf("cannot access field '%s' of none (use ?. or ok())", d.key), vec.Len())
+		}
+		return d.eval(vec.Any)
+	case *vector.Record:
+		i, ok := vec.Typ.IndexOfField(d.key)
+		if !ok {
+			if d.nullish {
+				return vector.NewNull(vec.Len())
+			}
+			return d.noFieldErr(vec)
+		}
+		out := vec.Fields[i]
+		if _, ok := out.(*vector.Missing); ok {
+			return d.noFieldErr(vec)
+		}
+		if !hasUnionMissing(out) {
+			return out
+		}
+		return vector.Apply(vector.ApplyDefuseMissings, func(vecs ...vector.Any) vector.Any {
+			unripped := vecs[0]
+			ripped := vecs[1]
+			if _, ok := ripped.(*vector.Missing); ok {
+				if d.nullish {
+					return vector.NewNull(ripped.Len())
+				}
+				return d.noFieldErr(ripped)
+			}
+			return unripped
+		}, vector.AddNoRip(out), out)
+	case *vector.TypeValue:
+		var errs []uint32
+		typvals := vector.NewTypeValueEmpty()
+		for i := range vec.Len() {
+			typ := vec.Value(i)
+			if typ, ok := super.TypeUnder(typ).(*super.TypeRecord); ok {
+				if typ, ok := typ.TypeOfField(d.key); ok {
+					typvals.Append(typ)
+					continue
+				}
+			}
+			errs = append(errs, i)
+		}
+		if len(errs) > 0 {
+			return vector.NewCombinedError(d.sctx, fmt.Sprintf("no such field '%s'", sup.QuotedName(d.key)), typvals, vec, errs)
+		}
+		return typvals
+	case *vector.Map:
+		keyVec := vector.NewConstString(d.key, vec.Len())
+		return indexMap(d.sctx, vec, keyVec)
+	case *vector.View:
+		return vector.Pick(d.eval(vec.Any), vec.Index)
+	case *vector.Error:
+		return vec
 	}
-	vec := outerVecs[0]
-	return vector.Apply(vector.ApplyRipFusions|vector.ApplyRipUnions|vector.ApplyRipOptions, eval, vector.AddNoRip(vec), vec)
+	return vector.NewStringError(d.sctx, fmt.Sprintf("cannot access field '%s' of %s", d.key, kindName(vec.Type())), vec.Len())
+}
+
+func (d *DotExpr) noFieldErr(on vector.Any) *vector.Error {
+	return vector.NewStringError(d.sctx, fmt.Sprintf("no such field %s", sup.QuotedName(d.key)), on.Len())
+}
+
+func kindName(typ super.Type) string {
+	switch t := super.TypeUnder(typ).(type) {
+	case *super.TypeRecord:
+		return "struct"
+	case *super.TypeArray:
+		return "array"
+	case *super.TypeSet:
+		return "set"
+	case *super.TypeMap:
+		return "map"
+	case *super.TypeEnum:
+		return "enum"
+	case *super.TypeUnion:
+		return "union"
+	case *super.TypeOption:
+		return "option"
+	default:
+		return sup.FormatType(t) // int64, time, ip, null, ...
+	}
 }
 
 func hasUnionMissing(vec vector.Any) bool {

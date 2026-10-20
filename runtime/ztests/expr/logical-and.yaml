@@ -44,7 +44,7 @@ output: |
   true
   false
   null
-  error({message:"no such field b",on:{a:true}})
+  error("no such field b")
   error({message:"not type bool",on:"foo"})
   "=== FALSE ==="
   false
@@ -56,14 +56,14 @@ output: |
   null
   false
   null
-  error({message:"no such field b",on:{a:null}})
+  error("no such field b")
   error({message:"not type bool",on:"foo"})
   "=== MISSING ==="
-  error({message:"no such field a",on:{b:true}})
+  error("no such field a")
   false
-  error({message:"no such field a",on:{b:null}})
-  error({message:"no such field a",on:{}})
-  error({message:"no such field a",on:{b:"foo"}})
+  error("no such field a")
+  error("no such field a")
+  error("no such field a")
   "=== ERROR ==="
   error({message:"not type bool",on:"foo"})
   false

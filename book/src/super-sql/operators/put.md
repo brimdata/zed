@@ -100,7 +100,7 @@ put d:=e
 # input
 {a:1,b:2,c:3}
 # expected output
-{a:1,b:2,c:3,d:error({message:"no such field e",on:{a:1,b:2,c:3}})}
+{a:1,b:2,c:3,d:error("no such field e")}
 ```
 
 ---

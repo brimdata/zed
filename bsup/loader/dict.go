@@ -36,11 +36,7 @@ func (d *dict) unmarshal(bctx *bsup.Context, projection field.Projection) {
 
 func (d *dict) project(loader *FrameLoader, projection field.Projection) vector.Any {
 	index, counts := d.load(loader)
-	vec := vector.NewDict(d.values.project(loader, projection), index, counts)
-	if len(projection) > 0 {
-		return vector.NewWrappedError(loader.sctx, "'.': applied to non-record", vec)
-	}
-	return vec
+	return vector.NewDict(d.values.project(loader, projection), index, counts)
 }
 
 func (d *dict) load(loader *FrameLoader) ([]byte, []uint32) {
