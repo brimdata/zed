@@ -88,10 +88,13 @@ func parseTimeDecimal(b []byte) (nano.Ts, bool) {
 			return 0, false
 		}
 		if c == '.' {
-			for k++; k < n; k++ {
-				c = b[k]
+			for j, c := range b[k+1:] {
 				if c < '0' || c > '9' {
 					return 0, false
+				}
+				if j > 8 {
+					// Ignore sub-nanosecond precision.
+					continue
 				}
 				v = v*10 + int64(c-'0')
 				scale /= 10
