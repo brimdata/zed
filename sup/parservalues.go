@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/netip"
-	"slices"
 	"strconv"
 	"time"
 
@@ -100,10 +99,6 @@ func (p *Parser) matchValueOrDecl() (ast.Value, *ast.TypeDecl, error) {
 		val, err := p.decorate(val, err)
 		return val, nil, err
 	}
-	if val, err := p.matchNone(); val != nil || err != nil {
-		val, err := p.decorate(val, err)
-		return val, nil, err
-	}
 	name, err := p.matchIdentifier()
 	if err != nil {
 		return nil, nil, noEOF(err)
@@ -190,8 +185,8 @@ func (p *Parser) matchPrimitive() (*ast.Primitive, error) {
 	var typ string
 	if s == "true" || s == "false" {
 		typ = "bool"
-	} else if s == "null" {
-		typ = "null"
+	} else if s == "null" || s == "missing" || s == "none" {
+		typ = s
 	} else if _, err := strconv.ParseInt(s, 10, 64); err == nil {
 		typ = "int64"
 	} else if _, err := strconv.ParseUint(s, 10, 64); err == nil {
@@ -256,17 +251,6 @@ func (p *Parser) matchString() (string, bool, error) {
 		return "", false, p.error("mismatched string quotes")
 	}
 	return s, true, nil
-}
-
-func (p *Parser) matchNone() (*ast.None, error) {
-	l := p.lexer
-	if lookahead, err := l.peek(4); err != nil || lookahead == "" || lookahead[:4] != "none" {
-		return nil, noEOF(err)
-	}
-	l.skip(4)
-	return &ast.None{
-		Kind: "None",
-	}, nil
 }
 
 func (p *Parser) matchRecord() (*ast.Record, error) {
@@ -346,45 +330,11 @@ func (p *Parser) matchField() (*ast.Field, error) {
 	if err != nil {
 		return nil, err
 	}
-	if isNone(val) && !opt && !isOption(val) {
-		return nil, p.errorf("none cannot appear in non-optional field %q", name)
-	}
 	return &ast.Field{
 		Name:  name,
 		Value: val,
 		Opt:   opt,
 	}, nil
-}
-
-func isNone(val ast.Value) bool {
-	switch val := val.(type) {
-	case *ast.None:
-		return true
-	case *ast.Fusion:
-		_, ok := val.Value.(*ast.None)
-		return ok
-	}
-	return false
-}
-
-func isOption(val ast.Value) bool {
-	switch val := val.(type) {
-	case *ast.Primitive:
-		fmt.Printf("%#v\n", val)
-	case *ast.None:
-		return isOptionType(val.Type)
-	case *ast.Fusion:
-		return isOption(val.Value)
-	}
-	return false
-}
-
-func isOptionType(typ ast.Type) bool {
-	u, ok := typ.(*ast.TypeUnion)
-	return ok && slices.ContainsFunc(u.Types, func(t ast.Type) bool {
-		p, ok := t.(*ast.TypePrimitive)
-		return ok && p.Name == "none"
-	})
 }
 
 func (p *Parser) matchSymbol() (string, bool, error) {

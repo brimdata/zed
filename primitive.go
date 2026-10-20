@@ -361,6 +361,20 @@ func (t *TypeOfMissing) Kind() Kind {
 	return PrimitiveKind
 }
 
+// TypeOfNone is the type of the singleton none value, whose primary purpose
+// is to be cast to an option type, yielding that option's none.  It is also
+// the element type of empty arrays and sets and the key and value type of
+// empty maps.
+type TypeOfNone struct{}
+
+func (t *TypeOfNone) ID() int {
+	return IDNone
+}
+
+func (t *TypeOfNone) Kind() Kind {
+	return PrimitiveKind
+}
+
 type TypeOfAll struct{}
 
 func (t *TypeOfAll) ID() int {

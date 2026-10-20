@@ -14,4 +14,4 @@ inputs:
 outputs:
   - name: stderr
     regexp: |
-      record decorator incompatible with record value: .*
+      non-optional field "b" of record decorator "foo" not present in record value

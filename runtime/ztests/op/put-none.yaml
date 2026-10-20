@@ -1,4 +1,4 @@
-spq: put x:=none
+spq: put x:=missing
 
 input: |
   {}

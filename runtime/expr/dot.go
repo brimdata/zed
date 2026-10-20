@@ -68,7 +68,7 @@ func (d *DotExpr) eval(outerVecs ...vector.Any) vector.Any {
 			// This is either a pure some or a pure none since we called
 			// Apply with RipOptions.  For option nones with ?. access
 			// we just return the none as in its option form.
-			if _, ok := val.Any.(*vector.Missing); ok {
+			if _, ok := val.Any.(*vector.None); ok {
 				if d.noneish {
 					return val
 				}

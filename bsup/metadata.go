@@ -264,6 +264,15 @@ func (n *Null) Len(*Context) uint32 {
 	return n.Count
 }
 
+type Missing struct {
+	Count uint32
+}
+
+func (m *Missing) Len(*Context) uint32 {
+	return m.Count
+}
+
+// None is the metadata for a vector of singleton none values.
 type None struct {
 	Count uint32
 }
@@ -442,4 +451,5 @@ var Template = []any{
 	Net{},
 	Null{},
 	None{},
+	Missing{},
 }

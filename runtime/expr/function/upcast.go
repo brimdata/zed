@@ -306,7 +306,7 @@ func (u *Upcast) toFusion(vec vector.Any, to *super.TypeFusion) vector.Any {
 func (u *Upcast) toOption(vec vector.Any, to *super.TypeOption) vector.Any {
 	switch vec := vector.Under(vec).(type) {
 	case *vector.Option:
-		return vec.Apply(func(tags []uint32, some vector.Any, none *vector.Missing) vector.Any {
+		return vec.Apply(func(tags []uint32, some vector.Any, none *vector.None) vector.Any {
 			if some == nil {
 				return vector.NewOptionNone(to, none.Len())
 			}

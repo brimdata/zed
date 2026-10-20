@@ -177,7 +177,7 @@ func (p *Parser) matchTypeArray() (*ast.TypeArray, error) {
 		return nil, err
 	}
 	if typ == nil {
-		typ = &ast.TypePrimitive{Kind: "TypePrimitive", Name: "missing"}
+		typ = &ast.TypePrimitive{Kind: "TypePrimitive", Name: "none"}
 	}
 	ok, err := l.match(']')
 	if err != nil {

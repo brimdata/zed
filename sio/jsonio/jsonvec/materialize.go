@@ -27,8 +27,9 @@ type materializer struct {
 func (m *materializer) value(v Value) (vector.Any, []uint32) {
 	switch v := v.(type) {
 	case *None:
-		//missings are only used in empty arrays so length is always 0
-		return vector.NewMissing(0), nil
+		// A bare None is only used as the inner value of empty arrays so
+		// length is always 0 and the empty array has element type none.
+		return vector.NewNone(0), nil
 	case *Null:
 		return vector.NewNull(v.len), nil
 	case *Bool:

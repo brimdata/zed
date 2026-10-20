@@ -420,7 +420,7 @@ func (c *Context) MustLookupTypeFusion(inner Type) *TypeFusion {
 }
 
 func (c *Context) LookupTypeOption(inner Type) *TypeOption {
-	if _, ok := inner.(*TypeOption); ok || inner == TypeMissing {
+	if _, ok := inner.(*TypeOption); ok || inner == TypeMissing || inner == TypeNone {
 		panic(inner)
 	}
 	c.mu.Lock()

@@ -467,7 +467,7 @@ func (d *Downcast) toOption(vec vector.Any, to *super.TypeOption) vector.Any {
 	case *vector.Option:
 		return vector.Apply(vector.ApplyRipOptions, func(vecs ...vector.Any) vector.Any {
 			switch vec := vecs[0].(*vector.Option).Any.(type) {
-			case *vector.Missing:
+			case *vector.None:
 				return vector.NewOptionNone(to, vec.Len())
 			case *vector.Dynamic:
 				panic(vec)

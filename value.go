@@ -16,6 +16,7 @@ import (
 
 var (
 	Missing = Value{typ: TypeMissing}
+	None    = Value{typ: TypeNone}
 	Null    = Value{typ: TypeNull}
 
 	False = NewBool(false)

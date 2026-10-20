@@ -4,27 +4,27 @@ input: |
   1
   [3,2,1,0]
   "s"::(string|null)
-  error("missing")
+  error("baz")
   type foo=error(string)
-  error("missing")::foo
+  error("baz")::foo
   type bar=string
-  error("missing"::bar)
+  error("baz"::bar)
   null
   error(null)
   error("quiet")
-  error({x:"missing"})
+  error({x:"baz"})
 
 output: |
   1
   [3,2,1,0]
   "s"::(string|null)
-  none
-  none
-  none
+  missing
+  missing
+  missing
   null
-  none
-  none
-  none
+  missing
+  missing
+  missing
 
 ---
 
@@ -36,7 +36,7 @@ input: |
 
 output: |
   1
-  none
+  missing
 
 ---
 

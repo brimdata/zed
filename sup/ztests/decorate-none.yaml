@@ -1,0 +1,126 @@
+# Decorating none with an option type (or a non-option type T as shorthand
+# for option(T)) yields the option's none.  Record decorators match fields
+# by name and fill absent optional fields with nones.
+spq: pass
+
+flags: -i sup
+
+input: |
+  none
+  [1,none]
+  [1,none]::[option(int64)]
+  set[1,none]::set[option(int64)]
+  map{1:none,2:"a"}::map{int64:option(string)}
+  {a:1}::{a:int64,b?:string}
+  {b:2,a:1}::{a:int64,b:int64}
+  {a:none}::{a:option(int64)}
+  {a?:none}::{a?:int64}
+  [{a:1},{a:2,b?:"x"}]::[{a:int64,b?:string}]
+  some([1,none])::option([option(int64)])
+  none::int64
+  none::option(int64)
+  none::(int64|string)
+  []
+  missing
+
+output: |
+  none
+  [1,none]
+  [some(1),none::int64]
+  set[none::int64,some(1)]
+  map{1:none::string,2:some("a")}
+  {a:1,b?:none::string}
+  {a:1,b:2}
+  {a?:none::int64}
+  {a?:none::int64}
+  [{a:1,b?:none::string},{a:2,b?:"x"}]
+  some([some(1),none::int64])
+  none::int64
+  none::int64
+  none::option(int64|string)
+  []
+  missing
+
+---
+
+# Optional fields that are none are omitted and nones in containers are
+# formatted bare when implied by a named type.
+spq: pass
+
+flags: -i sup
+
+input: &input |
+  type List={val:int64,next?:List}
+  {val:1,next?:{val:2,next?:{val:3}}}::List
+  type Arr=[option(int64)]
+  [some(1),none]::Arr
+  type O=option(int64)
+  none::O
+
+output: *input
+
+---
+
+spq: pass
+
+flags: -i sup
+
+input: '{a?:none}'
+
+output: |
+  {a:none}
+
+---
+
+spq: pass
+
+flags: -i sup
+
+input: missing::option(int64)
+
+error: |
+  stdio:stdin: missing value cannot be decorated with "option(int64)"
+
+---
+
+spq: pass
+
+flags: -i sup
+
+input: '{a:1}::{a:int64,b:string}'
+
+error: |
+  stdio:stdin: non-optional field "b" of record decorator "{a:int64,b:string}" not present in record value
+
+---
+
+spq: pass
+
+flags: -i sup
+
+input: '{a:1,c:2}::{a:int64,b?:string}'
+
+error: |
+  stdio:stdin: record decorator incompatible with record value: "{a:int64,b?:string}"
+
+---
+
+spq: pass
+
+flags: -i sup
+
+input: '{a?:1}::{a:int64}'
+
+error: |
+  stdio:stdin: cannot decorate an option value with a non-option type
+
+---
+
+spq: pass
+
+flags: -i sup
+
+input: none::missing
+
+error: |
+  stdio:stdin: none value cannot be decorated with "missing"

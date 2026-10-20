@@ -97,7 +97,7 @@ func (s *search) eval(vecs ...vector.Any) vector.Any {
 	case *vector.Error:
 		return s.eval(vec.Vals)
 	case *vector.Option:
-		if none, ok := vec.Any.(*vector.Missing); ok {
+		if none, ok := vec.Any.(*vector.None); ok {
 			return vector.NewFalse(none.Len())
 		}
 		return s.applyEval(vec.Any)

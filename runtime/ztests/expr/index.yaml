@@ -59,7 +59,7 @@ output: |
   1
   2
   1
-  none
+  missing
   127.0.0.1
 
 ---
@@ -107,7 +107,7 @@ output: |
   type bar=set[int64]
   error({message:"'.': applied to non-record",on:set[4,5,6]::bar})
   "foo"
-  none
+  missing
   error({message:"invalid record index",on:1})
   123
 
