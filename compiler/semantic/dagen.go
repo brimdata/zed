@@ -87,10 +87,10 @@ func (d *dagen) op(op sem.Op) dag.Op {
 			typ = sup.FormatType(op.Type)
 		}
 		return &dag.FileScan{
-			Kind:   "FileScan",
-			Paths:  op.Paths,
-			Format: op.Format,
-			Type:   typ,
+			Kind:    "FileScan",
+			Paths:   op.Paths,
+			Formats: op.Formats,
+			Type:    typ,
 		}
 	case *sem.HTTPScan:
 		return &dag.HTTPScan{

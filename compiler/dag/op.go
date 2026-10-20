@@ -264,7 +264,7 @@ type (
 	FileScan struct {
 		Kind     string   `json:"kind"  unpack:""`
 		Paths    []string `json:"paths"`
-		Format   string   `json:"format"`
+		Formats  []string `json:"formats"`
 		Pushdown Pushdown `json:"pushdown"`
 		Type     string   `json:"type"`
 	}

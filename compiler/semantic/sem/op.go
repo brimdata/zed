@@ -9,7 +9,6 @@ package sem
 
 import (
 	"maps"
-	"slices"
 	"uuid"
 
 	"github.com/superdb/super"
@@ -43,9 +42,9 @@ type (
 	}
 	FileScan struct {
 		ast.Node
-		Type   super.Type
-		Paths  []string
-		Format string
+		Type    super.Type
+		Paths   []string
+		Formats []string
 	}
 	HTTPScan struct {
 		ast.Node
@@ -307,10 +306,10 @@ func CopyOp(op Op) Op {
 		}
 	case *FileScan:
 		return &FileScan{
-			Node:   op.Node,
-			Type:   op.Type,
-			Paths:  slices.Clone(op.Paths),
-			Format: op.Format,
+			Node:    op.Node,
+			Type:    op.Type,
+			Paths:   op.Paths,
+			Formats: op.Formats,
 		}
 	case *HTTPScan:
 		return &HTTPScan{

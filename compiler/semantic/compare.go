@@ -39,7 +39,7 @@ func eqOp(aop, bop sem.Op) bool {
 		return ok && a.Meta == b.Meta
 	case *sem.FileScan:
 		b, ok := bop.(*sem.FileScan)
-		return ok && slices.Equal(a.Paths, b.Paths) && a.Format == b.Format
+		return ok && slices.Equal(a.Paths, b.Paths) && slices.Equal(a.Formats, b.Formats)
 	case *sem.HTTPScan:
 		b, ok := bop.(*sem.HTTPScan)
 		return ok && a.URL == b.URL && a.Format == b.Format && a.Method == b.Method && a.Body == b.Body && eqHeaders(a.Headers, b.Headers)

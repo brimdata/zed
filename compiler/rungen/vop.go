@@ -285,7 +285,7 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 		}
 		projection := field.NewProjectionMaybe(o.Pushdown.HasProjection, o.Pushdown.Projection)
 		pushdown := b.newPushdown(projection, metaFilter, searchFilter, dataFilter, o.Pushdown.Unordered)
-		return op.NewFileScan(b.rctx, b.env, parent, o.Paths, o.Format, pushdown, b.progress), nil
+		return op.NewFileScan(b.rctx, b.env, parent, o.Paths, o.Formats, pushdown, b.progress), nil
 	case *dag.FilterOp:
 		e, err := b.compileVamExpr(o.Expr)
 		if err != nil {
