@@ -14,7 +14,7 @@ func IntBits(typ super.Type) int {
 		return 16
 	case super.IDInt32:
 		return 32
-	case super.IDInt64, super.IDDuration, super.IDTime:
+	case super.IDInt64, super.IDDuration, super.IDTimestamp:
 		return 64
 	default:
 		panic(typ)
@@ -131,7 +131,7 @@ func FromFloatOverflowCheck(from, to super.Type) (float64, float64, bool) {
 		return math.MinInt16, math.MaxInt16, true
 	case super.IDInt32:
 		return math.MinInt32, math.MaxInt32, true
-	case super.IDInt64, super.IDTime, super.IDDuration:
+	case super.IDInt64, super.IDTimestamp, super.IDDuration:
 		return math.MinInt64, math.MaxInt64, true
 	case super.IDFloat16, super.IDFloat32, super.IDFloat64:
 		return 0, 0, false

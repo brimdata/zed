@@ -26,7 +26,7 @@ func (e *Empty) Kind() Kind {
 		switch t := typ.(type) {
 		case *super.TypeOfUint8, *super.TypeOfUint16, *super.TypeOfUint32, *super.TypeOfUint64:
 			return KindUint
-		case *super.TypeOfInt8, *super.TypeOfInt16, *super.TypeOfInt32, *super.TypeOfInt64, *super.TypeOfDuration, *super.TypeOfTime:
+		case *super.TypeOfInt8, *super.TypeOfInt16, *super.TypeOfInt32, *super.TypeOfInt64, *super.TypeOfDuration, *super.TypeOfTimestamp:
 			return KindInt
 		case *super.TypeOfFloat16, *super.TypeOfFloat32, *super.TypeOfFloat64:
 			return KindFloat
@@ -66,6 +66,9 @@ func (e *Empty) Kind() Kind {
 			return KindFusion
 		case *super.TypeOption:
 			return KindOption
+		case *super.TypeOfUnimplemented, *super.TypeDecimal:
+			// No values of these types exist so any kind will do.
+			return KindBytes
 		case *super.TypeNamed:
 			typ = t.Type
 		default:

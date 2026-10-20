@@ -22,8 +22,8 @@ func (d *DatePart) Call(args []super.Value) super.Value {
 	if part.Type().ID() != super.IDString {
 		return d.sctx.WrapError("date_part: string value required for part argument", args[0])
 	}
-	if time.Type().ID() != super.IDTime {
-		return d.sctx.WrapError("date_part: time value required for time argument", args[1])
+	if time.Type().ID() != super.IDTimestamp {
+		return d.sctx.WrapError("date_part: timestamp value required for time argument", args[1])
 	}
 	fn := lookupDatePartEval(part.AsString())
 	if fn == nil {

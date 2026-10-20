@@ -185,7 +185,7 @@ func GenValue(b *bytes.Reader, context *super.Context, typ super.Type, builder *
 		builder.Append(super.EncodeInt(int64(binary.LittleEndian.Uint64(GenBytes(b, 8)))))
 	case super.TypeDuration:
 		builder.Append(super.EncodeDuration(nano.Duration(int64(binary.LittleEndian.Uint64(GenBytes(b, 8))))))
-	case super.TypeTime:
+	case super.TypeTimestamp:
 		builder.Append(super.EncodeTime(nano.Ts(int64(binary.LittleEndian.Uint64(GenBytes(b, 8))))))
 	case super.TypeFloat16:
 		builder.Append(super.EncodeFloat16(float32(float16.Frombits(binary.LittleEndian.Uint16(GenBytes(b, 4))))))
@@ -285,7 +285,7 @@ func GenType(b *bytes.Reader, context *super.Context, depth int) super.Type {
 		case 8:
 			return super.TypeDuration
 		case 9:
-			return super.TypeTime
+			return super.TypeTimestamp
 		case 10:
 			return super.TypeFloat16
 		case 11:

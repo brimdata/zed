@@ -57,7 +57,7 @@ func NewInt16(i int16) Value            { return newNativeValue(TypeInt16, uint6
 func NewInt32(i int32) Value            { return newNativeValue(TypeInt32, uint64(i)) }
 func NewInt64(i int64) Value            { return newNativeValue(TypeInt64, uint64(i)) }
 func NewDuration(d nano.Duration) Value { return newNativeValue(TypeDuration, uint64(d)) }
-func NewTime(ts nano.Ts) Value          { return newNativeValue(TypeTime, uint64(ts)) }
+func NewTime(ts nano.Ts) Value          { return newNativeValue(TypeTimestamp, uint64(ts)) }
 func NewFloat(t Type, f float64) Value  { return newNativeValue(t, math.Float64bits(f)) }
 func NewFloat16(f float32) Value        { return newNativeValue(TypeFloat16, math.Float64bits(float64(f))) }
 func NewFloat32(f float32) Value        { return newNativeValue(TypeFloat32, math.Float64bits(float64(f))) }
@@ -89,7 +89,7 @@ func (v Value) Uint() uint64 {
 }
 
 // Int returns v's underlying value.  It panics if v's underlying type is not
-// TypeInt8, TypeInt16, TypeInt32, TypeInt64, TypeDuration, or TypeTime.
+// TypeInt8, TypeInt16, TypeInt32, TypeInt64, TypeDuration, or TypeTimestamp.
 func (v Value) Int() int64 {
 	if !IsSigned(v.Type().ID()) {
 		panic(fmt.Sprintf("super.Value.Int called on %T", v.Type()))
@@ -130,7 +130,7 @@ func (v Value) Bytes() scode.Bytes {
 		switch v.Type().ID() {
 		case IDUint8, IDUint16, IDUint32, IDUint64:
 			return EncodeUint(x)
-		case IDInt8, IDInt16, IDInt32, IDInt64, IDDuration, IDTime:
+		case IDInt8, IDInt16, IDInt32, IDInt64, IDDuration, IDTimestamp:
 			return EncodeInt(int64(x))
 		case IDFloat16:
 			return EncodeFloat16(float32(math.Float64frombits(x)))
@@ -370,7 +370,7 @@ func (v *Value) AsInt() int64 {
 }
 
 func (v *Value) AsTime() nano.Ts {
-	if v != nil && TypeUnder(v.Type()) == TypeTime {
+	if v != nil && TypeUnder(v.Type()) == TypeTimestamp {
 		return DecodeTime(v.Bytes())
 	}
 	return 0

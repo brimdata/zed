@@ -87,7 +87,7 @@ values {this,kind:kind(this),type:typeof(this),len:len(this)}
 <[{a:int64,b:string,c:bool}]>
 <enum(HEADS,TAILS)>
 <error(string)>
-<error({ts:time,msg:string})>
+<error({ts:timestamp,msg:string})>
 <map{string:float64}>
 <map{string:{x:int64,y:float64}}>
 <int8>
@@ -100,7 +100,7 @@ values {this,kind:kind(this),type:typeof(this),len:len(this)}
 {that:<[{a:int64,b:string,c:bool}]>,kind:"array",type:<type>,len:3}
 {that:<enum(HEADS,TAILS)>,kind:"enum",type:<type>,len:2}
 {that:<error(string)>,kind:"error",type:<type>,len:1}
-{that:<error({ts:time,msg:string})>,kind:"error",type:<type>,len:2}
+{that:<error({ts:timestamp,msg:string})>,kind:"error",type:<type>,len:2}
 {that:<map{string:float64}>,kind:"map",type:<type>,len:1}
 {that:<map{string:{x:int64,y:float64}}>,kind:"map",type:<type>,len:2}
 {that:<int8>,kind:"primitive",type:<type>,len:1}
@@ -126,5 +126,5 @@ error("hello")
 {that:10m30s,kind:"primitive",type:<duration>,len:error({message:"len: bad type",on:10m30s})}
 {that:error("hello"),kind:"error",type:<error(string)>,len:error({message:"len()",on:error("hello")})}
 {that:1,kind:"primitive",type:<int64>,len:error({message:"len: bad type",on:1})}
-{that:2024-07-30T20:05:15.118252Z,kind:"primitive",type:<time>,len:error({message:"len: bad type",on:2024-07-30T20:05:15.118252Z})}
+{that:2024-07-30T20:05:15.118252Z,kind:"primitive",type:<timestamp>,len:error({message:"len: bad type",on:2024-07-30T20:05:15.118252Z})}
 ```

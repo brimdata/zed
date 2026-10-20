@@ -171,20 +171,20 @@ func (r *Reader) newTypeFromDataType(dt arrow.DataType) (super.Type, error) {
 		width := strconv.Itoa(dt.(*arrow.FixedSizeBinaryType).ByteWidth)
 		return r.sctx.LookupTypeNamed("arrow_fixed_size_binary_"+width, super.TypeBytes)
 	case arrow.DATE32:
-		return r.sctx.LookupTypeNamed("arrow_date32", super.TypeTime)
+		return r.sctx.LookupTypeNamed("arrow_date32", super.TypeTimestamp)
 	case arrow.DATE64:
-		return r.sctx.LookupTypeNamed("arrow_date64", super.TypeTime)
+		return r.sctx.LookupTypeNamed("arrow_date64", super.TypeTimestamp)
 	case arrow.TIMESTAMP:
 		if unit := dt.(*arrow.TimestampType).Unit; unit != arrow.Nanosecond {
-			return r.sctx.LookupTypeNamed("arrow_timestamp_"+unit.String(), super.TypeTime)
+			return r.sctx.LookupTypeNamed("arrow_timestamp_"+unit.String(), super.TypeTimestamp)
 		}
-		return super.TypeTime, nil
+		return super.TypeTimestamp, nil
 	case arrow.TIME32:
 		unit := dt.(*arrow.Time32Type).Unit.String()
-		return r.sctx.LookupTypeNamed("arrow_time32_"+unit, super.TypeTime)
+		return r.sctx.LookupTypeNamed("arrow_time32_"+unit, super.TypeTimestamp)
 	case arrow.TIME64:
 		unit := dt.(*arrow.Time64Type).Unit.String()
-		return r.sctx.LookupTypeNamed("arrow_time64_"+unit, super.TypeTime)
+		return r.sctx.LookupTypeNamed("arrow_time64_"+unit, super.TypeTimestamp)
 	case arrow.INTERVAL_MONTHS:
 		return r.sctx.LookupTypeNamed("arrow_month_interval", super.TypeInt32)
 	case arrow.INTERVAL_DAY_TIME:

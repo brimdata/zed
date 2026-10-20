@@ -76,7 +76,7 @@ set[1,2,3]
 "192.168.1.0/24 has type <net>"
 "[1,\"bar\"] has type <[int64|string]>"
 "set[1,2,3] has type <set[int64]>"
-"2025-08-21T21:22:18.046568Z has type <time>"
+"2025-08-21T21:22:18.046568Z has type <timestamp>"
 "1d3h has type <duration>"
 "<int64> has type <type>"
 ```

@@ -86,6 +86,7 @@ var unpacker = unpack.New(
 	Text{},
 	TopOp{},
 	TypeArray{},
+	TypeDecimal{},
 	TypeDecl{},
 	TypeEnum{},
 	TypeError{},

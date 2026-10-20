@@ -109,8 +109,8 @@ func (t *translator) expr(e ast.Expr, inType super.Type) (sem.Expr, super.Type) 
 		if _, ok := e.Type.(*ast.DateTypeHack); ok {
 			// cast to time then bucket by 1d as a workaround for not currently
 			// supporting a "date" type.
-			cast := sem.NewCast(e.Expr, expr, super.TypeTime, t.defs)
-			return sem.NewCall(e, "bucket", []sem.Expr{cast, &sem.PrimitiveExpr{Node: e, Value: "1d"}}), super.TypeTime
+			cast := sem.NewCast(e.Expr, expr, super.TypeTimestamp, t.defs)
+			return sem.NewCall(e, "bucket", []sem.Expr{cast, &sem.PrimitiveExpr{Node: e, Value: "1d"}}), super.TypeTimestamp
 		}
 		typeVal, _ := t.semType(e.Type)
 		// In a future PR, we will add support to see if the expr type is
@@ -299,7 +299,7 @@ func (t *translator) expr(e ast.Expr, inType super.Type) (sem.Expr, super.Type) 
 		if e.Type == "date" {
 			ts = ts.Trunc(nano.Day)
 		}
-		return sem.NewLiteral(e, super.NewTime(ts), t.defs), super.TypeTime
+		return sem.NewLiteral(e, super.NewTime(ts), t.defs), super.TypeTimestamp
 	case *ast.SearchTermExpr:
 		var val string
 		switch term := e.Value.(type) {

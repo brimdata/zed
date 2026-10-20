@@ -846,6 +846,11 @@ func (a Analyzer) convertType(typ ast.Type) (super.Type, error) {
 			return nil, err
 		}
 		return a.sctx.LookupTypeFusion(typ)
+	case *ast.TypeDecimal:
+		if err := super.CheckDecimal(t.Precision, t.Scale); err != nil {
+			return nil, err
+		}
+		return a.sctx.LookupTypeDecimal(t.Precision, t.Scale), nil
 	case *ast.TypeOption:
 		typ, err := a.convertType(t.Type)
 		if err != nil {

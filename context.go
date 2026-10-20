@@ -246,6 +246,20 @@ func (c *Context) LookupTypeEnum(symbols []string) *TypeEnum {
 	return typ
 }
 
+// LookupTypeDecimal returns the decimal(precision,scale) type.  The caller
+// must ensure the parameters are valid (see CheckDecimal).
+func (c *Context) LookupTypeDecimal(precision, scale int) *TypeDecimal {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	id := c.typedefs.LookupTypeDecimal(precision, scale)
+	if typ, ok := c.byID[id]; ok {
+		return typ.(*TypeDecimal)
+	}
+	typ := NewTypeDecimal(int(id), precision, scale)
+	c.byID[id] = typ
+	return typ
+}
+
 // LookupByName returns the named type last bound to name by LookupTypeNamed.
 // It returns nil if name is unbound.
 func (c *Context) LookupByName(name string) *TypeNamed {
@@ -632,6 +646,16 @@ func (c *Context) DecodeTypeValue(tv []byte) (Type, []byte) {
 			return nil, nil
 		}
 		return typ, tv
+	case TypeValueDecimal:
+		precision, tv := DecodeLength(tv)
+		if tv == nil {
+			return nil, nil
+		}
+		scale, tv := DecodeLength(tv)
+		if tv == nil || CheckDecimal(precision, scale) != nil {
+			return nil, nil
+		}
+		return c.LookupTypeDecimal(precision, scale), tv
 	case TypeValueError:
 		inner, tv := c.DecodeTypeValue(tv)
 		if tv == nil {
@@ -743,6 +767,26 @@ func (c *Context) WrapError(msg string, val Value) Value {
 	return NewValue(errType, b.Bytes())
 }
 
+// NewUnimplemented returns the value used in place of a value of type typ
+// whose type is reserved but not yet implemented (see TypeOfUnimplemented and
+// TypeDecimal).  The value is an error wrapping a record of the form
+//
+//	{unimplemented:<typ>,bytes:<bytes>}
+//
+// where bytes holds the value in typ's planned encoding so that, once typ is
+// implemented, the original value can be recovered by unwrapping the error.
+func (c *Context) NewUnimplemented(typ Type, bytes scode.Bytes) Value {
+	recType := c.MustLookupTypeRecord([]Field{
+		{"unimplemented", TypeType},
+		{"bytes", TypeBytes},
+	})
+	errType := c.LookupTypeError(recType)
+	var b scode.Builder
+	b.Append(c.LookupTypeValue(typ).Bytes())
+	b.Append(bytes)
+	return NewValue(errType, b.Bytes())
+}
+
 func (c *Context) Nullable(typ Type) *TypeUnion {
 	var types []Type
 	if union, ok := typ.(*TypeUnion); ok {
@@ -812,16 +856,17 @@ func (t *TypeCache) LookupType(id int) (Type, error) {
 }
 
 const (
-	TypeDefRecord = 0
-	TypeDefArray  = 1
-	TypeDefSet    = 2
-	TypeDefMap    = 3
-	TypeDefUnion  = 4
-	TypeDefEnum   = 5
-	TypeDefError  = 6
-	TypeDefNamed  = 7
-	TypeDefFusion = 8
-	TypeDefOption = 9
+	TypeDefRecord  = 0
+	TypeDefArray   = 1
+	TypeDefSet     = 2
+	TypeDefMap     = 3
+	TypeDefUnion   = 4
+	TypeDefEnum    = 5
+	TypeDefError   = 6
+	TypeDefNamed   = 7
+	TypeDefFusion  = 8
+	TypeDefOption  = 9
+	TypeDefDecimal = 10
 )
 
 // Different modes for named types:
@@ -938,6 +983,8 @@ func (t *TypeDefs) LookupType(ext Type) uint32 {
 		id = t.LookupTypeUnion(ext.Types)
 	case *TypeEnum:
 		id = t.LookupTypeEnum(ext.Symbols)
+	case *TypeDecimal:
+		id = t.LookupTypeDecimal(ext.Precision, ext.Scale)
 	case *TypeError:
 		id = t.LookupTypeWrapped(TypeDefError, ext.Type)
 	case *TypeNamed:
@@ -1034,6 +1081,14 @@ func (t *TypeDefs) LookupTypeEnum(symbols []string) uint32 {
 		t.bytes = binary.AppendUvarint(t.bytes, uint64(len(s)))
 		t.bytes = append(t.bytes, s...)
 	}
+	return t.Lookup(at)
+}
+
+func (t *TypeDefs) LookupTypeDecimal(precision, scale int) uint32 {
+	at := len(t.bytes)
+	t.bytes = append(t.bytes, TypeDefDecimal)
+	t.bytes = binary.AppendUvarint(t.bytes, uint64(precision))
+	t.bytes = binary.AppendUvarint(t.bytes, uint64(scale))
 	return t.Lookup(at)
 }
 
@@ -1166,7 +1221,7 @@ func (t *TypeDefs) loops(id uint32, scoreboard map[string]comp) {
 			id, b = MustDecodeID(b)
 			t.loops(id, scoreboard)
 		}
-	case TypeDefEnum:
+	case TypeDefEnum, TypeDefDecimal:
 	case TypeDefError:
 		id, _ := MustDecodeID(b)
 		t.loops(id, scoreboard)
@@ -1242,6 +1297,16 @@ func (d *TypeDefs) AppendBytes(bytes []byte) bool {
 				if bytes == nil || id >= localID {
 					return false
 				}
+			}
+		case TypeDefDecimal:
+			var precision, scale int
+			precision, bytes = DecodeLength(bytes)
+			if bytes == nil {
+				return false
+			}
+			scale, bytes = DecodeLength(bytes)
+			if bytes == nil || CheckDecimal(precision, scale) != nil {
+				return false
 			}
 		case TypeDefEnum:
 			n, bytes = DecodeLength(bytes)
@@ -1491,6 +1556,16 @@ func (t *TypeDefsMapper) lookupType(id uint32) Type {
 			symbols = append(symbols, symbol)
 		}
 		return t.sctx.LookupTypeEnum(symbols)
+	case TypeDefDecimal:
+		precision, b := DecodeLength(b)
+		if b == nil {
+			return nil
+		}
+		scale, b := DecodeLength(b)
+		if b == nil || CheckDecimal(precision, scale) != nil {
+			return nil
+		}
+		return t.sctx.LookupTypeDecimal(precision, scale)
 	case TypeDefError:
 		id, b := DecodeID(b)
 		if b == nil {
@@ -1659,6 +1734,14 @@ func (t *TypeDefsMerger) LookupID(extID uint32) uint32 {
 		at = len(t.bytes)
 		t.bytes = append(t.bytes, TypeDefOption)
 		t.bytes = binary.AppendUvarint(t.bytes, uint64(id))
+	case TypeDefDecimal:
+		var precision, scale int
+		precision, bytes = MustDecodeLength(bytes)
+		scale, bytes = MustDecodeLength(bytes)
+		at = len(t.bytes)
+		t.bytes = append(t.bytes, TypeDefDecimal)
+		t.bytes = binary.AppendUvarint(t.bytes, uint64(precision))
+		t.bytes = binary.AppendUvarint(t.bytes, uint64(scale))
 	default:
 		panic(id)
 	}

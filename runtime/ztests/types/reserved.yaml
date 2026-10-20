@@ -1,0 +1,106 @@
+# Reserved types parse and format as type values and casts to them are
+# errors until they are implemented.
+spq: |
+  values
+    <timestamp>,
+    <timestamp(9)>,
+    <timestamp(0)>,
+    <timestamp(3)>,
+    <timestamp(6)>,
+    <timestamp_ntz>,
+    <timestamp_ntz(3)>,
+    <date>,
+    <time>,
+    <time(6)>,
+    <interval>,
+    <uuid>,
+    <geometry>,
+    <geography>,
+    <int128>,
+    <uint128>,
+    <decimal(10,2)>,
+    <numeric(5)>,
+    <{a:decimal(38,0),b:[date]}>,
+    typeof(2025-06-01T00:00:00Z),
+    "2025-06-01"::date,
+    cast(1,<decimal(10,2)>)
+
+output: |
+  <timestamp>
+  <timestamp>
+  <timestamp(0)>
+  <timestamp(3)>
+  <timestamp(6)>
+  <timestamp_ntz>
+  <timestamp_ntz(3)>
+  <date>
+  <time>
+  <time(6)>
+  <interval>
+  <uuid>
+  <geometry>
+  <geography>
+  <int128>
+  <uint128>
+  <decimal(10,2)>
+  <decimal(5,0)>
+  <{a:decimal(38,0),b:[date]}>
+  <timestamp>
+  error({message:"cannot cast to date: type not yet implemented",on:"2025-06-01"})
+  error({message:"cannot cast to decimal(10,2): type not yet implemented",on:1})
+
+---
+
+spq: values <timestamp(2)>
+
+error: |
+  no such primitive type: "timestamp(2)" at line 1, column 9:
+  values <timestamp(2)>
+          ~~~~~~~~~~~~
+
+---
+
+spq: pass
+
+flags: -i sup
+
+input: &input |
+  <{a:decimal(10,2),b:timestamp(3),c:timestamp_ntz,d:time(6),e:date,f:interval,g:uuid}>
+
+output: *input
+
+---
+
+spq: pass
+
+flags: -i sup
+
+input: <decimal(39,2)>
+
+error: |
+  stdio:stdin: decimal precision 39 out of range [1,38]
+
+---
+
+spq: pass
+
+flags: -i sup
+
+input: <timestamp(2)>
+
+error: |
+  stdio:stdin: line 1: parse error: invalid precision for type timestamp(2) (must be 0, 3, 6, or 9)
+
+---
+
+# Empty containers of reserved types keep their types, including
+# through BSUP.
+script: |
+  super -f bsup -o out.bsup -c 'values []::[date], {a:set[]::set[decimal(10,2)]}'
+  super -s -c 'values typeof(this)' out.bsup
+
+outputs:
+  - name: stdout
+    data: |
+      <[date]>
+      <{a:set[decimal(10,2)]}>

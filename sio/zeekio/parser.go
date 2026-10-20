@@ -118,7 +118,7 @@ func (p *Parser) parsePrimitiveType(in string) (super.Type, error) {
 	case "subnet":
 		typ = super.TypeNet
 	case "time":
-		typ = super.TypeTime
+		typ = super.TypeTimestamp
 	default:
 		return nil, fmt.Errorf("unknown type: %s", in)
 	}

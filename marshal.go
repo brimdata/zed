@@ -198,7 +198,7 @@ func (m *Marshaler) encodeAny(v reflect.Value) (Type, error) {
 		return TypeFloat16, nil
 	case nano.Ts:
 		m.builder.Append(EncodeTime(v))
-		return TypeTime, nil
+		return TypeTimestamp, nil
 	case net.IP:
 		if a, err := netip.ParseAddr(v.String()); err == nil {
 			m.builder.Append(EncodeIP(a))
@@ -206,7 +206,7 @@ func (m *Marshaler) encodeAny(v reflect.Value) (Type, error) {
 		}
 	case time.Time:
 		m.builder.Append(EncodeTime(nano.TimeToTs(v)))
-		return TypeTime, nil
+		return TypeTimestamp, nil
 	case Type:
 		val := m.sctx.LookupTypeValue(v)
 		m.builder.Append(val.Bytes())
@@ -639,7 +639,7 @@ func (u *Unmarshaler) decodeAny(val Value, v reflect.Value) (x error) {
 		v.SetUint(uint64(float16.Fromfloat32(float32(val.Float()))))
 		return nil
 	case nano.Ts:
-		if val.Type() != TypeTime {
+		if val.Type() != TypeTimestamp {
 			return incompatTypeError(val.Type(), v)
 		}
 		v.Set(reflect.ValueOf(DecodeTime(val.Bytes())))
@@ -1141,7 +1141,7 @@ func (u *Unmarshaler) lookupPrimitiveType(typ Type) (reflect.Type, error) {
 		v = netip.Addr{}
 	case *TypeOfNet:
 		v = net.IPNet{}
-	case *TypeOfTime:
+	case *TypeOfTimestamp:
 		v = time.Time{}
 	case *TypeOfDuration:
 		v = time.Duration(0)

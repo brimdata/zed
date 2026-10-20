@@ -25,9 +25,9 @@ output: |
   <int64|string>
   type access_list={info:string,nets:[net]}
   <access_list>
-  <{metric:string,ts:time,value:int64}>
-  <{metric:string,ts:time,value:float64}>
-  <{metric:string,ts:time,value:int64}>
-  <{metric:string,ts:time,value:{x:int64,y:int64}}>
+  <{metric:string,ts:timestamp,value:int64}>
+  <{metric:string,ts:timestamp,value:float64}>
+  <{metric:string,ts:timestamp,value:int64}>
+  <{metric:string,ts:timestamp,value:{x:int64,y:int64}}>
   <{x:int64}>
   <{x:int64}>

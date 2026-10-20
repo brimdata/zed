@@ -49,7 +49,7 @@ _A user function to convert epoch floats to time values_
 ```mdtest-spq {data-layout="stacked"}
 # spq
 fn floatToTime(x): (
-  cast(x*1000000000, <time>)
+  cast(x*1000000000, <timestamp>)
 )
 values map(this, &floatToTime)
 # input
@@ -63,7 +63,7 @@ _Same as above but with a lambda expression_
 
 ```mdtest-spq {data-layout="stacked"}
 # spq
-values map(this, lambda x:cast(x*1000000000, <time>))
+values map(this, lambda x:cast(x*1000000000, <timestamp>))
 # input
 [1697151533.41415,1697151540.716529]
 # expected output

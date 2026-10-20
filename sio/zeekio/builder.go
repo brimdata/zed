@@ -151,7 +151,7 @@ func (b *builder) appendPrimitive(typ super.Type, val []byte) error {
 			return err
 		}
 		b.buf = super.AppendDuration(b.buf[:0], nano.Duration(v))
-	case super.IDTime:
+	case super.IDTimestamp:
 		v, err := parseTime(val)
 		if err != nil {
 			return err

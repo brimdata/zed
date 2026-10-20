@@ -52,8 +52,10 @@ func superTypeToZeek(typ super.Type) (string, error) {
 			return "port", nil
 		}
 		return superTypeToZeek(typ.Type)
-	case *super.TypeOfBool, *super.TypeOfString, *super.TypeOfTime:
+	case *super.TypeOfBool, *super.TypeOfString:
 		return super.PrimitiveName(typ), nil
+	case *super.TypeOfTimestamp:
+		return "time", nil
 	}
 	return "", fmt.Errorf("type %s: %w", typ, ErrIncompatibleZeekType)
 }

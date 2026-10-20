@@ -21,8 +21,8 @@ func (b *Bucket) Call(args ...vector.Any) vector.Any {
 	args = underAll(args)
 	tsArg, binArg := args[0], args[1]
 	tsID, binID := tsArg.Type().ID(), binArg.Type().ID()
-	if tsID != super.IDDuration && tsID != super.IDTime {
-		return vector.NewWrappedError(b.sctx, b.name+": first argument is not a time or duration", tsArg)
+	if tsID != super.IDDuration && tsID != super.IDTimestamp {
+		return vector.NewWrappedError(b.sctx, b.name+": first argument is not a timestamp or duration", tsArg)
 	}
 	if binID != super.IDDuration {
 		return vector.NewWrappedError(b.sctx, b.name+": second argument is not a duration", binArg)
@@ -87,7 +87,7 @@ func (b *Bucket) resultType(tsVec vector.Any) super.Type {
 	if tsVec.Type().ID() == super.IDDuration {
 		return super.TypeDuration
 	}
-	return super.TypeTime
+	return super.TypeTimestamp
 }
 
 type Now struct{}
@@ -96,7 +96,7 @@ func (*Now) needsInput() {}
 
 func (n *Now) Call(args ...vector.Any) vector.Any {
 	v := int64(nano.Now())
-	return vector.NewConstInt(super.TypeTime, v, args[0].Len())
+	return vector.NewConstInt(super.TypeTimestamp, v, args[0].Len())
 }
 
 type Strftime struct {
@@ -112,7 +112,7 @@ func (s *Strftime) Call(args ...vector.Any) vector.Any {
 	if formatVec.Type().ID() != super.IDString {
 		return vector.NewWrappedError(s.sctx, "strftime: string value required for format arg", formatVec)
 	}
-	if timeVec.Type().ID() != super.IDTime {
+	if timeVec.Type().ID() != super.IDTimestamp {
 		return vector.NewWrappedError(s.sctx, "strftime: time value required for time arg", args[1])
 	}
 	if _, ok := formatVec.(*vector.Const); ok {

@@ -78,7 +78,7 @@ func BuildPrimitive(b *scode.Builder, val Primitive) error {
 		}
 		b.Append(super.EncodeDuration(d))
 		return nil
-	case *super.TypeOfTime:
+	case *super.TypeOfTimestamp:
 		t, err := time.Parse(time.RFC3339Nano, val.text)
 		if err != nil {
 			return fmt.Errorf("invalid ISO time: %s", val.text)

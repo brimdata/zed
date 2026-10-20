@@ -91,6 +91,8 @@ func (s *shared) typ(t ast.Type) {
 		s.write("error(")
 		s.typ(t.Type)
 		s.write(")")
+	case *ast.TypeDecimal:
+		s.write("decimal(%d,%d)", t.Precision, t.Scale)
 	case *ast.DateTypeHack:
 		s.write("date")
 	}

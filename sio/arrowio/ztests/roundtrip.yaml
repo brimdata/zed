@@ -5,15 +5,15 @@ inputs:
   - name: stdin
     data: &stdin |
       type arrow_fixed_size_binary_2 = bytes
-      type arrow_date32 = time
-      type arrow_date64 = time
-      type arrow_timestamp_s = time
-      type arrow_timestamp_ms = time
-      type arrow_timestamp_us = time
-      type arrow_time32_s = time
-      type arrow_time32_ms = time
-      type arrow_time64_us = time
-      type arrow_time64_ns = time
+      type arrow_date32 = timestamp
+      type arrow_date64 = timestamp
+      type arrow_timestamp_s = timestamp
+      type arrow_timestamp_ms = timestamp
+      type arrow_timestamp_us = timestamp
+      type arrow_time32_s = timestamp
+      type arrow_time32_ms = timestamp
+      type arrow_time64_us = timestamp
+      type arrow_time64_ns = timestamp
       type arrow_month_interval = int32
       type arrow_day_time_interval = {
         days: int32,

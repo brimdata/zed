@@ -44,7 +44,7 @@ The casting rules for primitives are as follows:
   * type [string](../types/string.md),
   * type [bool](../types/bool.md) where zero is `false` and non-zero is `true`,
   * type [duration](../types/time.md) where the number is presumed to be nanoseconds,
-  * type [time](../types/time.md) where the number is presumed to be nanoseconds since epoch, or
+  * type [timestamp](../types/time.md) where the number is presumed to be nanoseconds since epoch, or
   * a [union](#union-types) or [named type](#named-types).
 * A [string](../types/string.md) may be cast to any other primitive type as long as
 the string corresponds to a valid SuperSQL primitive literal.  Time strings
@@ -59,7 +59,7 @@ the [parse_sup](../functions/parsing/parse_sup.md) function.
   * a number type where `false` is zero and `true` is `1`,
   * type [string](../types/string.md), or
   * a [union](#union-types) or [named type](#named-types).
-* A [time](../types/time.md) value may be cast to
+* A [timestamp](../types/time.md) value may be cast to
   * a [number](../types/numbers.md) type where the numeric value is nanoseconds since epoch,
   * type [string](../types/string.md), or
   * a [union](#union-types) or [named type](#named-types).
@@ -241,7 +241,7 @@ _Casting time strings is fairly flexible_
 
 ```mdtest-spq
 # spq
-values this::time
+values this::timestamp
 # input
 "May 8, 2009 5:57:51 PM"
 "oct 7, 1970"
@@ -272,7 +272,7 @@ _Cast nested records_
 
 ```mdtest-spq {data-layout="stacked"}
 # spq
-values this::{ts:time,r:{x:float64,y:float64}}
+values this::{ts:timestamp,r:{x:float64,y:float64}}
 # input
 {ts:"1/1/2022",r:{x:"1",y:"2"}}
 {ts:"1/2/2022",r:{x:3,y:4}}

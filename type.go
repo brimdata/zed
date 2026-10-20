@@ -43,6 +43,7 @@ const (
 	ErrorKind
 	FusionKind
 	OptionKind
+	DecimalKind
 )
 
 func (k Kind) String() string {
@@ -61,6 +62,8 @@ func (k Kind) String() string {
 		return "union"
 	case EnumKind:
 		return "enum"
+	case DecimalKind:
+		return "decimal"
 	case OptionKind:
 		return "option"
 	case ErrorKind:
@@ -71,102 +74,164 @@ func (k Kind) String() string {
 }
 
 var (
-	TypeUint8    = &TypeOfUint8{}
-	TypeUint16   = &TypeOfUint16{}
-	TypeUint32   = &TypeOfUint32{}
-	TypeUint64   = &TypeOfUint64{}
-	TypeInt8     = &TypeOfInt8{}
-	TypeInt16    = &TypeOfInt16{}
-	TypeInt32    = &TypeOfInt32{}
-	TypeInt64    = &TypeOfInt64{}
-	TypeDuration = &TypeOfDuration{}
-	TypeTime     = &TypeOfTime{}
-	TypeFloat16  = &TypeOfFloat16{}
-	TypeFloat32  = &TypeOfFloat32{}
-	TypeFloat64  = &TypeOfFloat64{}
-	// XXX add TypeDecimal
-	TypeBool    = &TypeOfBool{}
-	TypeBytes   = &TypeOfBytes{}
-	TypeString  = &TypeOfString{}
-	TypeIP      = &TypeOfIP{}
-	TypeNet     = &TypeOfNet{}
-	TypeType    = &TypeOfType{}
-	TypeNull    = &TypeOfNull{}
-	TypeMissing = &TypeOfMissing{}
-	TypeNone    = &TypeOfNone{}
-	TypeAll     = &TypeOfAll{}
+	TypeUint8     = &TypeOfUint8{}
+	TypeUint16    = &TypeOfUint16{}
+	TypeUint32    = &TypeOfUint32{}
+	TypeUint64    = &TypeOfUint64{}
+	TypeInt8      = &TypeOfInt8{}
+	TypeInt16     = &TypeOfInt16{}
+	TypeInt32     = &TypeOfInt32{}
+	TypeInt64     = &TypeOfInt64{}
+	TypeDuration  = &TypeOfDuration{}
+	TypeTimestamp = &TypeOfTimestamp{}
+	TypeFloat16   = &TypeOfFloat16{}
+	TypeFloat32   = &TypeOfFloat32{}
+	TypeFloat64   = &TypeOfFloat64{}
+	TypeBool      = &TypeOfBool{}
+	TypeBytes     = &TypeOfBytes{}
+	TypeString    = &TypeOfString{}
+	TypeIP        = &TypeOfIP{}
+	TypeNet       = &TypeOfNet{}
+	TypeType      = &TypeOfType{}
+	TypeNull      = &TypeOfNull{}
+	TypeMissing   = &TypeOfMissing{}
+	TypeNone      = &TypeOfNone{}
+	TypeAll       = &TypeOfAll{}
 )
 
+// Primitive types whose IDs are reserved but whose values are not yet
+// implemented.  See TypeOfUnimplemented.
+var (
+	TypeUint128       = &TypeOfUnimplemented{IDUint128, "uint128"}
+	TypeInt128        = &TypeOfUnimplemented{IDInt128, "int128"}
+	TypeTimestamp0    = &TypeOfUnimplemented{IDTimestamp0, "timestamp(0)"}
+	TypeTimestamp3    = &TypeOfUnimplemented{IDTimestamp3, "timestamp(3)"}
+	TypeTimestamp6    = &TypeOfUnimplemented{IDTimestamp6, "timestamp(6)"}
+	TypeTimestampNTZ0 = &TypeOfUnimplemented{IDTimestampNTZ0, "timestamp_ntz(0)"}
+	TypeTimestampNTZ3 = &TypeOfUnimplemented{IDTimestampNTZ3, "timestamp_ntz(3)"}
+	TypeTimestampNTZ6 = &TypeOfUnimplemented{IDTimestampNTZ6, "timestamp_ntz(6)"}
+	TypeTimestampNTZ  = &TypeOfUnimplemented{IDTimestampNTZ, "timestamp_ntz"}
+	TypeDate          = &TypeOfUnimplemented{IDDate, "date"}
+	TypeTime0         = &TypeOfUnimplemented{IDTime0, "time(0)"}
+	TypeTime3         = &TypeOfUnimplemented{IDTime3, "time(3)"}
+	TypeTime6         = &TypeOfUnimplemented{IDTime6, "time(6)"}
+	TypeTime          = &TypeOfUnimplemented{IDTime, "time"}
+	TypeInterval      = &TypeOfUnimplemented{IDInterval, "interval"}
+	TypeUUID          = &TypeOfUnimplemented{IDUUID, "uuid"}
+	TypeGeometry      = &TypeOfUnimplemented{IDGeometry, "geometry"}
+	TypeGeography     = &TypeOfUnimplemented{IDGeography, "geography"}
+)
+
+var unimplementedTypes = []*TypeOfUnimplemented{
+	TypeUint128,
+	TypeInt128,
+	TypeTimestamp0,
+	TypeTimestamp3,
+	TypeTimestamp6,
+	TypeTimestampNTZ0,
+	TypeTimestampNTZ3,
+	TypeTimestampNTZ6,
+	TypeTimestampNTZ,
+	TypeDate,
+	TypeTime0,
+	TypeTime3,
+	TypeTime6,
+	TypeTime,
+	TypeInterval,
+	TypeUUID,
+	TypeGeometry,
+	TypeGeography,
+}
+
 // Primary Type IDs
+//
+// The IDs are grouped so that the IsInteger, IsSigned, IsUnsigned, IsFloat,
+// and IsNumber predicates can be computed from ID ranges.  The timestamp,
+// timestamp_ntz, and time types are parameterized by a fractional-second
+// precision p (0, 3, 6, or 9 digits) with each precision having its own ID.
+// The unadorned names (timestamp, timestamp_ntz, time) have precision 9.
+// The geometry and geography types are planar and spherical shapes encoded
+// as OGC well-known binary (WKB) in the default coordinate reference system
+// (OGC:CRS84).  Other reference systems will be parameterized types.
+// IDs 41 through 47 are reserved for future primitives.
 
 const (
-	IDUint8       = 0
-	IDUint16      = 1
-	IDUint32      = 2
-	IDUint64      = 3
-	IDUint128     = 4
-	IDUint256     = 5
-	IDInt8        = 6
-	IDInt16       = 7
-	IDInt32       = 8
-	IDInt64       = 9
-	IDInt128      = 10
-	IDInt256      = 11
-	IDDuration    = 12
-	IDTime        = 13
-	IDFloat16     = 14
-	IDFloat32     = 15
-	IDFloat64     = 16
-	IDFloat128    = 17
-	IDFloat256    = 18
-	IDDecimal32   = 19
-	IDDecimal64   = 20
-	IDDecimal128  = 21
-	IDDecimal256  = 22
-	IDBool        = 23
-	IDBytes       = 24
-	IDString      = 25
-	IDIP          = 26
-	IDNet         = 27
-	IDType        = 28
-	IDNull        = 29
-	IDMissing     = 30
-	IDAll         = 31
-	IDNone        = 32
-	IDTypeComplex = 33
+	IDUint8         = 0
+	IDUint16        = 1
+	IDUint32        = 2
+	IDUint64        = 3
+	IDUint128       = 4
+	IDInt8          = 5
+	IDInt16         = 6
+	IDInt32         = 7
+	IDInt64         = 8
+	IDInt128        = 9
+	IDDuration      = 10
+	IDTimestamp0    = 11
+	IDTimestamp3    = 12
+	IDTimestamp6    = 13
+	IDTimestamp     = 14 // timestamp(9)
+	IDTimestampNTZ0 = 15
+	IDTimestampNTZ3 = 16
+	IDTimestampNTZ6 = 17
+	IDTimestampNTZ  = 18 // timestamp_ntz(9)
+	IDDate          = 19
+	IDTime0         = 20
+	IDTime3         = 21
+	IDTime6         = 22
+	IDTime          = 23 // time(9)
+	IDFloat16       = 24
+	IDFloat32       = 25
+	IDFloat64       = 26
+	IDBool          = 27
+	IDBytes         = 28
+	IDString        = 29
+	IDIP            = 30
+	IDNet           = 31
+	IDInterval      = 32
+	IDUUID          = 33
+	IDGeometry      = 34
+	IDGeography     = 35
+	IDType          = 36
+	IDNull          = 37
+	IDMissing       = 38
+	IDNone          = 39
+	IDAll           = 40
+	IDTypeComplex   = 48
 )
 
 // Encodings for complex type values.
 
 const (
-	TypeValueRecord  = 33
-	TypeValueArray   = 34
-	TypeValueSet     = 35
-	TypeValueMap     = 36
-	TypeValueUnion   = 37
-	TypeValueEnum    = 38
-	TypeValueError   = 39
-	TypeValueNameDef = 40
-	TypeValueNameRef = 41
-	TypeValueFusion  = 42
-	TypeValueOption  = 43
-	TypeValueMax     = TypeValueOption
+	TypeValueRecord  = 48
+	TypeValueArray   = 49
+	TypeValueSet     = 50
+	TypeValueMap     = 51
+	TypeValueUnion   = 52
+	TypeValueEnum    = 53
+	TypeValueError   = 54
+	TypeValueNameDef = 55
+	TypeValueNameRef = 56
+	TypeValueFusion  = 57
+	TypeValueOption  = 58
+	TypeValueDecimal = 59
+	TypeValueMax     = TypeValueDecimal
 )
 
 // True iff the type id is a signed or unsigened integer.
 func IsInteger(id int) bool {
-	return id <= IDInt256
+	return id <= IDInt128
 }
 
-// True iff the type id is a signed or unsigned integer, float16, float32, or float64.
+// True iff the type id is a signed or unsigned integer, duration, a
+// timestamp, date, or time type, or a float.
 func IsNumber(id int) bool {
-	return id <= IDDecimal256
+	return id <= IDFloat64
 }
 
 // True iff the type id is encoded as a float encoding.
-// XXX add IDDecimal here when we implement coercible math with it.
 func IsFloat(id int) bool {
-	return id >= IDFloat16 && id <= IDFloat256
+	return id >= IDFloat16 && id <= IDFloat64
 }
 
 // True iff the type id is encoded as a number encoding and is signed.
@@ -176,7 +241,7 @@ func IsSigned(id int) bool {
 
 // True iff the type id is encoded as a number encoding and is unsigned.
 func IsUnsigned(id int) bool {
-	return id <= IDUint256
+	return id <= IDUint128
 }
 
 func LookupPrimitive(name string) Type {
@@ -199,8 +264,8 @@ func LookupPrimitive(name string) Type {
 		return TypeInt64
 	case "duration":
 		return TypeDuration
-	case "time":
-		return TypeTime
+	case "timestamp", "timestamp(9)":
+		return TypeTimestamp
 	case "float16":
 		return TypeFloat16
 	case "float32":
@@ -227,6 +292,15 @@ func LookupPrimitive(name string) Type {
 		return TypeNone
 	case "all":
 		return TypeAll
+	case "timestamp_ntz(9)":
+		return TypeTimestampNTZ
+	case "time(9)":
+		return TypeTime
+	}
+	for _, typ := range unimplementedTypes {
+		if typ.name == name {
+			return typ
+		}
 	}
 	return nil
 }
@@ -251,8 +325,8 @@ func PrimitiveName(typ Type) string {
 		return "int64"
 	case *TypeOfDuration:
 		return "duration"
-	case *TypeOfTime:
-		return "time"
+	case *TypeOfTimestamp:
+		return "timestamp"
 	case *TypeOfFloat16:
 		return "float16"
 	case *TypeOfFloat32:
@@ -279,6 +353,8 @@ func PrimitiveName(typ Type) string {
 		return "none"
 	case *TypeOfAll:
 		return "all"
+	case *TypeOfUnimplemented:
+		return typ.(*TypeOfUnimplemented).name
 	default:
 		return fmt.Sprintf("unknown primitive type: %T", typ)
 	}
@@ -324,8 +400,8 @@ func LookupPrimitiveByID(id int) (Type, error) {
 		return TypeIP, nil
 	case IDNet:
 		return TypeNet, nil
-	case IDTime:
-		return TypeTime, nil
+	case IDTimestamp:
+		return TypeTimestamp, nil
 	case IDDuration:
 		return TypeDuration, nil
 	case IDType:
@@ -338,6 +414,11 @@ func LookupPrimitiveByID(id int) (Type, error) {
 		return TypeNone, nil
 	case IDAll:
 		return TypeAll, nil
+	}
+	for _, typ := range unimplementedTypes {
+		if typ.id == id {
+			return typ, nil
+		}
 	}
 	return nil, fmt.Errorf("primitive type ID %d not implemented", id)
 }
@@ -498,6 +579,12 @@ func CompareTypes(a, b Type) int {
 	case ErrorKind:
 		ea, eb := a.(*TypeError), b.(*TypeError)
 		return CompareTypes(ea.Type, eb.Type)
+	case DecimalKind:
+		da, db := a.(*TypeDecimal), b.(*TypeDecimal)
+		if cmp := cmp.Compare(da.Precision, db.Precision); cmp != 0 {
+			return cmp
+		}
+		return cmp.Compare(da.Scale, db.Scale)
 	}
 	return 0
 }
@@ -566,6 +653,10 @@ func appendTypeValue(b []byte, t Type, typedefs *map[string]Type) []byte {
 	case *TypeArray:
 		b = append(b, TypeValueArray)
 		return appendTypeValue(b, t.Type, typedefs)
+	case *TypeDecimal:
+		b = append(b, TypeValueDecimal)
+		b = binary.AppendUvarint(b, uint64(t.Precision))
+		return binary.AppendUvarint(b, uint64(t.Scale))
 	case *TypeEnum:
 		b = append(b, TypeValueEnum)
 		b = binary.AppendUvarint(b, uint64(len(t.Symbols)))

@@ -12,7 +12,7 @@ inputs:
       | FORK
         (
           FROM f'{user}.sup'
-          SELECT login AS user, created_at::time AS created_at
+          SELECT login AS user, created_at::timestamp AS created_at
         )
         ( PASS )
       | JOIN USING (user)

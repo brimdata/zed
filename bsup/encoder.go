@@ -67,6 +67,13 @@ func NewPrimitiveEncoder(bctx *Context, vec vector.Any, root bool) Encoder {
 			values: NewPrimitiveEncoder(bctx, vec.Any, false),
 			index:  vec.Index,
 		}
+	case *vector.Empty:
+		// An empty vector is encoded as a zero-length const so that
+		// its type is preserved.
+		return &ConstEncoder{
+			val: super.NewValue(vec.Type(), nil),
+			len: 0,
+		}
 	case *vector.Const:
 		return &ConstEncoder{
 			val: vector.ValueAt(new(scode.Builder), vec.Any, 0),

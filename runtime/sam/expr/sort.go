@@ -46,7 +46,7 @@ func (c *Comparator) sortStableIndices(vals []super.Value) []uint32 {
 		indices[i] = uint32(i)
 		val := c.exprs[0].Eval(vals[i])
 		val0s[i] = val
-		if id := val.Type().ID(); id <= super.IDTime {
+		if id := val.Type().ID(); id <= super.IDTimestamp {
 			if val.IsNull() {
 				if nullsMax0 {
 					i64s[i] = math.MaxInt64

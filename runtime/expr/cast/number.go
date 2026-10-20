@@ -126,7 +126,7 @@ func castStringToNumber(vec vector.Any, typ super.Type, index []uint32) (vector.
 		if id == super.IDDuration {
 			return stringToDuration(svec, index)
 		}
-		if id == super.IDTime {
+		if id == super.IDTimestamp {
 			return stringToTime(svec, index)
 		}
 		return stringToInt(svec, typ, index)
@@ -202,7 +202,7 @@ func stringToTime(vec *vector.String, index []uint32) (vector.Any, []uint32) {
 			ts = append(ts, gotime.UnixNano())
 		}
 	}
-	return vector.NewInt(super.TypeTime, ts), errs
+	return vector.NewInt(super.TypeTimestamp, ts), errs
 }
 
 func stringToUint(vec *vector.String, typ super.Type, index []uint32) (vector.Any, []uint32) {

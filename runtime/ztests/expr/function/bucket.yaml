@@ -6,9 +6,9 @@ input: |
   {t:3s,bin:2s}
   {t:null,bin:2s}
   {t:2020-05-26T15:27:47Z,bin:null}
-  {t:2020-05-26T15:27:47Z::(time|null),bin:1h::(duration|null)}
-  {t:2020-05-26T15:27:47Z::(time|null),bin:null::(duration|null)}
-  {t:null::(time|null),bin:1h::(duration|null)}
+  {t:2020-05-26T15:27:47Z::(timestamp|null),bin:1h::(duration|null)}
+  {t:2020-05-26T15:27:47Z::(timestamp|null),bin:null::(duration|null)}
+  {t:null::(timestamp|null),bin:1h::(duration|null)}
   {t:"foo",bin:2s}
   {t:1h,bin:"bar"}
 

@@ -34,6 +34,9 @@ func To(sctx *super.Context, vec vector.Any, typ super.Type) vector.Any {
 	case vector.KindError:
 		return vec
 	}
+	if super.IsUnimplemented(typ) {
+		return errCastFailed(sctx, vec, typ, "type not yet implemented")
+	}
 	var c caster
 	id := typ.ID()
 	if super.IsNumber(id) {

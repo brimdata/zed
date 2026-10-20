@@ -41,7 +41,7 @@ func GetTableStats(ctx context.Context, t *db.Table, snap commits.View) (info Ta
 	//XXX need to change API to take return key range
 	if tableSpan != nil {
 		min := tableSpan.First()
-		if min.Type() == super.TypeTime {
+		if min.Type() == super.TypeTimestamp {
 			firstTs := super.DecodeTime(min.Bytes())
 			lastTs := super.DecodeTime(tableSpan.Last().Bytes())
 			if lastTs < firstTs {
@@ -80,7 +80,7 @@ func GetBranchStats(ctx context.Context, b *db.Branch, snap commits.View) (info 
 	//XXX need to change API to take return key range
 	if tableSpan != nil {
 		min := tableSpan.First()
-		if min.Type() == super.TypeTime {
+		if min.Type() == super.TypeTimestamp {
 			firstTs := super.DecodeTime(min.Bytes())
 			lastTs := super.DecodeTime(tableSpan.Last().Bytes())
 			if lastTs < firstTs {

@@ -2,6 +2,7 @@ package super
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 	"sync"
 
@@ -73,6 +74,43 @@ func (t *TypeEnum) Lookup(symbol string) int {
 
 func (t *TypeEnum) Kind() Kind {
 	return EnumKind
+}
+
+// TypeDecimal is the type of decimal(p,s) values, which have precision p
+// (the total number of decimal digits) and scale s (the number of digits to
+// the right of the decimal point).  A decimal value is encoded as its unscaled
+// integer value (i.e., the value times 10^s) using the signed integer encoding.
+// Values of decimal types are not yet implemented.
+type TypeDecimal struct {
+	id        int
+	Precision int
+	Scale     int
+}
+
+const MaxDecimalPrecision = 38
+
+func NewTypeDecimal(id, precision, scale int) *TypeDecimal {
+	return &TypeDecimal{id, precision, scale}
+}
+
+func (t *TypeDecimal) ID() int {
+	return t.id
+}
+
+func (t *TypeDecimal) Kind() Kind {
+	return DecimalKind
+}
+
+// CheckDecimal returns an error if precision and scale are not valid
+// parameters of a decimal type.
+func CheckDecimal(precision, scale int) error {
+	if precision < 1 || precision > MaxDecimalPrecision {
+		return fmt.Errorf("decimal precision %d out of range [1,%d]", precision, MaxDecimalPrecision)
+	}
+	if scale < 0 || scale > precision {
+		return fmt.Errorf("decimal scale %d out of range [0,%d]", scale, precision)
+	}
+	return nil
 }
 
 type TypeMap struct {

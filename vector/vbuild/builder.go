@@ -29,7 +29,7 @@ func New(typ super.Type) Builder {
 		*super.TypeOfInt32,
 		*super.TypeOfInt64,
 		*super.TypeOfDuration,
-		*super.TypeOfTime:
+		*super.TypeOfTimestamp:
 		return &genericBuilder[int64]{
 			valuesOf: func(vec vector.Any) []int64 { return vec.(*vector.Int).Values },
 			build: func(vals []int64) vector.Any {
@@ -77,6 +77,10 @@ func New(typ super.Type) Builder {
 		return &missingBuilder{}
 	case *super.TypeOfNone:
 		return &noneBuilder{}
+	case *super.TypeOfUnimplemented, *super.TypeDecimal:
+		// Vectors of these types are always empty as values are
+		// represented as errors (see super.Context.NewUnimplemented).
+		return &emptyBuilder{typ}
 	case *super.TypeRecord:
 		return newRecordBuilder(typ)
 	case *super.TypeArray, *super.TypeSet:
