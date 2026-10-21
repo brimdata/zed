@@ -1,8 +1,0 @@
-script: |
-  export XDG_DATA_HOME=path/to/db
-  super db init
-
-outputs:
-  - name: stdout
-    regexp: |
-      database created: /.*path/to/db/super

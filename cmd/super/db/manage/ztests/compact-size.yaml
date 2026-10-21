@@ -4,8 +4,8 @@
 skip: need to address defusion of any values
 
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q -use -orderby ts:asc -S 800B test
   seq 0 50 | super -c '{ts:this,x:1}' - | super db load -q -
   seq 100 150 | super -c '{ts:this,x:1}' - | super db load -q -

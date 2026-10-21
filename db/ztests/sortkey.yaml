@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q p1
   echo "2 1 3"  | super db load -q -use p1 -
   super db -s -c "from p1"

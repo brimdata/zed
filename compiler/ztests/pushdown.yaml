@@ -18,8 +18,8 @@ script: |
   echo === where
   super compile -C -O -dynamic "from /dev/null | a==1 or e==2 | values c, b, d"
   echo ===
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q -orderby ts table-ts
   scrub() { sed -E 's/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/xxx/g'; }
   super db compile -C -O "from 'table-ts' | x=='hello' or x==1.0 | values a" | scrub

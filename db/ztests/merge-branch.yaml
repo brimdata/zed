@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -use -q -orderby k TABLE
   super db load -q -message "initial load of a.sup into main" a.sup
   super db branch -q child

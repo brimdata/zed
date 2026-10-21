@@ -45,8 +45,8 @@ but you can also run Hello World with a database.
 
 To create a database and populate it with data, run the following commands:
 ```
-export SUPER_DB=./scratch
-super db init
+super db init ./scratch
+super db attach ./scratch
 super db create Demo
 echo '{Message:"hello, world"}' | super db load -use Demo -
 ```
@@ -64,15 +64,16 @@ and you should see
 
 With your database in the `./scratch` directory, you can also
 run Hello World as a client talking to a SuperDB server instance.
-Continuing the example above (with the `SUPER_DB` environment pointing to `./scratch`),
-run a service as follows:
+Continuing the example above,
+run a service on the `./scratch` database as follows:
 ```
 super db serve scratch
 ```
 This command runs continuously in the foreground and logs to standard output.
 
-In another window (without `SUPER_DB` defined), run `super` as a client talking
-to the service input as follows:
+In another window, attach to the service and run `super` as a client talking
+to it as follows:
 ```
+super db attach http://localhost:9867
 super db -c "from Demo"
 ```

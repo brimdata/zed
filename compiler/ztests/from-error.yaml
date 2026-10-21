@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   ! super db compile -C -dag 'from test'
   echo === >&2
   ! super db compile -C -dag 'from test*'

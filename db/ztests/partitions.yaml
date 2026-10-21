@@ -4,8 +4,8 @@ skip: panics
 # into partitions.
 
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q -orderby k:asc tmp
   super db use -q tmp
   echo '{k:1}' | super db load -q -

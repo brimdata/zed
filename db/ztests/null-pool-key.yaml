@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   for o in asc desc; do
     echo // $o
     super db create -q -orderby k:$o $o

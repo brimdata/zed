@@ -1,0 +1,15 @@
+script: |
+  export SUPER_DB=ignored
+  ! super db init
+  ! super db init a b
+  super db init -q a
+  ! super db -attach a init
+
+outputs:
+  - name: stderr
+    data: |
+      init requires one argument: the path to the database root
+      init requires one argument: the path to the database root
+      init requires one argument: the path to the database root
+  - name: stdout
+    data: ""

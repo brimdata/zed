@@ -28,5 +28,12 @@ awaitfile $portdir/db
 
 trap "rm -rf $portdir; kill $db_pid;" EXIT
 
-export SUPER_DB=http://localhost:$(cat $portdir/db)
+export DB_URL=http://localhost:$(cat $portdir/db)
 export DB_PATH=$db_root
+
+# Attach the CLI to the service unless auth is enabled, in which case attach
+# would start a login, so the test must attach with credentials itself.
+case "$DB_EXTRA_FLAGS" in
+  *-auth.enabled=true*) ;;
+  *) super db attach -q $DB_URL ;;
+esac

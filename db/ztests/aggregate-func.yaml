@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q -orderby s:asc data
   head -2 in.sup | super db load -q -use data -
   tail -3 in.sup | super db load -q -use data -

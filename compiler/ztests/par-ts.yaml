@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q -orderby ts test
   echo "<CUT PUT RENAME>"
   super db compile -C -P 2 "from test | cut ts, y, z | put x := y | rename y := z" | sed -e 's/table .*/.../'

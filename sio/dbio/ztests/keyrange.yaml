@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -orderby a TABLE
   super db load -q -use TABLE in.sup
   super db -s -c "from TABLE@main:rawlog"

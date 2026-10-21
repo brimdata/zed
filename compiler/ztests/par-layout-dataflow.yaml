@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q -orderby ts:asc ASC
   super db create -q -orderby ts:desc DESC
   super db compile -C -P 2 "from ASC | cut x:=ts,ts:=1" | sed -e 's/table .*/.../'

@@ -1,8 +1,7 @@
 script: |
   source service.sh
   super db create -q test
-  export SUPER_DB="$SUPER_DB/"
-  super db ls
+  super db ls -attach "$DB_URL/"
 
 inputs:
   - name: service.sh

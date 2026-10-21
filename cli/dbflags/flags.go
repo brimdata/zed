@@ -19,8 +19,9 @@ import (
 )
 
 var (
-	ErrNoHEAD  = errors.New("HEAD not specified: indicate with -use or run the \"use\" command")
-	ErrLocalDB = errors.New("cannot open connection on local database")
+	ErrNoHEAD      = errors.New("HEAD not specified: indicate with -use or run the \"use\" command")
+	ErrLocalDB     = errors.New("cannot open connection on local database")
+	ErrNotAttached = errors.New(`no database attached (run "super db attach <location>" or use -attach)`)
 )
 
 type Flags struct {
@@ -75,11 +76,13 @@ func (l *Flags) Open(ctx context.Context) (api.Interface, error) {
 	}
 	DB, err := api.Connect(ctx, zap.Must(zap.NewProduction()), uri.String())
 	if errors.Is(err, db.ErrNotExist) {
-		return nil, fmt.Errorf("%w\n(hint: run 'super db init' to initialize a database at this location)", err)
+		return nil, fmt.Errorf("%w\n(hint: run 'super db init %s' to initialize a database at this location)", err, uri)
 	}
 	return DB, err
 }
 
+// URI returns the location of the database given by the -attach flag or,
+// if the flag isn't given, by the attach state written by "super db attach".
 func (l *Flags) URI() (*storage.URI, error) {
 	s := l.attach
 	if s == "" {
@@ -88,25 +91,12 @@ func (l *Flags) URI() (*storage.URI, error) {
 			return nil, err
 		}
 	}
-	if s == "" && pingLocalServer() {
-		s = "http://localhost:9867"
-	}
 	if s == "" {
-		s = os.Getenv("SUPER_DB")
-	}
-	if s == "" {
-		if s = getDefaultDataDir(); s == "" {
-			return nil, errors.New(`no database attached (run "super db attach <location>" or use -attach)`)
-		}
+		return nil, ErrNotAttached
 	}
 	return storage.ParseURI(strings.TrimRight(s, "/"))
 }
 
 func (l *Flags) AuthStore() *auth0.Store {
 	return auth0.NewStore(filepath.Join(l.ConfigDir, "credentials.json"))
-}
-
-func pingLocalServer() bool {
-	_, err := client.NewConnection().Ping(context.Background())
-	return err == nil
 }

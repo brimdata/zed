@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q -framecap 5 -objectcap 5 -orderby addr:asc logs
   super db load -q -use logs -inputcap 5 in.sup
   super db -s -c 'from logs | cut addr'

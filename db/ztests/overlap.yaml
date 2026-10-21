@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -use -q -orderby ts:desc logs
   super db load -q babble-split1.sup
   super db load -q babble-split2.sup

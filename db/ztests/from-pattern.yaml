@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   for table in match1 match2 nope; do
     super db create -q $table
     echo "\"$table\"" | super db load -q -use $table -

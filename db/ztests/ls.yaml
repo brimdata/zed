@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db ls -s
   echo ===
   super db create -q -orderby ts:desc logs

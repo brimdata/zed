@@ -65,14 +65,18 @@ at a specific point in time.
 
 A service endpoint is instantiated with the [serve](#super-db-serve) subcommand.
 
-You _connect_ to a database by setting the
-`SUPER_DB` environment variable to point at a particular database,
-which may be:
+You _connect_ to a database with the [super db attach](#super-db-attach)
+command, or for a single command with the `-attach` option, by giving
+the location of a database, which may be:
 * the storage path of a database (i.e., S3 URL or file system path), or
 * an HTTPS URL that points to a SuperDB service endpoint.
 
-In the case of a service endpoint, authentication may be performed with the
-[super db attach](#super-db-attach) command.
+In the case of a service endpoint, `attach` also performs any
+authentication the service requires.
+
+The [init](#super-db-init) and [serve](#super-db-serve) commands do not
+use the attached database. They always take the path to the root of the
+database as an argument.
 
 ### Committish
 
@@ -398,15 +402,15 @@ without confirmation.
 ### super db init
 
 ```
-super db init [path]
+super db init <path>
 ```
 * [Global](options.md#global)
 * [Database](options.md#database)
 
-A new database is created and initialized with the `init` command.
-The `path` argument is a storage path
-and is optional.  If not present, the path
-is [determined automatically](#database-connection).
+A new empty database is created and initialized with the `init` command.
+The required `path` argument is the storage path of the root of the
+new database, i.e., a file system path or an S3 URL.
+`init` does not use the attached database.
 
 If the database already exists, `init` reports an error and does nothing.
 
@@ -687,7 +691,7 @@ additional revert operation.
 ### super db serve
 
 ```
-super db serve [options]
+super db serve [options] <path>
 ```
 
 * `-auth.audience` [Auth0](https://auth0.com/) audience for API clients (will be publicly accessible)
@@ -710,6 +714,9 @@ super db serve [options]
 The `super db serve` command runs continuously and services
 SuperDB API requests on the interface and port
 specified by the `-l` option, executes the requests, and returns results.
+The required `path` argument is the storage path of the
+database to serve. Any previously attached database is not relevant
+to this command.
 
 The `-log.level` option controls log verbosity.  Available levels, ordered
 from most to least verbose, are `debug`, `info` (the default), `warn`,

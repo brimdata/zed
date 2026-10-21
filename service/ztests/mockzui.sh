@@ -40,7 +40,8 @@ mockzuipid=$!
 awaitfile $tempdir/port
 awaitfile $tempdir/pid
 
-export SUPER_DB=http://localhost:$(cat $tempdir/port)
+export DB_URL=http://localhost:$(cat $tempdir/port)
+super db attach -q $DB_URL
 export DB_PID=$(cat $tempdir/pid)
 export MOCKZUI_PID=$mockzuipid
 

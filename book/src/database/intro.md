@@ -203,23 +203,19 @@ all adhere to the consistency semantics of the database.
 
 ### Locating the Database
 
-At times you may want `super db` commands to access the same database storage
-used by other tools such as [SuperDB Desktop](https://zui.brimdata.io/). To help
-enable this by default while allowing for separate storage when desired,
-`super db` checks each of the following in order to attempt to locate an existing
-database.
+`super db` commands locate the database in one of two ways:
 
-1. The contents of the `-attach` option (if specified)
-2. The currently attached database in `~/.super_attach` (written by super db attach)
-3. A database service running locally at `http://localhost:9867` (if a socket
-   is listening at that port)
-4. The contents of the `SUPER_DB` environment variable (if defined)
-5. A `super` subdirectory below a path in the
-   `XDG_DATA_HOME` **TODO: add link to basedir spec**
-   environment variable (if defined)
-6. A default file system location based on detected OS platform:
-   - `%LOCALAPPDATA%\super` on Windows
-   - `$HOME/.local/share/super` on Linux and macOS
+1. The database given by the `-attach` option, which applies to that
+   command only, or otherwise
+2. The currently attached database in `~/.super_attach`, which is written by
+   [super db attach](../command/db.md#super-db-attach).
+
+If neither is present, the command reports that no database is attached.
+There is no default location.
+
+The [init](../command/db.md#super-db-init) and
+[serve](../command/db.md#super-db-serve) commands do not locate a database
+this way.  Each takes the path to the root of the database as an argument.
 
 ### Tables
 

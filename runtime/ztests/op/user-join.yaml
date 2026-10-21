@@ -4,8 +4,8 @@
 skip: "incompatible with new join"
 
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q -orderby flavor:asc fruit
   super db create -q -orderby likes:asc people
   super db load -q -use fruit fruit.sup

@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -use -q test
   ! super db delete -where 'me == "hi" | cut me'
   ! super db delete -where 'cut that'

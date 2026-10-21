@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q -orderby a:asc tableA
   super db create -q -orderby b:desc tableB
   super db load -q -use tableA a.sup

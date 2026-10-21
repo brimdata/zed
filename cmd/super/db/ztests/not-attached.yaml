@@ -1,0 +1,20 @@
+# With no -attach flag and no attach state, db commands report an error
+# rather than falling back to a default location or a local service.
+script: |
+  export XDG_DATA_HOME=xdg
+  mkdir -p xdg/super
+  ! super db ls
+  ! super db attach
+  super db init -q test
+  super db ls -attach test
+  super db attach -q test
+  super db attach | sed 's#.*/test$#Attached to .../test#'
+
+outputs:
+  - name: stderr
+    data: |
+      no database attached (run "super db attach <location>" or use -attach)
+      no database attached (run "super db attach <location>" or use -attach)
+  - name: stdout
+    data: |
+      Attached to .../test
