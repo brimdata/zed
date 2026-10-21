@@ -2,6 +2,7 @@ package loader
 
 import (
 	"sync"
+	"uuid"
 
 	"github.com/superdb/super"
 	"github.com/superdb/super/bsup"
@@ -34,6 +35,12 @@ func (b *bytes) project(loader *FrameLoader, projection field.Projection) vector
 		vec = vector.NewString(table)
 	case super.IDBytes:
 		vec = vector.NewBytes(table)
+	case super.IDUUID:
+		vals := make([]uuid.UUID, table.Len())
+		for k := range vals {
+			vals[k] = super.DecodeUUID(table.Bytes(uint32(k)))
+		}
+		vec = vector.NewUUID(vals)
 	default:
 		panic(b.meta.Typ)
 	}

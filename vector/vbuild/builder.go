@@ -2,6 +2,7 @@ package vbuild
 
 import (
 	"net/netip"
+	"uuid"
 
 	"github.com/superdb/super"
 	"github.com/superdb/super/vector"
@@ -50,6 +51,13 @@ func New(typ super.Type) Builder {
 	case *super.TypeOfString,
 		*super.TypeOfBytes:
 		return newBytesBuilder(typ)
+	case *super.TypeOfUUID:
+		return &genericBuilder[uuid.UUID]{
+			valuesOf: func(vec vector.Any) []uuid.UUID { return vec.(*vector.UUID).Values },
+			build: func(vals []uuid.UUID) vector.Any {
+				return vector.NewUUID(vals)
+			},
+		}
 	case *super.TypeOfIP:
 		return &genericBuilder[netip.Addr]{
 			valuesOf: func(vec vector.Any) []netip.Addr { return vec.(*vector.IP).Values },

@@ -63,6 +63,8 @@ func (c *Compare) eval(vecs ...vector.Any) vector.Any {
 		return c.compareBool(lhs, rhs)
 	case vector.KindIP:
 		return c.compareIPs(lhs, rhs)
+	case vector.KindUUID:
+		return c.compareUUIDs(lhs, rhs)
 	case vector.KindNet:
 		return c.compareNets(lhs, rhs)
 	case vector.KindType:
@@ -142,6 +144,16 @@ func (c *Compare) compareIPs(lhs, rhs vector.Any) vector.Any {
 		l := vector.IPValue(lhs, i)
 		r := vector.IPValue(rhs, i)
 		if isCompareOpSatisfied(c.opCode, l.Compare(r)) {
+			out.Set(i)
+		}
+	}
+	return out
+}
+
+func (c *Compare) compareUUIDs(lhs, rhs vector.Any) vector.Any {
+	out := vector.NewFalse(lhs.Len())
+	for i := range lhs.Len() {
+		if isCompareOpSatisfied(c.opCode, vector.UUIDValue(lhs, i).Compare(vector.UUIDValue(rhs, i))) {
 			out.Set(i)
 		}
 	}

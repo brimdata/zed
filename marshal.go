@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"uuid"
 
 	"github.com/superdb/super/pkg/nano"
 	"github.com/superdb/super/scode"
@@ -204,6 +205,9 @@ func (m *Marshaler) encodeAny(v reflect.Value) (Type, error) {
 			m.builder.Append(EncodeIP(a))
 			return TypeIP, nil
 		}
+	case uuid.UUID:
+		m.builder.Append(EncodeUUID(v))
+		return TypeUUID, nil
 	case time.Time:
 		m.builder.Append(EncodeTime(nano.TimeToTs(v)))
 		return TypeTimestamp, nil
@@ -432,7 +436,9 @@ func (m *Marshaler) lookupType(t reflect.Type) (Type, error) {
 	var typ Type
 	switch t.Kind() {
 	case reflect.Array, reflect.Slice:
-		if t.Elem().Kind() == reflect.Uint8 {
+		if t == uuidType {
+			typ = TypeUUID
+		} else if t.Elem().Kind() == reflect.Uint8 {
 			typ = TypeBytes
 		} else {
 			inner, err := m.lookupType(t.Elem())
@@ -536,7 +542,7 @@ func (m *Marshaler) lookupTypeNamed(t reflect.Type, typ Type) (Type, error) {
 	// it's already been converted to a time type;
 	// likewise for Value, which gets encoded as
 	// itself and its own named type if it has one.
-	if t == nanoTsType || t == superValueType || t == netipAddrType || t == netIPType {
+	if t == nanoTsType || t == superValueType || t == netipAddrType || t == netIPType || t == uuidType {
 		return typ, nil
 	}
 	name := t.Name()
@@ -621,6 +627,7 @@ func (u *Unmarshaler) NamedBindings(bindings []Binding) error {
 
 var netipAddrType = reflect.TypeFor[netip.Addr]()
 var netIPType = reflect.TypeFor[net.IP]()
+var uuidType = reflect.TypeFor[uuid.UUID]()
 
 func (u *Unmarshaler) decodeAny(val Value, v reflect.Value) (x error) {
 	if !v.IsValid() {
@@ -666,6 +673,9 @@ func (u *Unmarshaler) decodeAny(val Value, v reflect.Value) (x error) {
 	}
 	switch v.Kind() {
 	case reflect.Array:
+		if v.Type() == uuidType {
+			return u.decodeUUID(val, v)
+		}
 		return u.decodeArray(val, v)
 	case reflect.Map:
 		return u.decodeMap(val, v)
@@ -810,6 +820,22 @@ func (u *Unmarshaler) decodeNetipAddr(val Value, v reflect.Value) error {
 		return incompatTypeError(val.Type(), v)
 	}
 	v.Set(reflect.ValueOf(DecodeIP(val.Bytes())))
+	return nil
+}
+
+func (u *Unmarshaler) decodeUUID(val Value, v reflect.Value) error {
+	switch TypeUnder(val.Type()) {
+	case TypeUUID:
+	case TypeBytes:
+		// Accept the 16-byte form so UUIDs serialized as bytes before
+		// the uuid type existed can still be decoded.
+		if len(val.Bytes()) != 16 {
+			return incompatTypeError(val.Type(), v)
+		}
+	default:
+		return incompatTypeError(val.Type(), v)
+	}
+	v.Set(reflect.ValueOf(DecodeUUID(val.Bytes())))
 	return nil
 }
 
@@ -1139,6 +1165,8 @@ func (u *Unmarshaler) lookupPrimitiveType(typ Type) (reflect.Type, error) {
 		v = float64(0)
 	case *TypeOfIP:
 		v = netip.Addr{}
+	case *TypeOfUUID:
+		v = uuid.UUID{}
 	case *TypeOfNet:
 		v = net.IPNet{}
 	case *TypeOfTimestamp:

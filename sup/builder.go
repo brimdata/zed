@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 	"unicode/utf8"
+	"uuid"
 
 	"github.com/superdb/super"
 	"github.com/superdb/super/pkg/nano"
@@ -143,6 +144,13 @@ func BuildPrimitive(b *scode.Builder, val Primitive) error {
 			return fmt.Errorf("invalid utf8 string: %q", val.text)
 		}
 		b.Append(norm.NFC.Bytes(body))
+		return nil
+	case *super.TypeOfUUID:
+		u, err := uuid.Parse(val.text)
+		if err != nil {
+			return fmt.Errorf("invalid uuid: %s", val.text)
+		}
+		b.Append(super.EncodeUUID(u))
 		return nil
 	case *super.TypeOfIP:
 		ip, err := netip.ParseAddr(val.text)

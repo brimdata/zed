@@ -1,24 +1,17 @@
-spq: uuid(this)
-
-input: |
-  "01a11990-01e2-7cb4-a33f-d3f97191b61a"
-  0x017f22e279b07cc398c4dc0c0c07398f
-  null
-  "invalid uuid"
-  0x017f22e279b07cc398c4dc0c0c0739
-  1
+# uuid() returns a new version 7 UUID.  Conversions between uuid, string,
+# and bytes are done with cast.
+spq: values typeof(uuid()), len(uuid()::bytes), uuid() != uuid()
 
 output: |
-  0x01a1199001e27cb4a33fd3f97191b61a
-  "017f22e2-79b0-7cc3-98c4-dc0c0c07398f"
-  null
-  error({message:"uuid: invalid uuid value",on:"invalid uuid"})
-  error({message:"uuid: invalid uuid value",on:0x017f22e279b07cc398c4dc0c0c0739})
-  error({message:"uuid: argument must a bytes or string type",on:1})
+  <uuid>
+  16
+  true
 
 ---
 
-spq: len(uuid())
+spq: values uuid(1)
 
-output: |
-  16
+error: |
+  too many arguments at line 1, column 8:
+  values uuid(1)
+         ~~~~~~~

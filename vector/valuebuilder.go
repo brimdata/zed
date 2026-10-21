@@ -3,6 +3,7 @@ package vector
 import (
 	"net/netip"
 	"slices"
+	"uuid"
 
 	"github.com/RoaringBitmap/roaring/v2"
 	"github.com/superdb/super"
@@ -76,6 +77,8 @@ func NewValueBuilder(typ super.Type) ValueBuilder {
 		return newBytesStringValueBuilder(typ)
 	case *super.TypeOfIP:
 		return &ipValueBuilder{}
+	case *super.TypeOfUUID:
+		return &uuidValueBuilder{}
 	case *super.TypeOfNet:
 		return &netValueBuilder{}
 	case *super.TypeOfType:
@@ -484,6 +487,18 @@ func (b *bytesStringValueBuilder) Build(sctx *super.Context) Any {
 	default:
 		panic(b.typ)
 	}
+}
+
+type uuidValueBuilder struct {
+	values []uuid.UUID
+}
+
+func (u *uuidValueBuilder) Write(bytes scode.Bytes) {
+	u.values = append(u.values, super.DecodeUUID(bytes))
+}
+
+func (u *uuidValueBuilder) Build(*super.Context) Any {
+	return NewUUID(u.values)
 }
 
 type ipValueBuilder struct {

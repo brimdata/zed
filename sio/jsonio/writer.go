@@ -241,6 +241,8 @@ func (w *Writer) writePrimitive(val super.Value) {
 		v = super.DecodeIP(val.Bytes()).String()
 	case id == super.IDNet:
 		v = super.DecodeNet(val.Bytes()).String()
+	case id == super.IDUUID:
+		v = super.DecodeUUID(val.Bytes()).String()
 	case id == super.IDType:
 		v = sup.FormatValue(val)
 	case id == super.IDMissing || id == super.IDNone:

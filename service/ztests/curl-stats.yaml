@@ -1,7 +1,7 @@
 script: |
   source service.sh
   curl -X POST -d '{"name":"test","sort_keys":[{"order":"desc","path":["ts"]}]}' $SUPER_DB/table > table.json
-  tableID=$(super -f line -c 'values uuid(table.id)' table.json)
+  tableID=$(super -f line -c 'values table.id' table.json)
   curl -X POST -d @- $SUPER_DB/table/$tableID/branch/main > load.json
   curl $SUPER_DB/table/$tableID/stats
 

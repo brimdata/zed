@@ -8,6 +8,7 @@ import (
 	"net/netip"
 	"strconv"
 	"time"
+	"uuid"
 
 	"github.com/superdb/super"
 	"github.com/superdb/super/compiler/ast"
@@ -187,6 +188,8 @@ func (p *Parser) matchPrimitive() (*ast.Primitive, error) {
 		typ = "bool"
 	} else if s == "null" || s == "missing" || s == "none" {
 		typ = s
+	} else if _, err := uuid.Parse(s); err == nil && len(s) == 36 {
+		typ = "uuid"
 	} else if _, err := strconv.ParseInt(s, 10, 64); err == nil {
 		typ = "int64"
 	} else if _, err := strconv.ParseUint(s, 10, 64); err == nil {

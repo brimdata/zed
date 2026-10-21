@@ -92,6 +92,7 @@ var (
 	TypeString    = &TypeOfString{}
 	TypeIP        = &TypeOfIP{}
 	TypeNet       = &TypeOfNet{}
+	TypeUUID      = &TypeOfUUID{}
 	TypeType      = &TypeOfType{}
 	TypeNull      = &TypeOfNull{}
 	TypeMissing   = &TypeOfMissing{}
@@ -117,7 +118,6 @@ var (
 	TypeTime6         = &TypeOfUnimplemented{IDTime6, "time(6)"}
 	TypeTime          = &TypeOfUnimplemented{IDTime, "time"}
 	TypeInterval      = &TypeOfUnimplemented{IDInterval, "interval"}
-	TypeUUID          = &TypeOfUnimplemented{IDUUID, "uuid"}
 	TypeGeometry      = &TypeOfUnimplemented{IDGeometry, "geometry"}
 	TypeGeography     = &TypeOfUnimplemented{IDGeography, "geography"}
 )
@@ -138,7 +138,6 @@ var unimplementedTypes = []*TypeOfUnimplemented{
 	TypeTime6,
 	TypeTime,
 	TypeInterval,
-	TypeUUID,
 	TypeGeometry,
 	TypeGeography,
 }
@@ -292,6 +291,8 @@ func LookupPrimitive(name string) Type {
 		return TypeNone
 	case "all":
 		return TypeAll
+	case "uuid":
+		return TypeUUID
 	case "timestamp_ntz(9)":
 		return TypeTimestampNTZ
 	case "time(9)":
@@ -353,6 +354,8 @@ func PrimitiveName(typ Type) string {
 		return "none"
 	case *TypeOfAll:
 		return "all"
+	case *TypeOfUUID:
+		return "uuid"
 	case *TypeOfUnimplemented:
 		return typ.(*TypeOfUnimplemented).name
 	default:
@@ -414,6 +417,8 @@ func LookupPrimitiveByID(id int) (Type, error) {
 		return TypeNone, nil
 	case IDAll:
 		return TypeAll, nil
+	case IDUUID:
+		return TypeUUID, nil
 	}
 	for _, typ := range unimplementedTypes {
 		if typ.id == id {

@@ -569,6 +569,8 @@ func formatPrimitive(b *strings.Builder, typ super.Type, bytes scode.Bytes) {
 		b.WriteString(QuotedString(string(bytes)))
 	case *super.TypeOfIP:
 		b.WriteString(super.DecodeIP(bytes).String())
+	case *super.TypeOfUUID:
+		b.WriteString(super.DecodeUUID(bytes).String())
 	case *super.TypeOfNet:
 		b.WriteString(super.DecodeNet(bytes).String())
 	case *super.TypeOfType:

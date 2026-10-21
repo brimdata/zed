@@ -3,7 +3,7 @@ script: |
   super db init -q
   super db create -use -q -orderby x:desc test
   super db load -q 1.sup
-  id=$(super db -f line -c "from test@main:objects | values uuid(id)")
+  id=$(super db -f line -c "from test@main:objects | values id")
   super db load -q 2.sup
   super db -s -c "from test"
   echo === | tee /dev/stderr

@@ -38,6 +38,8 @@ func (e *Empty) Kind() Kind {
 			return KindString
 		case *super.TypeOfIP:
 			return KindIP
+		case *super.TypeOfUUID:
+			return KindUUID
 		case *super.TypeOfNet:
 			return KindNet
 		case *super.TypeOfType:

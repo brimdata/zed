@@ -13,7 +13,6 @@ spq: |
     <time>,
     <time(6)>,
     <interval>,
-    <uuid>,
     <geometry>,
     <geography>,
     <int128>,
@@ -37,7 +36,6 @@ output: |
   <time>
   <time(6)>
   <interval>
-  <uuid>
   <geometry>
   <geography>
   <int128>
@@ -65,7 +63,7 @@ spq: pass
 flags: -i sup
 
 input: &input |
-  <{a:decimal(10,2),b:timestamp(3),c:timestamp_ntz,d:time(6),e:date,f:interval,g:uuid}>
+  <{a:decimal(10,2),b:timestamp(3),c:timestamp_ntz,d:time(6),e:date,f:interval}>
 
 output: *input
 

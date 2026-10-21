@@ -312,6 +312,30 @@ func (w *Writer) fastSortWithKey(vec, key vector.Any, o order.Which) (vector.Any
 			minVal, maxVal = maxVal, minVal
 		}
 		return vector.NewView(vec, idx), super.NewBytes(minVal), super.NewBytes(maxVal)
+	case *vector.UUID:
+		idx := make([]uint32, len(key.Values))
+		for k := range idx {
+			idx[k] = uint32(k)
+		}
+		slices.SortStableFunc(idx, func(a, b uint32) int {
+			if o == order.Desc {
+				a, b = b, a
+			}
+			return key.Values[a].Compare(key.Values[b])
+		})
+		minVal := key.Values[0]
+		maxVal := key.Values[0]
+		for _, val := range key.Values[1:] {
+			if val.Compare(minVal) < 0 {
+				minVal = val
+			} else if val.Compare(maxVal) > 0 {
+				maxVal = val
+			}
+		}
+		if o == order.Desc {
+			minVal, maxVal = maxVal, minVal
+		}
+		return vector.NewView(vec, idx), super.NewUUID(minVal), super.NewUUID(maxVal)
 	case *vector.IP:
 		idx := make([]uint32, len(key.Values))
 		for k := range idx {

@@ -18,7 +18,7 @@ func TestNewUnimplemented(t *testing.T) {
 }
 
 func TestReservedTypeIDs(t *testing.T) {
-	for _, name := range []string{"uint128", "int128", "timestamp(0)", "timestamp(3)", "timestamp(6)", "timestamp", "timestamp_ntz", "date", "time", "interval", "uuid", "geometry", "geography"} {
+	for _, name := range []string{"uint128", "int128", "timestamp(0)", "timestamp(3)", "timestamp(6)", "timestamp", "timestamp_ntz", "date", "time", "interval", "geometry", "geography"} {
 		typ := super.LookupPrimitive(name)
 		require.NotNil(t, typ, name)
 		require.Equal(t, name, super.PrimitiveName(typ))
