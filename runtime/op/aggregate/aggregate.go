@@ -83,6 +83,11 @@ func (a *Aggregate) Pull(done bool) (vector.Any, error) {
 			}
 		}
 		vector.Apply(vector.ApplyRipUnions|vector.ApplyRipFusions, func(args ...vector.Any) vector.Any {
+			// XXX need to call Catch here on args and keys and push errors out of the table here
+			// in addition to the table results at the end.  agg func Consume methods should
+			// decide whether they want to process the errors (like collect?) or have the errors
+			// pushed (e.g., count, sum, etc)... I think the errors should always be pushed.
+			// This will be addressed n a subsequent PR.
 			a.consume(args[:len(keys)], args[len(keys):])
 			// XXX Perhaps there should be a "consume" version of Apply where
 			// no return value is expected.

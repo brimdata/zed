@@ -9,7 +9,7 @@ import (
 
 type Grep struct {
 	sctx    *super.Context
-	grep    expr.Evaluator
+	expr    expr.Evaluator
 	pattern string
 }
 
@@ -21,23 +21,30 @@ func (g *Grep) Call(args ...vector.Any) vector.Any {
 	if inputVec.Len() == 0 {
 		return vector.NewFalse(0)
 	}
+	if vec, ok := expr.Catch(g.sctx, expr.CatchAll, patternVec, "grep"); ok {
+		return vec
+	}
+	if vec, ok := expr.Catch(g.sctx, expr.CatchAll, inputVec, "grep"); ok {
+		return vec
+	}
 	if _, ok := vector.Under(patternVec).(*vector.Const); ok {
 		pattern := vector.StringValue(patternVec, 0)
-		if g.grep == nil || g.pattern != pattern {
+		if g.expr == nil || g.pattern != pattern {
 			pattern = norm.NFC.String(pattern)
-			g.grep = expr.NewSearchString(pattern, &expr.This{})
+			g.expr = expr.NewSearchString(g.sctx, pattern, &expr.This{})
 			g.pattern = pattern
 		}
-		return g.grep.Eval(inputVec)
+		return g.expr.Eval(inputVec)
 	}
 	var index [1]uint32
 	out := vector.NewFalse(patternVec.Len())
 	for i := range patternVec.Len() {
 		pattern := vector.StringValue(patternVec, i)
 		pattern = norm.NFC.String(pattern)
-		search := expr.NewSearchString(pattern, &expr.This{})
+		search := expr.NewSearchString(g.sctx, pattern, &expr.This{})
 		index[0] = i
-		if vector.BoolValue(search.Eval(vector.Pick(inputVec, index[:])), 0) {
+		v := search.Eval(vector.Pick(inputVec, index[:]))
+		if vector.BoolValue(v, 0) {
 			out.Set(i)
 		}
 	}

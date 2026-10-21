@@ -170,7 +170,7 @@ func New(sctx *super.Context, name string, narg int) (expr.Function, error) {
 	case "unblend":
 		f = &Unblend{sctx}
 	case "under":
-		f = &Under{}
+		f = &Under{sctx}
 	case "unwrap":
 		f = newUnwrap(sctx)
 	case "unflatten":

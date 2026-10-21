@@ -12,6 +12,7 @@ import (
 )
 
 type search struct {
+	sctx       *super.Context
 	e          Evaluator
 	vectorPred func(vector.Any) vector.Any
 	stringPred func([]byte) bool
@@ -41,22 +42,30 @@ func NewSearch(sctx *super.Context, s string, val super.Value, e Evaluator) Eval
 		}
 		return eq.eval(vec, vector.NewConstFromValue(sctx, val, vec.Len()))
 	}
-	return &search{e, vectorPred, stringPred}
+	return &search{sctx, e, vectorPred, stringPred}
 }
 
-func NewSearchRegexp(re *regexp.Regexp, e Evaluator) Evaluator {
-	return &search{e, nil, re.Match}
+func NewSearchRegexp(sctx *super.Context, re *regexp.Regexp, e Evaluator) Evaluator {
+	return &search{sctx, e, nil, re.Match}
 }
 
-func NewSearchString(s string, e Evaluator) Evaluator {
+func NewSearchString(sctx *super.Context, s string, e Evaluator) Evaluator {
 	pred := func(b []byte) bool {
 		return expr.StringContainsFold(string(b), s)
 	}
-	return &search{e, nil, pred}
+	return &search{sctx, e, nil, pred}
 }
 
+// Eval searches the result of s.e.  Errors, nulls, nones, and missings that
+// s.e itself produces are caught here, type by type, rather than searched.
+// Values nested inside the result are data to search (see eval).
 func (s *search) Eval(this vector.Any) vector.Any {
-	return s.applyEval(s.e.Eval(this))
+	return vector.Apply(vector.ApplyRipFusions|vector.ApplyRipUnions, func(vecs ...vector.Any) vector.Any {
+		if out, ok := Catch(s.sctx, CatchAll & ^CatchOption, vecs[0], "search"); ok {
+			return out
+		}
+		return s.applyEval(vecs[0])
+	}, s.e.Eval(this))
 }
 
 func (s *search) applyEval(vec vector.Any) vector.Any {
@@ -65,6 +74,11 @@ func (s *search) applyEval(vec vector.Any) vector.Any {
 
 func (s *search) eval(vecs ...vector.Any) vector.Any {
 	vec := vector.Under(vecs[0])
+	// Search doesn't defuse so we need to check for missings (and of course
+	// none never matches a search).
+	if k := vec.Kind(); k == vector.KindMissing || k == vector.KindNone {
+		return vector.NewFalse(vec.Len())
+	}
 	typ := vec.Type()
 	if typ.Kind() == super.PrimitiveKind {
 		return s.match(vec)
@@ -82,7 +96,8 @@ func (s *search) eval(vecs ...vector.Any) vector.Any {
 			if index != nil {
 				f = vector.Pick(f, index)
 			}
-			if vec2 := s.applyEval(f); vec2.Kind() != vector.KindNull {
+			vec2 := s.applyEval(f)
+			if vec2.Kind() != vector.KindNull {
 				out = vector.Or(out, FlattenBool(vec2))
 			}
 		}
@@ -102,7 +117,7 @@ func (s *search) eval(vecs ...vector.Any) vector.Any {
 		}
 		return s.applyEval(vec.Any)
 	}
-	panic(vec)
+	panic(vector.Format(vec))
 }
 
 func (s *search) evalForList(vec vector.Any, offsets, index []uint32, length uint32) *vector.Bool {
@@ -164,8 +179,10 @@ func (r *regexpMatch) Eval(this vector.Any) vector.Any {
 }
 
 func (r *regexpMatch) eval(vecs ...vector.Any) vector.Any {
-	if vec, ok := Catch(r.sctx, true, vecs, "regexp"); ok {
-		return vec
+	// Catch per type, after Apply has split up any dynamic vector, so a null
+	// or error in mixed-type input is caught like one in uniform input.
+	if out, ok := Catch(r.sctx, CatchAll & ^CatchOption, vecs[0], "regexp"); ok {
+		return out
 	}
 	vec := vector.Under(vecs[0])
 	if vec.Kind() != vector.KindString {

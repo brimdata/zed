@@ -55,12 +55,12 @@ output: |
 
 ---
 
-spq: values {x?:this}
+spq: values {x:this}
 
 flags: -dynamic
 
 input: |
-  missing
+  none
 
 output: |
   {}

@@ -183,7 +183,7 @@ func indexMap(sctx *super.Context, vec, indexVec vector.Any) vector.Any {
 	}
 	vals := vector.Pick(vector.Deunion(m.Values), valIndexes)
 	if len(nones) > 0 {
-		return vector.Combine(vals, nones, vector.NewMissing(uint32(len(nones))))
+		return vector.Combine(vals, nones, vector.NewNone(uint32(len(nones))))
 	}
 	return vals
 }

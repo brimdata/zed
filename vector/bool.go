@@ -65,5 +65,5 @@ func BoolValue(vec Any, slot uint32) bool {
 	case *View:
 		return BoolValue(vec.Any, vec.Index[slot])
 	}
-	panic(vec)
+	panic(Format(vec))
 }

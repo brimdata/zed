@@ -1,0 +1,11 @@
+# A map lookup with no matching key yields none, which coalesce skips.
+
+spq: values coalesce(map{1:"one"}[k], "other")
+
+input: |
+  {k:1}
+  {k:2}
+
+output: |
+  "one"
+  "other"

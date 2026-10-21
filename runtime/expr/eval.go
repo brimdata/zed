@@ -1,8 +1,6 @@
 package expr
 
 import (
-	"fmt"
-
 	"github.com/superdb/super"
 	"github.com/superdb/super/vector"
 )
@@ -15,36 +13,83 @@ type Function interface {
 	Call(...vector.Any) vector.Any
 }
 
-// CheckForErrorThenNull returns the first element of vecs with an error
-// type. If no element has an error type, it returns the first element with the
-// null type.
-func CheckForErrorThenNull(sctx *super.Context, vecs []vector.Any, msg string) (vector.Any, bool) {
-	for _, vec := range vecs {
-		if vec.Kind() == vector.KindError {
-			return vector.NewWrappedError(sctx, fmt.Sprintf("%s: error value encountered", msg), vec), true
+const (
+	CatchOption    = 1
+	CatchNone      = 2
+	CatchError     = 4
+	CatchNull      = 8
+	CatchWrapError = 16
+	CatchAll       = CatchOption | CatchNone | CatchError | CatchNull | CatchWrapError
+	CatchBasic     = CatchError | CatchNull | CatchWrapError
+)
+
+func CatchFirst(sctx *super.Context, opts int, vecs []vector.Any, msg string) (vector.Any, bool) {
+	if nullOrErr := opts & (CatchError | CatchNull | CatchWrapError); nullOrErr != 0 {
+		if catchErr := nullOrErr & (CatchError | CatchWrapError); catchErr != 0 {
+			for _, vec := range vecs {
+				if vec, ok := Catch(sctx, catchErr, vec, msg); ok {
+					return vec, true
+				}
+			}
+		}
+		if catchNull := nullOrErr & CatchNull; catchNull != 0 {
+			for _, vec := range vecs {
+				if vec, ok := Catch(sctx, catchNull, vec, msg); ok {
+					return vec, true
+				}
+			}
 		}
 	}
-	for _, vec := range vecs {
-		if vec.Kind() == vector.KindNull {
-			return vec, true
+	if opts &= ^(CatchError | CatchNull | CatchWrapError); opts != 0 {
+		for _, vec := range vecs {
+			if vec, ok := Catch(sctx, opts, vec, msg); ok {
+				return vec, true
+			}
 		}
 	}
 	return nil, false
 }
 
-func Catch(sctx *super.Context, options bool, vecs []vector.Any, msg string) (vector.Any, bool) {
-	if vec, ok := CheckForErrorThenNull(sctx, vecs, msg); ok {
-		return vec, true
-	}
-	for _, vec := range vecs {
-		if vec.Kind() == vector.KindMissing {
-			return vector.NewStringError(sctx, fmt.Sprintf("%s: missing value not handled (consider ??)", msg), vec.Len()), true
+func Catch(sctx *super.Context, opts int, vec vector.Any, msg string) (vector.Any, bool) {
+	switch vec.Kind() {
+	case vector.KindError:
+		if opts&CatchError != 0 {
+			if opts&CatchWrapError != 0 {
+				//XXX change this to error encountered or something better
+				return wrapErr(sctx, msg, "error value encountered", vec), true
+			}
+			return vec, true
 		}
-		if options && vec.Kind() == vector.KindOption {
-			return vector.NewStringError(sctx, fmt.Sprintf("%s: option value not handled (consider ??)", msg), vec.Len()), true
+	case vector.KindMissing:
+		return catchErr(sctx, msg, "unexpected missing value", vec), true
+	case vector.KindNone:
+		if opts&CatchNone != 0 {
+			return catchErr(sctx, msg, "none value not handled (consider ??)", vec), true
+		}
+	case vector.KindNull:
+		if opts&CatchNull != 0 {
+			return vec, true
+		}
+	case vector.KindOption:
+		if opts&CatchOption != 0 {
+			return catchErr(sctx, msg, "option value not handled (consider ??)", vec), true
 		}
 	}
 	return nil, false
+}
+
+func catchErr(sctx *super.Context, prefix, msg string, vec vector.Any) *vector.Error {
+	if prefix != "" {
+		prefix += ": "
+	}
+	return vector.NewStringError(sctx, prefix+msg, vec.Len())
+}
+
+func wrapErr(sctx *super.Context, prefix, msg string, vec vector.Any) *vector.Error {
+	if prefix != "" {
+		prefix += ": "
+	}
+	return vector.NewWrappedError(sctx, prefix+msg, vec)
 }
 
 type Call struct {
