@@ -1,8 +1,8 @@
 script: |
-  export SUPER_DB=test
   export SUPER_HEAD_DIR=x
   mkdir x
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q -q TABLE
   super db use -q TABLE
   cat x/.super_head

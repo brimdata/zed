@@ -1,8 +1,8 @@
 skip: panics
 
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -use -q test
   seq 20 | super -c 'values {ts: this}' - | super db load -q -
   seq 21 40 | super -c 'values {ts: this}' - | super db load -q -

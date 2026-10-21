@@ -1,9 +1,9 @@
 script: |
   source service.sh
-  curl -X POST -d '{"name":"test","sort_keys":[{"order":"desc","path":["ts"]}]}' $SUPER_DB/table > table.sup
+  curl -X POST -d '{"name":"test","sort_keys":[{"order":"desc","path":["ts"]}]}' $DB_URL/table > table.sup
   tableID=$(super -f line -c 'values table.id' table.sup)
-  curl -X POST -d @- $SUPER_DB/table/$tableID/branch/main > load.sup
-  curl $SUPER_DB/table/$tableID/stats
+  curl -X POST -d @- $DB_URL/table/$tableID/branch/main > load.sup
+  curl $DB_URL/table/$tableID/stats
 
 inputs:
   - name: stdin

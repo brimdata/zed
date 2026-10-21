@@ -5,6 +5,6 @@ outputs:
   - name: stderr
     regexp: |
       .* database does not exist
-      \(hint: run 'super db init' to initialize a database at this location\)
+      \(hint: run 'super db init .*path/to/superdb' to initialize a database at this location\)
   - name: stdout
     data: ""

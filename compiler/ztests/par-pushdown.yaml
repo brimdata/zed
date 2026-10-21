@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q -orderby ts test
   super db compile -P 3 "from test | x==1" | super -s -c 'unnest body | kind=="ScatterOp" | unnest paths | values this[0].filter.kind' -
 

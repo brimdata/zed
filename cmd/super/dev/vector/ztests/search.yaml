@@ -1,8 +1,8 @@
 skip: need to address defusion of any values
 
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q -use test
   seq -f '{ts:%g,y:3.14,z:"foo"}' 50000 | super db load -q -
   super db manage -log.path=/dev/null -q -vectors

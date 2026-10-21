@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -use -q test
   echo {x:1} | super db load -message 'commit1' -q -
   echo {x:2} | super db load -message 'commit2' -q -
@@ -45,8 +45,8 @@ outputs:
 
 # Test that vacate fails if a branch does not include the new base commit.
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -use -q test
   echo {x:1} | super db load -q -
   super db branch -q branch1

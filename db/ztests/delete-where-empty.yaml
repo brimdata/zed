@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -use -q test
   echo '{ts:0}' | super db load -q -
   ! super db delete -where 'ts > 1'

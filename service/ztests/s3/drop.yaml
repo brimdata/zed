@@ -2,11 +2,11 @@ skip: source services.sh s3://bucket/db doesn't work
 
 script: |
   source services.sh s3://bucket/db
-  super db create -attach $SUPER_DB test
+  super db create -attach $DB_URL test
   echo ===
-  super db drop -attach $SUPER_DB test
+  super db drop -attach $DB_URL test
   echo ===
-  super db ls -attach $SUPER_DB
+  super db ls -attach $DB_URL
   echo ===
 
 inputs:

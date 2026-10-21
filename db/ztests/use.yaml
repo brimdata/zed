@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   ! super db use
   ! super db use @main
   super db create -q TABLE

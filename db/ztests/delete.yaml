@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -use -q -orderby x:desc test
   super db load -q 1.sup
   id=$(super db -f line -c "from test@main:objects | values id")

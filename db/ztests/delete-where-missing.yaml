@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -use -q test
   super db load -q in.sup
   ! super db delete -q -where 'uid==C3UeSqaSOFRReHD68'

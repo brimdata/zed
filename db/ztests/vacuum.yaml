@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -use -q -orderby x:asc test
   echo {x:1} | super db load -q -
   r=$(echo {x:2} | super db load - | head -1 | awk '{print $1}')

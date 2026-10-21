@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q test
   super db compile -C -dag 'const TABLE = "test" from f"{TABLE}"' | sed -E "s/[0-9a-f-]{36}/XXX/"
   echo "==="

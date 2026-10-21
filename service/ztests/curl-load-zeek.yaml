@@ -2,7 +2,7 @@ script: |
   source service.sh
   super db create -q test
   curl -H Content-Type:application/x-zeek --data-binary @in.zeek \
-    --fail $SUPER_DB/table/test/branch/main | super -s -c commit:=0 -
+    --fail $DB_URL/table/test/branch/main | super -s -c commit:=0 -
   echo //
   super db -s -c 'from test'
 

@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   for order in desc asc; do
     echo === $order ===
     super db create -use -q -framecap 50 -objectcap 500 -orderby ts:$order test

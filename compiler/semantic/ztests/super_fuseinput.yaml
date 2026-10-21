@@ -6,8 +6,8 @@ script: |
   echo === dag.RobotScan
   SUPER_FUSEINPUT=1 super compile -C -dag 'from f"{this}"'
   echo === dag.TableScan
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q table
   SUPER_FUSEINPUT=1 super db compile -C -dag 'from table' | sed -Ee 's/[0-9a-f-]{36}/xxx/'
 

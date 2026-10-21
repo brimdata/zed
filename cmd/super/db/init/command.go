@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/superdb/super/cmd/super/db"
 	"github.com/superdb/super/db/api"
@@ -15,7 +16,7 @@ import (
 var spec = &charm.Spec{
 	Name:  "init",
 	Usage: "create and initialize a new, empty database",
-	Short: "init [ path ]",
+	Short: "init <path>",
 	Long: `
 See https://superdb.org/command/db.html#super-db-init
 `,
@@ -40,19 +41,14 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	var u *storage.URI
-	if len(args) == 0 {
-		if u, err = c.DBFlags.URI(); err != nil {
-			return err
-		}
-	} else if len(args) == 1 {
-		path := args[0]
-		if path == "" {
-			return errors.New("single database path argument required")
-		}
-		if u, err = storage.ParseURI(path); err != nil {
-			return err
-		}
+	// The database root is always given explicitly so init never consults
+	// the attached database or the environment.
+	if len(args) != 1 || strings.TrimRight(args[0], "/") == "" {
+		return errors.New("init requires one argument: the path to the database root")
+	}
+	u, err := storage.ParseURI(strings.TrimRight(args[0], "/"))
+	if err != nil {
+		return err
 	}
 	if api.IsRemote(u.String()) {
 		return fmt.Errorf("init command not valid on remote database")

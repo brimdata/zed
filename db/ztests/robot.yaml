@@ -1,5 +1,6 @@
 script: |
-  super db init -q
+  super db init -q test
+  super db attach -q test
   super db create -q test1
   super db create -q test2
   echo {x:1} | super db load -q -use test1 -

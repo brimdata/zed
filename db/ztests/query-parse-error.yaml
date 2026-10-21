@@ -1,6 +1,6 @@
 script: |
-  export SUPER_DB=test
-  super db init -q
+  super db init -q test
+  super db attach -q test
   echo =1= >&2
   ! super db -s -c "$(cat bad-single-line.spq)"
   echo =2= >&2
