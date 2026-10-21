@@ -29,7 +29,7 @@ outputs:
       file test.bsup format bsup type {x:fusion(int64|missing),y:fusion(int64|missing)}
       | output main
       === bsup (default pipe)
-      file /dev/stdin
+      file /dev/stdin format auto
       | output main
       === bsup (static pipe)
       cannot get file type of non-seekable input at line 1, column 6:
@@ -42,7 +42,7 @@ outputs:
       file test.json format json type {x:fusion(int64|missing),y:fusion(int64|missing)}
       | output main
       === json (default pipe)
-      file /dev/stdin
+      file /dev/stdin format auto
       | output main
       === json (static pipe)
       cannot get file type of non-seekable input at line 1, column 6:
@@ -55,7 +55,7 @@ outputs:
       file test.parquet format parquet type {x:int64|null,y:int64|null}
       | output main
       === parquet (default pipe)
-      file /dev/stdin
+      file /dev/stdin format auto
       | output main
       === parquet (static pipe)
       cannot get file type of non-seekable input at line 1, column 6:
@@ -68,7 +68,7 @@ outputs:
       file test.sup format sup type {x:fusion(int64|missing),y:fusion(int64|missing)}
       | output main
       === sup (default pipe)
-      file /dev/stdin
+      file /dev/stdin format auto
       | output main
       === sup (static pipe)
       cannot get file type of non-seekable input at line 1, column 6:
