@@ -21,10 +21,7 @@ func NewEmpty(typ super.Type) *Empty {
 }
 
 func (e *Empty) Kind() Kind {
-	return typeToKind(e.typ)
-}
-
-func typeToKind(typ super.Type) Kind {
+	typ := e.typ
 	for {
 		switch t := typ.(type) {
 		case *super.TypeOfUint8, *super.TypeOfUint16, *super.TypeOfUint32, *super.TypeOfUint64:

@@ -135,7 +135,7 @@ func (d *DotExpr) noFieldErr(on vector.Any) *vector.Error {
 func kindName(typ super.Type) string {
 	switch t := super.TypeUnder(typ).(type) {
 	case *super.TypeRecord:
-		return "struct"
+		return "record"
 	case *super.TypeArray:
 		return "array"
 	case *super.TypeSet:
