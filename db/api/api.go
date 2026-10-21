@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"strings"
 	"uuid"
@@ -99,7 +98,7 @@ func GetTables(ctx context.Context, api Interface) ([]*tables.Config, error) {
 
 func LookupTableByID(ctx context.Context, api Interface, id uuid.UUID) (*tables.Config, error) {
 	b := newBuffer(tables.Config{})
-	query := fmt.Sprintf("from :tables | id == hex('%s')", idToHex(id))
+	query := fmt.Sprintf("from :tables | id == %s", id)
 	q, err := api.Query(ctx, srcfiles.Plain(query))
 	if err != nil {
 		return nil, err
@@ -149,7 +148,7 @@ func LookupBranchByName(ctx context.Context, api Interface, tableName, branchNam
 
 func LookupBranchByID(ctx context.Context, api Interface, id uuid.UUID) (*db.BranchMeta, error) {
 	b := newBuffer(db.BranchMeta{})
-	query := fmt.Sprintf("from :branches | branch.id == 'hex(%s)'", idToHex(id))
+	query := fmt.Sprintf("from :branches | branch.id == %s", id)
 	q, err := api.Query(ctx, srcfiles.Plain(query))
 	if err != nil {
 		return nil, err
@@ -185,7 +184,7 @@ func GetCommit(ctx context.Context, api Interface, tableName, revision string) (
 		}
 	}
 	b := newBuffer(commits.Commit{})
-	query := fmt.Sprintf("from %q:log | where id == 0x%s", tableID, idToHex(commit))
+	query := fmt.Sprintf("from %q:log | where id == %s", tableID, commit)
 	q, err := api.Query(ctx, srcfiles.Plain(query))
 	if err != nil {
 		return nil, err
@@ -206,10 +205,6 @@ func GetCommit(ctx context.Context, api Interface, tableName, revision string) (
 	default:
 		return nil, fmt.Errorf("internal error: multiple commits found with same id: %s", commit)
 	}
-}
-
-func idToHex(id uuid.UUID) string {
-	return hex.EncodeToString(id[:])
 }
 
 type buffer struct {

@@ -30,6 +30,7 @@ const (
 	KindMissing = 20
 	KindOption  = 21
 	KindNone    = 22
+	KindUUID    = 23
 )
 
 const (
@@ -67,6 +68,8 @@ func KindFromString(v string) Kind {
 		return KindMissing
 	case "None":
 		return KindNone
+	case "UUID":
+		return KindUUID
 	case "Option":
 		return KindOption
 	default:

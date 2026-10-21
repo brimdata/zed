@@ -1380,6 +1380,7 @@ Literal
   = TypeLiteral
   / StringLiteral
   / FString
+  / UUIDLiteral
   / SubnetLiteral
   / AddressLiteral
   / BytesLiteral
@@ -1433,6 +1434,13 @@ NoneLiteral
 MissingLiteral
   = MISSING { return newPrimitive(c, "missing", ""), nil }
   
+UUIDLiteral
+  = H4 H4 "-" H4 "-" H4 "-" H4 "-" H4 H4 H4 !IdentifierRest {
+      return newPrimitive(c, "uuid", string(c.text)), nil
+    }
+
+H4 = HexDigit HexDigit HexDigit HexDigit
+
 BytesLiteral
   = "0x" HexDigit* {
     return newPrimitive(c, "bytes", string(c.text)), nil

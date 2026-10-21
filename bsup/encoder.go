@@ -121,6 +121,16 @@ func NewPrimitiveEncoder(bctx *Context, vec vector.Any, root bool) Encoder {
 			return NewPrimitiveEncoder(bctx, out, false)
 		}
 		return NewBytesEncoder(super.TypeBytes, vec.Table())
+	case *vector.UUID:
+		// UUIDs are encoded as a bytes table of 16-byte values.
+		bytes := make([]byte, 0, 16*len(vec.Values))
+		offsets := make([]uint32, 0, len(vec.Values)+1)
+		offsets = append(offsets, 0)
+		for _, u := range vec.Values {
+			bytes = append(bytes, u[:]...)
+			offsets = append(offsets, uint32(len(bytes)))
+		}
+		return NewBytesEncoder(super.TypeUUID, vector.NewBytesTable(offsets, bytes))
 	case *vector.IP:
 		if root {
 			out := maybeConvertToDictOrConst(vec.Values, func(vals []netip.Addr) vector.Any {

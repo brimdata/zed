@@ -51,6 +51,8 @@ func To(sctx *super.Context, vec vector.Any, typ super.Type) vector.Any {
 			c = castToString
 		case super.IDBytes:
 			c = castToBytes
+		case super.IDUUID:
+			c = castToUUID
 		case super.IDIP:
 			c = castToIP
 		case super.IDNet:

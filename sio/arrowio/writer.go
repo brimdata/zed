@@ -14,6 +14,7 @@ import (
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/decimal128"
 	"github.com/apache/arrow-go/v18/arrow/decimal256"
+	"github.com/apache/arrow-go/v18/arrow/extensions"
 	"github.com/apache/arrow-go/v18/arrow/float16"
 	"github.com/apache/arrow-go/v18/arrow/ipc"
 	"github.com/apache/arrow-go/v18/arrow/memory"
@@ -210,6 +211,8 @@ func (w *Writer) newArrowDataType(typ super.Type) (arrow.DataType, error) {
 		return arrow.BinaryTypes.String, nil
 	case *super.TypeOfIP, *super.TypeOfNet, *super.TypeOfType:
 		return arrow.BinaryTypes.String, nil
+	case *super.TypeOfUUID:
+		return extensions.NewUUIDType(), nil
 	case *super.TypeOfNull, *super.TypeOfMissing, *super.TypeOfNone:
 		return arrow.Null, nil
 	case *super.TypeRecord:
@@ -346,6 +349,8 @@ func (w *Writer) buildArrowValue(b array.Builder, typ super.Type, bytes scode.By
 	}
 	// Order here follows that of the arrow.Type constants.
 	switch b := b.(type) {
+	case *extensions.UUIDBuilder:
+		b.AppendBytes([16]byte(bytes))
 	case *array.NullBuilder:
 		b.AppendNull()
 	case *array.BooleanBuilder:

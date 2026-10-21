@@ -5,6 +5,7 @@ import (
 	"net/netip"
 	"strconv"
 	"unicode/utf8"
+	"uuid"
 
 	"github.com/araddon/dateparse"
 	"github.com/superdb/super"
@@ -29,6 +30,8 @@ func LookupPrimitiveCaster(sctx *super.Context, typ super.Type) Evaluator {
 		return &casterFloat{sctx, typ}
 	case super.TypeIP:
 		return &casterIP{sctx}
+	case super.TypeUUID:
+		return &casterUUID{sctx}
 	case super.TypeNet:
 		return &casterNet{sctx}
 	case super.TypeDuration:
@@ -115,6 +118,27 @@ func (c *casterIP) Eval(val super.Value) super.Value {
 		return c.sctx.WrapError("cannot cast to ip", val)
 	}
 	return super.NewIP(ip)
+}
+
+type casterUUID struct {
+	sctx *super.Context
+}
+
+func (c *casterUUID) Eval(val super.Value) super.Value {
+	val = val.Under()
+	switch val.Type().ID() {
+	case super.IDUUID:
+		return val
+	case super.IDString:
+		if u, err := uuid.Parse(string(val.Bytes())); err == nil {
+			return super.NewUUID(u)
+		}
+	case super.IDBytes:
+		if len(val.Bytes()) == 16 {
+			return super.NewUUID(uuid.UUID(val.Bytes()))
+		}
+	}
+	return c.sctx.WrapError("cannot cast to uuid", val)
 }
 
 type casterNet struct {
@@ -240,10 +264,11 @@ type casterBytes struct {
 }
 
 func (c *casterBytes) Eval(val super.Value) super.Value {
-	if val.Type().ID() != super.IDString {
-		return c.sctx.WrapError("cannot cast to bytes", val)
+	switch val.Type().ID() {
+	case super.IDString, super.IDUUID, super.IDBytes:
+		return super.NewBytes(val.Bytes())
 	}
-	return super.NewBytes(val.Bytes())
+	return c.sctx.WrapError("cannot cast to bytes", val)
 }
 
 type casterType struct {

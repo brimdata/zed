@@ -2,6 +2,7 @@ package vector
 
 import (
 	"net/netip"
+	"uuid"
 
 	"github.com/superdb/super"
 	"github.com/superdb/super/scode"
@@ -59,6 +60,10 @@ func NewConstString(v string, length uint32) *Const {
 func NewConstIP(v netip.Addr, length uint32) *Const {
 	vec := NewIP([]netip.Addr{v})
 	return &Const{vec, length}
+}
+
+func NewConstUUID(v uuid.UUID, length uint32) *Const {
+	return &Const{NewUUID([]uuid.UUID{v}), length}
 }
 
 func NewConstNet(v netip.Prefix, length uint32) *Const {

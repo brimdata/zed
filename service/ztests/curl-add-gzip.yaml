@@ -1,7 +1,7 @@
 script: |
   source service.sh
   curl -X POST -d '{"name":"test","sortkeys":[{"order":"desc","path":["ts"]}]}' $SUPER_DB/table > table.json
-  tableID=$(super -f line -c "values uuid(table.id)" table.json)
+  tableID=$(super -f line -c "values table.id" table.json)
   curl -X POST --data-binary @- $SUPER_DB/table/$tableID/branch/main | super -s -c "commit:=0" -
 
 inputs:

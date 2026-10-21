@@ -9,6 +9,7 @@ import (
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/extensions"
 	"github.com/apache/arrow-go/v18/arrow/ipc"
 	"github.com/superdb/super"
 	"github.com/superdb/super/pkg/nano"
@@ -135,6 +136,9 @@ var monthDayNanoIntervalFields = []super.Field{
 }
 
 func (r *Reader) newTypeFromDataType(dt arrow.DataType) (super.Type, error) {
+	if _, ok := dt.(*extensions.UUIDType); ok {
+		return super.TypeUUID, nil
+	}
 	// Order here follows that of the arrow.Time constants.
 	switch dt.ID() {
 	case arrow.NULL:
@@ -337,6 +341,10 @@ func (r *Reader) buildScode(typ super.Type, a arrow.Array, i int) error {
 	// XXX Calling array.New*Data once per value (rather than once
 	// per arrow.Array) is slow.
 	//
+	if _, ok := dt.(*extensions.UUIDType); ok {
+		b.Append(array.NewFixedSizeBinaryData(a.(array.ExtensionArray).Storage().Data()).Value(i))
+		return nil
+	}
 	// Order here follows that of the arrow.Type constants.
 	switch dt.ID() {
 	case arrow.NULL:

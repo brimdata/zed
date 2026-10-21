@@ -99,8 +99,8 @@ func New(sctx *super.Context, name string, narg int) (expr.Function, error) {
 		f = &Kind{sctx: sctx}
 	case "uuid":
 		argmin = 0
-		argmax = 1
-		f = &UUID{sctx}
+		argmax = 0
+		f = &UUID{}
 	case "least":
 		argmax = -1
 		f = newSamFunc(sctx, function.NewReducer(sctx, name, anymath.Min))

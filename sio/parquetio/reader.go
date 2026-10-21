@@ -9,9 +9,11 @@ import (
 	"slices"
 	"sync/atomic"
 	"time"
+	"uuid"
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/extensions"
 	"github.com/apache/arrow-go/v18/parquet"
 	"github.com/apache/arrow-go/v18/parquet/file"
 	"github.com/apache/arrow-go/v18/parquet/pqarrow"
@@ -426,6 +428,16 @@ func (v *vectorBuilder) build(a arrow.Array, nullable bool) (vector.Any, error) 
 			}
 		}
 		out = vector.NewString(vector.NewBytesTable(offsets, arr.ValueBytes()))
+	case arrow.EXTENSION:
+		if _, ok := dt.(*extensions.UUIDType); !ok {
+			return nil, fmt.Errorf("unimplemented Parquet type %q", dt.Name())
+		}
+		storage := a.(array.ExtensionArray).Storage().(*array.FixedSizeBinary)
+		values := make([]uuid.UUID, length)
+		for i := range values {
+			values[i] = uuid.UUID(storage.Value(i))
+		}
+		out = vector.NewUUID(values)
 	default:
 		return nil, fmt.Errorf("unimplemented Parquet type %q", dt.Name())
 	}

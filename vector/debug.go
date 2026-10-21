@@ -84,6 +84,8 @@ func write(w io.Writer, vec Any, indent, prefix string) {
 		fmt.Fprintf(w, " offsets=%v bytes=%s", vec.table.offsets, vec.table.bytes)
 	case *IP:
 		fmt.Fprintf(w, " values=%v", vec.Values)
+	case *UUID:
+		fmt.Fprintf(w, " values=%v", vec.Values)
 	case *Net:
 		fmt.Fprintf(w, " values=%v", vec.Values)
 	case *TypeValue:

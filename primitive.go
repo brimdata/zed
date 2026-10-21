@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/bits"
 	"net/netip"
+	"uuid"
 
 	"github.com/superdb/super/pkg/nano"
 	"github.com/superdb/super/scode"
@@ -459,5 +460,28 @@ func (t *TypeOfTimestamp) ID() int {
 }
 
 func (t *TypeOfTimestamp) Kind() Kind {
+	return PrimitiveKind
+}
+
+// TypeOfUUID is the type of UUID values (RFC 9562), which are encoded as
+// their 16 bytes.
+type TypeOfUUID struct{}
+
+func EncodeUUID(u uuid.UUID) scode.Bytes {
+	return u[:]
+}
+
+func DecodeUUID(zv scode.Bytes) uuid.UUID {
+	if len(zv) != 16 {
+		panic(fmt.Errorf("failure trying to decode UUID: length %d", len(zv)))
+	}
+	return uuid.UUID(zv)
+}
+
+func (t *TypeOfUUID) ID() int {
+	return IDUUID
+}
+
+func (t *TypeOfUUID) Kind() Kind {
 	return PrimitiveKind
 }

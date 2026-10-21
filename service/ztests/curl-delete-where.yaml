@@ -5,7 +5,7 @@ script: |
   echo '{x:3}{x:4}{x:5}' | super db load -q -
   echo '{x:6}{x:7}{x:8}' | super db load -q -
   curl -s -d '{where:"x <= 4"}' $SUPER_DB/table/test/branch/main/delete |
-    sed -E 's/0x[0-9a-f]{32}/xxx/'
+    sed -E 's/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/xxx/'
   echo ===
   super db -s -c 'from test'
   echo ===
@@ -18,8 +18,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      type "uuid.UUID"=bytes
-      type "api.CommitResponse"={commit:"uuid.UUID",warnings:[string]}
+      type "api.CommitResponse"={commit:uuid,warnings:[string]}
       {commit:xxx,warnings:[]}::api.CommitResponse
       ===
       {x:5}
