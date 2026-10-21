@@ -1,5 +1,5 @@
 script: |
-  super -dynamic -e=false -s good.sup bad.sup
+  super -dynamic -e=false -i auto -s good.sup bad.sup
 
 inputs:
   - name: good.sup

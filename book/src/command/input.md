@@ -58,10 +58,11 @@ the data formats of its inputs.
 For files with a well known extension (like `.json`, `.parquet`, `.sup` etc.),
 the format is implied by the extension.
 
-For standard input or files without a recognizable extension, `super` attempts
+For standard input, `super` attempts
 to detect the format by reading and parsing some of the data.
 
-To override these format inference heuristics, `-i` may be used to specify
+For other inputs, or
+to override these format inference heuristics, `-i` may be used to specify
 the input formats of all files or the `(format)` option of a data source
 specified in a [from](../super-sql/operators/from.md) operator.
 The `(format)` option overrides `-i`.

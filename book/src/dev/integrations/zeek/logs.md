@@ -29,7 +29,7 @@ output as [Super (SUP)](../../../formats/sup.md).
 ## Example
 
 ```mdtest-command
-super -S -c 'head 1' conn.log
+super -S -c 'head 1' -i zeek conn.log
 ```
 
 ## Output

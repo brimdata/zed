@@ -10,6 +10,6 @@ outputs:
       | where nested[1]["field"]==1
       | output main
       ===
-      file stdio:stdin
+      file stdio:stdin format auto
       | values x?.y
       | output main

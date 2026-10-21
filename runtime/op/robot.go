@@ -7,6 +7,7 @@ import (
 	"github.com/superdb/super/runtime/exec"
 	"github.com/superdb/super/runtime/expr"
 	"github.com/superdb/super/scode"
+	"github.com/superdb/super/sio/anyio"
 	"github.com/superdb/super/vector"
 	"github.com/superdb/super/vector/vio"
 )
@@ -142,7 +143,11 @@ func (o *Robot) open(path string) (vio.Puller, error) {
 			return o.openTable(id)
 		}
 	}
-	return o.env.Open(o.rctx.Context, o.rctx.Sctx, path, o.format, o.pushdown, o.progress, 1)
+	format := o.format
+	if format == "" {
+		format = anyio.ReadFormatFromPath(path)
+	}
+	return o.env.Open(o.rctx.Context, o.rctx.Sctx, path, format, o.pushdown, o.progress, 1)
 }
 
 func (r *Robot) openTable(id uuid.UUID) (vio.Puller, error) {

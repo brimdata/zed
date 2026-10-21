@@ -1,5 +1,5 @@
 script: |
-  ! super /dev/zero
+  ! super -i auto /dev/zero
 
 outputs:
   - name: stderr

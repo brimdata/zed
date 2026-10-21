@@ -37,7 +37,9 @@ func NewReader(ctx context.Context, sctx *super.Context, r io.Reader, opts Reade
 	if opts.ConcurrentReaders == 0 {
 		opts.ConcurrentReaders = 1
 	}
-	if opts.Format != "" && opts.Format != "auto" {
+	if opts.Format == "" {
+		return nil, errors.New("file format required")
+	} else if opts.Format != "auto" {
 		return lookupReader(ctx, sctx, r, opts)
 	}
 	if opts.InputCap != 0 {

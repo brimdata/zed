@@ -220,12 +220,16 @@ func (t *translator) fromFString(entity *ast.FromEval, args []ast.OpArg, seq sem
 		}
 		return t.fromConst(val, entity, args)
 	}
+	format := t.asFormatArg(args)
+	if format == "" {
+		format = t.env.ReaderOpts.Format
+	}
 	// This is an expression so set up a robot scanner that pulls values from
 	// parent to decide what to scan.
 	return append(seq, &sem.RobotScan{
 		Node:   entity,
 		Expr:   expr,
-		Format: t.asFormatArg(args),
+		Format: format,
 	}), ""
 }
 
@@ -317,7 +321,7 @@ func (t *translator) fileFormat(name string) string {
 	if f := t.env.ReaderOpts.Format; f != "" {
 		return f
 	}
-	if f := sio.FormatFromPath(name); f != "" {
+	if f := anyio.ReadFormatFromPath(name); f != "" {
 		return f
 	}
 	return ""
