@@ -34,8 +34,22 @@ func MustParseURI(path string) *URI {
 	return u
 }
 
+// String returns a local file's URI as a plain file system path (e.g.,
+// /databases/test) and any other URI in URL form (e.g., s3://bucket/key).
+// Since ParseURI treats a bare path as a file URI, the result always parses
+// back to an equivalent URI.
 func (u URI) String() string {
+	if u.isLocalFile() {
+		return u.Filepath()
+	}
 	return (*url.URL)(&u).String()
+}
+
+// isLocalFile reports whether u is a file URI that maps to a local path.
+// File URIs with a host or an opaque part don't map to a local path so they
+// keep their URL form.
+func (u *URI) isLocalFile() bool {
+	return Scheme(u.Scheme) == FileScheme && u.Host == "" && u.Opaque == "" && u.Path != ""
 }
 
 func (u *URI) HasScheme(s Scheme) bool {

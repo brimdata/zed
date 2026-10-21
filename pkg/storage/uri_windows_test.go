@@ -13,7 +13,7 @@ func TestURIWinVolume(t *testing.T) {
 	expected := `c:\test\folder`
 	uri, err := ParseURI(expected)
 	require.NoError(t, err)
-	assert.Equal(t, "file:///c:/test/folder", uri.String())
+	assert.Equal(t, expected, uri.String())
 	assert.Equal(t, expected, uri.Filepath())
 
 }
@@ -46,7 +46,7 @@ func TestURIWinUNCPath(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			uri, err := ParseURI(c.value)
 			require.NoError(t, err)
-			assert.Equal(t, "file:////34.82.284.241/foo", uri.String())
+			assert.Equal(t, `\\34.82.284.241\foo`, uri.String())
 			assert.Equal(t, `\\34.82.284.241\foo`, uri.Filepath())
 		})
 	}
