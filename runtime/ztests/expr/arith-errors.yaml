@@ -6,7 +6,7 @@ input: |
   {s:1}
 
 output: |
-  error({message:"/: error value encountered",on:error({message:"no such field s",on:{}})})
+  error({message:"/: error value encountered",on:error("no such field s")})
   error({message:"/: error value encountered",on:error("other")})
   error("divide by zero")
 

@@ -206,7 +206,7 @@ input: |
 output: |
   missing
   none::int64
-  error({message:"'?.': applied to non-record",on:1})
-  error({message:"'?.': applied to non-record",on?:1})
+  error("cannot access field 'y' of int64")
+  error("cannot access field 'y' of int64")
   some(1)
   none::int64

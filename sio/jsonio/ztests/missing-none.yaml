@@ -21,7 +21,7 @@ outputs:
   - name: stdout
     data: |
       {b:1}
-      error({message:"no such field a",on:{}})
+      error("no such field a")
 
 ---
 

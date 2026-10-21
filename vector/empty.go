@@ -69,7 +69,7 @@ func (e *Empty) Kind() Kind {
 		case *super.TypeNamed:
 			typ = t.Type
 		default:
-			panic(sup.String(e.typ))
+			panic(sup.String(typ))
 		}
 	}
 }

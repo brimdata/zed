@@ -66,7 +66,7 @@ cut a,d
 # input
 {a:1,b:2,c:3}
 # expected output
-{a:1,d:error({message:"no such field d",on:{a:1,b:2,c:3}})}
+{a:1,d:error("no such field d")}
 ```
 
 ---
@@ -79,7 +79,7 @@ cut a,b
 1
 {a:1,b:2,c:3}
 # expected output
-{a:error({message:"'.': applied to non-record",on:1}),b:error({message:"'.': applied to non-record",on:1})}
+{a:error("cannot access field 'a' of int64"),b:error("cannot access field 'b' of int64")}
 {a:1,b:2}
 ```
 

@@ -101,11 +101,9 @@ input: |
   
 output: |
   2
-  type foo=[int64]
-  error({message:"'.': applied to non-record",on:[1,2,3]::foo})
+  error("cannot access field 'x' of array")
   5
-  type bar=set[int64]
-  error({message:"'.': applied to non-record",on:set[4,5,6]::bar})
+  error("cannot access field 'x' of set")
   "foo"
   missing
   error({message:"invalid record index",on:1})
@@ -121,5 +119,5 @@ input: |
   {val:fusion([1,{r:3}]::(int64|[int64|{r:int64}]),<[int64|{r:int64}]>)}
 
 output: |
-  error({message:"'.': applied to non-record",on:error({message:"value cannot be indexed",on:2})})
+  error({message:"value cannot be indexed",on:2})
   3

@@ -43,6 +43,9 @@ func (f *fusion) unmarshal(bctx *bsup.Context, projection field.Projection) {
 
 func (f *fusion) project(loader *FrameLoader, projection field.Projection) vector.Any {
 	vec := f.values.project(loader, projection)
+	if len(projection) != 0 {
+		return vec
+	}
 	typ := loader.sctx.MustLookupTypeFusion(vec.Type())
 	return vector.NewFusionWithLoader(loader.sctx, typ, f.subtypes.newLoader(loader), vec)
 }

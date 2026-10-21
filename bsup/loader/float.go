@@ -27,11 +27,7 @@ func (f *float) length() uint32 {
 func (*float) unmarshal(*bsup.Context, field.Projection) {}
 
 func (f *float) project(loader *FrameLoader, projection field.Projection) vector.Any {
-	vec := vector.NewFloat(f.meta.Typ, f.load(loader))
-	if len(projection) > 0 {
-		return vector.NewWrappedError(loader.sctx, "'.': applied to non-record", vec)
-	}
-	return vec
+	return vector.NewFloat(f.meta.Typ, f.load(loader))
 }
 
 func (f *float) load(loader *FrameLoader) []float64 {

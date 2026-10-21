@@ -1,14 +1,12 @@
 package loader
 
 import (
-	"fmt"
 	"slices"
 	"sync"
 
 	"github.com/superdb/super"
 	"github.com/superdb/super/bsup"
 	"github.com/superdb/super/pkg/field"
-	"github.com/superdb/super/sup"
 	"github.com/superdb/super/vector"
 )
 
@@ -76,7 +74,7 @@ func (r *record) project(loader *FrameLoader, projection field.Projection) vecto
 		if k := indexOfField(node.Name, r.meta); k >= 0 && r.fields[k] != nil {
 			val = r.fields[k].project(loader, node.Proj)
 		} else {
-			val = vector.NewStringError(loader.sctx, fmt.Sprintf("no such field %s", sup.QuotedName(node.Name)), r.length())
+			val = vector.NewMissing(r.len)
 		}
 		valFields = append(valFields, val)
 		fields = append(fields, super.NewField(node.Name, val.Type()))

@@ -143,7 +143,7 @@ values x
 {y:2}
 # expected output
 1
-error({message:"no such field x",on:{y:2}})
+error("no such field x")
 ```
 
 ## Examples

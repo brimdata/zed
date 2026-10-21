@@ -26,11 +26,7 @@ func (i *ip) length() uint32 {
 func (*ip) unmarshal(*bsup.Context, field.Projection) {}
 
 func (i *ip) project(loader *FrameLoader, projection field.Projection) vector.Any {
-	vec := vector.NewIP(i.load(loader))
-	if len(projection) > 0 {
-		return vector.NewWrappedError(loader.sctx, "'.': applied to non-record", vec)
-	}
-	return vec
+	return vector.NewIP(i.load(loader))
 }
 
 func (i *ip) load(loader *FrameLoader) []netip.Addr {

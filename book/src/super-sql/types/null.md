@@ -66,9 +66,9 @@ values {out:y}
 {x:2,y:3}
 null
 # expected output
-{out:error({message:"no such field y",on:{x:1}})}
+{out:error("no such field y")}
 {out:3}
-{out:error({message:"'.': applied to non-record",on:null})}
+{out:error("cannot access field 'y' of null")}
 ```
 
 ---

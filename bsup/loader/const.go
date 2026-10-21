@@ -33,11 +33,7 @@ func (c *const_) project(loader *FrameLoader, projection field.Projection) vecto
 	if err != nil {
 		panic(err)
 	}
-	vec := vector.NewConstFromValue(loader.sctx, super.NewValue(typ, val.Bytes()), c.length())
-	if len(projection) > 0 {
-		return vector.NewWrappedError(loader.sctx, "'.': applied to non-record", vec)
-	}
-	return vec
+	return vector.NewConstFromValue(loader.sctx, super.NewValue(typ, val.Bytes()), c.length())
 }
 func (k *const_) strings(c *collector) {
 	val := k.meta.Value

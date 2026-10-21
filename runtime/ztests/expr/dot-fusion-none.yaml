@@ -9,5 +9,5 @@ input: |
 output: |
   "foo"
   1
-  error({message:"no such field x",on:{y:1}})
-  error({message:"no such field x",on:{}})
+  error("no such field x")
+  error("no such field x")

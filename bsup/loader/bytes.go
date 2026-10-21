@@ -37,9 +37,6 @@ func (b *bytes) project(loader *FrameLoader, projection field.Projection) vector
 	default:
 		panic(b.meta.Typ)
 	}
-	if len(projection) > 0 {
-		return vector.NewWrappedError(loader.sctx, "'.': applied to non-record", vec)
-	}
 	return vec
 }
 

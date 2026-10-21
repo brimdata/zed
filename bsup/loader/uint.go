@@ -28,11 +28,7 @@ func (u *uint_) length() uint32 {
 func (*uint_) unmarshal(*bsup.Context, field.Projection) {}
 
 func (u *uint_) project(loader *FrameLoader, projection field.Projection) vector.Any {
-	vec := vector.NewUint(u.meta.Typ, u.load(loader))
-	if len(projection) > 0 {
-		return vector.NewWrappedError(loader.sctx, "'.': applied to non-record", vec)
-	}
-	return vec
+	return vector.NewUint(u.meta.Typ, u.load(loader))
 }
 
 func (u *uint_) load(loader *FrameLoader) []uint64 {
