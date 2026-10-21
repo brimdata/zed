@@ -1,0 +1,87 @@
+spq: |
+  values
+    01a11990-01e2-7cb4-a33f-d3f97191b61a,
+    typeof(01a11990-01e2-7cb4-a33f-d3f97191b61a),
+    "01A11990-01E2-7CB4-A33F-D3F97191B61A"::uuid,
+    0x01a1199001e27cb4a33fd3f97191b61a::uuid,
+    01a11990-01e2-7cb4-a33f-d3f97191b61a::string,
+    01a11990-01e2-7cb4-a33f-d3f97191b61a::bytes,
+    f"id={01a11990-01e2-7cb4-a33f-d3f97191b61a}",
+    "invalid uuid"::uuid,
+    0x017f22e279b07cc398c4dc0c0c0739::uuid,
+    1::uuid,
+    01a11990-01e2-7cb4-a33f-d3f97191b61a == "01a11990-01e2-7cb4-a33f-d3f97191b61a"::uuid,
+    01a11990-01e2-7cb4-a33f-d3f97191b61a < 01a11990-01e2-7cb4-a33f-d3f97191b61b
+
+output: |
+  01a11990-01e2-7cb4-a33f-d3f97191b61a
+  <uuid>
+  01a11990-01e2-7cb4-a33f-d3f97191b61a
+  01a11990-01e2-7cb4-a33f-d3f97191b61a
+  "01a11990-01e2-7cb4-a33f-d3f97191b61a"
+  0x01a1199001e27cb4a33fd3f97191b61a
+  "id=01a11990-01e2-7cb4-a33f-d3f97191b61a"
+  error({message:"cannot cast to uuid",on:"invalid uuid"})
+  error({message:"cannot cast to uuid",on:0x017f22e279b07cc398c4dc0c0c0739})
+  error({message:"cannot cast to uuid",on:1})
+  true
+  true
+
+---
+
+# Casts of input values (vector runtime).
+spq: values this::uuid
+
+input: |
+  "01a11990-01e2-7cb4-a33f-d3f97191b61a"
+  0x017f22e279b07cc398c4dc0c0c07398f
+  null
+  "invalid uuid"
+
+output: |
+  01a11990-01e2-7cb4-a33f-d3f97191b61a
+  017f22e2-79b0-7cc3-98c4-dc0c0c07398f
+  null::(uuid|null)
+  error({message:"cannot cast to uuid",on:"invalid uuid"})
+
+---
+
+spq: sort id | count() by id | sort id
+
+input: |
+  {id:01a11990-01e2-7cb4-a33f-d3f97191b61b}
+  {id:01a11990-01e2-7cb4-a33f-d3f97191b61a}
+  {id:01a11990-01e2-7cb4-a33f-d3f97191b61b}
+
+output: |
+  {id:01a11990-01e2-7cb4-a33f-d3f97191b61a,count:1}
+  {id:01a11990-01e2-7cb4-a33f-d3f97191b61b,count:2}
+
+---
+
+spq: pass
+
+input: &input |
+  {id:01a11990-01e2-7cb4-a33f-d3f97191b61a,ids:[017f22e2-79b0-7cc3-98c4-dc0c0c07398f]}
+  <uuid>
+
+output: *input
+
+---
+
+script: |
+  super -f bsup -o out.bsup -c 'values {id:01a11990-01e2-7cb4-a33f-d3f97191b61a},{id:null::(uuid|null)} | blend'
+  super -s out.bsup
+  super -f parquet -o out.parquet out.bsup
+  super -s out.parquet
+  super -f json -pretty 0 out.bsup
+
+outputs:
+  - name: stdout
+    data: |
+      {id:01a11990-01e2-7cb4-a33f-d3f97191b61a::(uuid|null)}
+      {id:null::(uuid|null)}
+      {id:01a11990-01e2-7cb4-a33f-d3f97191b61a::(uuid|null)}
+      {id:null::(uuid|null)}
+      {"id":"01a11990-01e2-7cb4-a33f-d3f97191b61a"}
+      {"id":null}
