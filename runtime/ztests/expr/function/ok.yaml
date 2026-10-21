@@ -18,13 +18,13 @@ output: |
   1
   [3,2,1,0]
   "s"::(string|null)
-  missing
-  missing
-  missing
+  none
+  none
+  none
   null
-  missing
-  missing
-  missing
+  none
+  none
+  none
 
 ---
 
@@ -36,11 +36,11 @@ input: |
 
 output: |
   1
-  missing
+  none
 
 ---
 
-spq: cut a:=x.ok(),b:=x
+spq: cut a:=x.ok() ?? missing,b:=x
 
 input: |
   {x:1}
