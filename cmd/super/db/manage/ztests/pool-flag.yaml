@@ -5,8 +5,8 @@ script: |
   super db create -q test2
   super db create -q test3
   super db create -q test4
-  super db manage -table test2 -table test4 -log.path=manage.log
-  super -s -c 'msg == "updating table" | values name' manage.log
+  super db manage -table test2 -table test4 -log.path=manage-log.json
+  super -s -c 'msg == "updating table" | values name' manage-log.json
 
 outputs:
   - name: stdout

@@ -58,6 +58,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*db.Command)}
 	c.commitFlags.SetFlags(f)
+	c.inputFlags.ReaderOpts.Format = "auto"
 	c.inputFlags.SetFlags(f)
 	c.tableFlags.SetFlags(f)
 	c.runtimeFlags.SetFlags(f)

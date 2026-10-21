@@ -7,9 +7,9 @@ inputs:
       {_path:"conn",ts:1970-01-01T00:00:01Z}
   - name: bad.sup
     data: |
-      This is not a detectable format.
+      This is not valid BSUP
 
 outputs:
   - name: stderr
-    regexp: |
-      bad.sup: format detection error.*
+    data: |
+      bad.sup: line 1: syntax error

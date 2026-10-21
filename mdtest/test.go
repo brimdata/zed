@@ -34,7 +34,7 @@ func (t *Test) Run() error {
 	}
 	var c *exec.Cmd
 	if t.SPQ != "" {
-		c = exec.Command("super", "-s", "-c", t.SPQ)
+		c = exec.Command("super", "-i=auto", "-s", "-c", t.SPQ)
 		if t.Fusion {
 			c.Args = append(c.Args, "-fusion")
 		}

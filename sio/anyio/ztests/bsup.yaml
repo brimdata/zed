@@ -1,6 +1,6 @@
 script: |
   super -o f -
-  super -s f
+  super -i auto -s f
   echo // standard input
   super -s -c 'from "stdio:stdin"' < f
 

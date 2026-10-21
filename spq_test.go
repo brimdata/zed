@@ -127,7 +127,9 @@ func isValid(t *testing.T, name, s string) bool {
 			t.Fatalf("boomerang panic reading test input: %s: %+v\n%s\n", name, r, debug.Stack())
 		}
 	}()
-	p, err := anyio.NewReader(t.Context(), super.NewContext(), strings.NewReader(s), anyio.ReaderOpts{})
+	p, err := anyio.NewReader(t.Context(), super.NewContext(), strings.NewReader(s), anyio.ReaderOpts{
+		Format: "auto",
+	})
 	if err != nil {
 		return false
 	}
@@ -161,7 +163,7 @@ func runAllBoomerangs(t *testing.T, format string, data map[string]string) {
 func runOneBoomerang(t *testing.T, format, data string) {
 	// Create an auto-detecting puller for data.
 	sctx := super.NewContext()
-	dataPuller, err := anyio.NewReader(t.Context(), sctx, strings.NewReader(data), anyio.ReaderOpts{})
+	dataPuller, err := anyio.NewReader(t.Context(), sctx, strings.NewReader(data), anyio.ReaderOpts{Format: "auto"})
 	require.NoError(t, err)
 	defer dataPuller.Pull(true)
 
@@ -213,7 +215,9 @@ func runAllFusionBoomerangs(t *testing.T, data map[string]string) {
 func runOneFusionBoomerang(t *testing.T, data string) {
 	// Create an auto-detecting reader for data.
 	dataSctx := super.NewContext()
-	dataPuller, err := anyio.NewReader(t.Context(), dataSctx, strings.NewReader(data), anyio.ReaderOpts{})
+	dataPuller, err := anyio.NewReader(t.Context(), dataSctx, strings.NewReader(data), anyio.ReaderOpts{
+		Format: "auto",
+	})
 	require.NoError(t, err)
 	defer dataPuller.Pull(true)
 

@@ -55,6 +55,21 @@ func NewFile(ctx context.Context, sctx *super.Context, rc io.ReadCloser, path st
 	return sbuf.NewFile(zr, rc, path), nil
 }
 
+func ReadFormatFromPath(path string) string {
+	if f := sio.FormatFromPath(path); f != "" {
+		return f
+	}
+	u, err := storage.ParseURI(path)
+	if err != nil {
+		return ""
+	}
+	switch u.String() {
+	case "/dev/fd/0", "/dev/stdin", "stdio:stdin":
+		return "auto"
+	}
+	return ""
+}
+
 // FileType returns a type for the values in the file at path.  If the file
 // contains values with differing types, FileType returns a fused type.
 func FileType(ctx context.Context, sctx *super.Context, engine storage.Engine, path string, opts ReaderOpts, static bool) (super.Type, error) {
