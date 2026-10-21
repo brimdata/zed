@@ -45,7 +45,7 @@ type system struct {
 
 var systems = []system{
 	{"super-bsup", []string{"-i", "bsup", "-f", "csv"}, func(b *build, _ string) string { return b.bsup }},
-	{"super-json", []string{"-dynamic", "-i", "json", "-f", "csv"}, func(_ *build, data string) string { return filepath.Join(data, "ghasample.json.gz") }},
+	{"super-json", []string{"-i", "json", "-f", "csv"}, func(_ *build, data string) string { return filepath.Join(data, "ghasample.json.gz") }},
 	{"super-json-static", []string{"-static", "-i", "json", "-f", "csv"}, func(_ *build, data string) string { return filepath.Join(data, "ghasample.json.gz") }},
 	{"super-parquet", []string{"-i", "parquet", "-f", "csv"}, func(_ *build, data string) string { return filepath.Join(data, "ghasample.parquet") }},
 }
@@ -92,6 +92,7 @@ type config struct {
 	dataDir, outDir       string
 	keep                  bool
 	systems               []system
+	queries               []string // file names in queries/
 }
 
 func main() {
@@ -113,6 +114,7 @@ func main() {
 	flag.BoolVar(&c.keep, "keep", false, "keep the temporary work directory")
 	rereportPath := flag.String("rereport", "", "reclassify the results in this results.json file instead of running")
 	systemNames := flag.String("systems", allSystemNames(), "comma-separated list of systems to test")
+	queryNames := flag.String("queries", strings.Join(queryNamesOf(queryFiles), ","), "comma-separated list of queries to run")
 	// The default usage line names the temporary binary built by "go run".
 	flag.Usage = func() {
 		fmt.Fprint(flag.CommandLine.Output(), "Usage: go run ./perf/canary [flags]\n\n"+
@@ -123,6 +125,9 @@ func main() {
 	c.minMemDelta = *minMemMB << 20
 	var err error
 	if c.systems, err = selectSystems(*systemNames); err != nil {
+		log.Fatal(err)
+	}
+	if c.queries, err = selectQueries(*queryNames); err != nil {
 		log.Fatal(err)
 	}
 	if *rereportPath != "" {
@@ -182,7 +187,7 @@ func run(c config) error {
 		}
 		b.bsup = filepath.Join(work, b.Label+".bsup")
 		log.Printf("loading BSUP with %s", b.Label)
-		m, _, err := measure(c.timeout, b.bin, "-dynamic", "-i", "json", "-f", "bsup", "-o", b.bsup, filepath.Join(c.dataDir, "ghasample.json.gz"))
+		m, _, err := measure(c.timeout, b.bin, "-i", "json", "-o", b.bsup, filepath.Join(c.dataDir, "ghasample.json.gz"))
 		if err != nil {
 			return fmt.Errorf("BSUP load with %s build: %w", b.Label, err)
 		}
@@ -196,7 +201,7 @@ func run(c config) error {
 		results = append(results, load)
 	}
 	for _, sys := range c.systems {
-		for _, qf := range queryFiles {
+		for _, qf := range c.queries {
 			r, err := runQuery(c, work, sys, qf, base, target)
 			if err != nil {
 				return err
@@ -237,6 +242,44 @@ func selectSystems(list string) ([]system, error) {
 		return nil, errors.New("no systems selected")
 	}
 	return selected, nil
+}
+
+// queryNamesOf returns the names of query files without their extensions.
+func queryNamesOf(files []string) []string {
+	var names []string
+	for _, qf := range files {
+		names = append(names, strings.TrimSuffix(qf, filepath.Ext(qf)))
+	}
+	return names
+}
+
+// selectQueries returns the files in queryFiles named in list, in the order
+// they're listed there.
+func selectQueries(list string) ([]string, error) {
+	all := queryNamesOf(queryFiles)
+	var selected []string
+	for _, name := range strings.Split(list, ",") {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		if !slices.Contains(all, name) {
+			return nil, fmt.Errorf("unknown query %q (choose from %s)", name, strings.Join(all, ","))
+		}
+		if !slices.Contains(selected, name) {
+			selected = append(selected, name)
+		}
+	}
+	if len(selected) == 0 {
+		return nil, errors.New("no queries selected")
+	}
+	var files []string
+	for i, name := range all {
+		if slices.Contains(selected, name) {
+			files = append(files, queryFiles[i])
+		}
+	}
+	return files, nil
 }
 
 func (c config) has(name string) bool {

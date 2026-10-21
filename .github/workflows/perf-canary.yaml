@@ -37,6 +37,8 @@ on:
         default: "5"
       systems:
         description: "Comma-separated systems to test (default: all of super-bsup, super-json, super-json-static, super-parquet)"
+      queries:
+        description: "Comma-separated queries to run (default: all of search, search+, count, agg, union)"
 
 permissions:
   contents: read
@@ -75,8 +77,9 @@ jobs:
           INPUT_TARGET: ${{ inputs.target }}
           INPUT_RUNS: ${{ inputs.runs }}
           INPUT_SYSTEMS: ${{ inputs.systems }}
+          INPUT_QUERIES: ${{ inputs.queries }}
         run: |
-          base='' target='' runs=5 systems='' pr=''
+          base='' target='' runs=5 systems='' queries='' pr=''
           case "$EVENT" in
             pull_request)
               # The checkout is the PR merged into main, so the default base
@@ -95,7 +98,7 @@ jobs:
               fi
               ;;
             workflow_dispatch)
-              base=$INPUT_BASE target=$INPUT_TARGET runs=${INPUT_RUNS:-5} systems=$INPUT_SYSTEMS
+              base=$INPUT_BASE target=$INPUT_TARGET runs=${INPUT_RUNS:-5} systems=$INPUT_SYSTEMS queries=$INPUT_QUERIES
               ;;
           esac
           {
@@ -103,6 +106,7 @@ jobs:
             echo "target=$target"
             echo "runs=$runs"
             echo "systems=$systems"
+            echo "queries=$queries"
             echo "pr=$pr"
           } >> "$GITHUB_OUTPUT"
       - name: Run perf canary
@@ -111,9 +115,10 @@ jobs:
           TARGET: ${{ steps.config.outputs.target }}
           RUNS: ${{ steps.config.outputs.runs }}
           SYSTEMS: ${{ steps.config.outputs.systems }}
+          QUERIES: ${{ steps.config.outputs.queries }}
           PR: ${{ steps.config.outputs.pr }}
         run: |
-          make perf BASE="$BASE" TARGET="$TARGET" SYSTEMS="$SYSTEMS" \
+          make perf BASE="$BASE" TARGET="$TARGET" SYSTEMS="$SYSTEMS" QUERIES="$QUERIES" \
             PERF_CANARY_FLAGS="-runs $RUNS -datadir $HOME/.cache/super-perf-canary -out $RUNNER_TEMP/perf-canary ${PR:+-pr $PR}"
       - name: Report
         id: report

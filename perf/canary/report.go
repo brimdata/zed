@@ -26,6 +26,11 @@ type metric struct {
 	Target float64 `json:"target"`
 	Change float64 `json:"change"` // relative change, e.g., 0.25 for +25%
 	Status string  `json:"status"`
+	// Noisy is set for a time when the medians differ by enough to be
+	// significant but the runs of the two builds overlap, so the change
+	// isn't flagged.  Peak memory isn't marked since its runs overlap
+	// routinely as it jumps between levels.
+	Noisy  bool `json:"noisy,omitempty"`
 	status status
 	unit   string
 	scale  float64
@@ -46,6 +51,7 @@ type report struct {
 	Host      string   `json:"host"`
 	Runs      int      `json:"runs"`
 	Systems   []string `json:"systems"`
+	Queries   []string `json:"queries"`
 	Threshold float64  `json:"threshold"`
 	Verdict   string   `json:"verdict"`
 	Rows      []*row   `json:"results"`
@@ -60,6 +66,7 @@ func newReport(c config, base, target *build, results []*result) *report {
 		Host:      hostInfo(),
 		Runs:      c.runs,
 		Systems:   systemNamesOf(c.systems),
+		Queries:   queryNamesOf(c.queries),
 		Threshold: c.threshold,
 		c:         c,
 	}
@@ -114,13 +121,22 @@ func (rep *report) compare(name string, r *result, f func(measurement) float64, 
 	// don't overlap at all, which guards against metrics such as peak
 	// memory that can jump between levels from one run to the next.
 	thr := rep.c.threshold
+	noisy := name != "memory"
 	bmin, bmax := minMax(r.Base, f)
 	tmin, tmax := minMax(r.Target, f)
 	switch {
-	case b > 0 && t/b >= 1+thr && t-b >= minDelta && tmin > bmax:
-		m.status = regressed
-	case b > 0 && t/b <= 1/(1+thr) && b-t >= minDelta && tmax < bmin:
-		m.status = improved
+	case b > 0 && t/b >= 1+thr && t-b >= minDelta:
+		if tmin > bmax {
+			m.status = regressed
+		} else {
+			m.Noisy = noisy
+		}
+	case b > 0 && t/b <= 1/(1+thr) && b-t >= minDelta:
+		if tmax < bmin {
+			m.status = improved
+		} else {
+			m.Noisy = noisy
+		}
 	}
 	m.Status = statusName(m.status)
 	return m
@@ -169,6 +185,10 @@ func (rep *report) verdict() string {
 	return "neutral"
 }
 
+func (r *row) noisy() bool {
+	return slices.ContainsFunc(r.Metrics, func(m *metric) bool { return m.Noisy })
+}
+
 func (rep *report) title() string {
 	total := len(rep.Rows)
 	regressions := rep.count(func(r *row) bool { return r.status == regressed })
@@ -196,7 +216,11 @@ func (rep *report) title() string {
 	if len(parts) == 0 {
 		parts = append(parts, fmt.Sprintf("no significant changes in %d tests", total))
 	}
-	return fmt.Sprintf("%s Perf canary: %s", icon, strings.Join(parts, ", "))
+	s := fmt.Sprintf("%s Perf canary: %s", icon, strings.Join(parts, ", "))
+	if noisy := rep.count((*row).noisy); noisy > 0 {
+		s += fmt.Sprintf(" (%d noisy)", noisy)
+	}
+	return s
 }
 
 // targetDesc describes the target build. For a merge commit, such as the
@@ -231,6 +255,9 @@ func (rep *report) markdown() string {
 	fmt.Fprintf(&sb, "| Host | %s |\n", rep.Host)
 	if len(rep.Systems) < len(systems) {
 		fmt.Fprintf(&sb, "| Systems | %s (others skipped) |\n", strings.Join(rep.Systems, ", "))
+	}
+	if len(rep.Queries) < len(queryFiles) {
+		fmt.Fprintf(&sb, "| Queries | %s (others skipped) |\n", strings.Join(rep.Queries, ", "))
 	}
 	runs := fmt.Sprintf("Median of %d runs per build, alternating builds", rep.Runs)
 	if rep.Runs == 1 {
@@ -276,6 +303,9 @@ func (rep *report) markdown() string {
 		fmt.Fprintf(&sb, "| %s | %s | %s | %s | %s |\n", r.Test, cells[0], cells[1], cells[2], icon)
 	}
 	sb.WriteString("\n")
+	if rep.count((*row).noisy) > 0 {
+		sb.WriteString("〰️ *noisy*: the medians differ by enough to count, but the runs of the two builds overlap, so the change isn't flagged. This usually means something else on the machine slowed some of the runs. Re-run to check.\n\n")
+	}
 	return sb.String()
 }
 
@@ -304,6 +334,9 @@ func (m *metric) value(v float64) string {
 
 func (m *metric) cell() string {
 	s := fmt.Sprintf("%s → %s %s", m.value(m.Base), m.value(m.Target), pct(m.Change))
+	if m.Noisy {
+		s += " 〰️ *noisy*"
+	}
 	if m.status != neutral {
 		s = fmt.Sprintf("%s → %s **%s** %s", m.value(m.Base), m.value(m.Target), pct(m.Change), statusIcon(m.status))
 	}
@@ -348,6 +381,7 @@ func rereport(c config, path string) (*report, error) {
 		Host    string    `json:"host"`
 		Runs    int       `json:"runs"`
 		Systems []string  `json:"systems"`
+		Queries []string  `json:"queries"`
 		Results []*result `json:"results"`
 	}
 	if err := json.Unmarshal(b, &old); err != nil {
@@ -359,6 +393,9 @@ func rereport(c config, path string) (*report, error) {
 	rep.Host = old.Host
 	if old.Systems != nil {
 		rep.Systems = old.Systems
+	}
+	if old.Queries != nil {
+		rep.Queries = old.Queries
 	}
 	return rep, nil
 }

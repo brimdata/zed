@@ -37,6 +37,13 @@ with a comma-separated list, e.g., to skip the slowest one,
 make perf SYSTEMS=super-bsup,super-json,super-parquet
 ```
 
+Likewise, to run only some of the queries in [`queries/`](queries), list
+them by file name without the extension, e.g.:
+
+```
+make perf SYSTEMS=super-bsup QUERIES=union
+```
+
 Other options can be passed with `PERF_CANARY_FLAGS`, e.g.,
 `make perf PERF_CANARY_FLAGS="-keep -threshold 0.15"`. Run
 `go run ./perf/canary -h` to see them all.
@@ -83,14 +90,14 @@ from a fork can't add the check, so its report is only in the job summary.)
 
 The workflow can also be started manually from the Actions tab to compare
 any two commits. Choose the branch to test and, optionally, the base and
-target commits, the number of runs, and the systems to test.
+target commits, the number of runs, and the systems and queries to test.
 
 ## What's measured
 
 For each build, the canary:
 
 1. builds `super`,
-2. converts the JSON data to BSUP (`super -dynamic -i json -f bsup`),
+2. converts the JSON data to BSUP (`super -i json -o <file>.bsup`),
    measured once, and
 3. runs each of the five queries in [`queries/`](queries) against four
    inputs:
@@ -98,7 +105,7 @@ For each build, the canary:
    | Test | Input | Flags |
    |-|-|-|
    | `super-bsup` | the BSUP file written by that build | `-i bsup` |
-   | `super-json` | `ghasample.json.gz` | `-dynamic -i json` |
+   | `super-json` | `ghasample.json.gz` | `-i json` |
    | `super-json-static` | `ghasample.json.gz` | `-static -i json` |
    | `super-parquet` | `ghasample.parquet` | `-i parquet` |
 
@@ -121,6 +128,25 @@ A change is flagged as significant only if all of these hold:
 
 Because of that last rule, use at least 5 runs (the default). With fewer,
 noise alone is much more likely to separate the two builds' runs.
+
+When the median wall or CPU time differs by enough to count but the runs
+overlap, the change isn't flagged, and the report marks it 〰️ *noisy*
+instead. (Peak memory isn't marked, since its runs overlap routinely.) This
+usually means something else on the machine (another program, or a busy
+hosted runner) slowed down some of the runs. Since the builds alternate,
+such a slowdown hits both builds, but the medians can still land far apart
+by chance. For example, in this local run, the machine got busy partway
+through:
+
+| Run | 1 | 2 | 3 | 4 | 5 |
+|-|-|-|-|-|-|
+| base | 4.871 s | 4.839 s | 5.229 s | 8.686 s | 10.906 s |
+| target | 4.818 s | 4.807 s | 7.462 s | 7.681 s | 12.324 s |
+
+The medians (5.229 → 7.462 s) differ by 43%, but the first two runs show
+the builds are the same speed. Noise can also hide a real change, so if a
+test you care about is marked 〰️ *noisy*, re-run it, e.g., with `SYSTEMS`
+and `QUERIES` set to just that test.
 
 To try different thresholds on an earlier run without re-running it, pass
 its `results.json` to `-rereport`, e.g.,
