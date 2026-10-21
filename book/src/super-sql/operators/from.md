@@ -320,8 +320,8 @@ The remaining examples below assume the existence of the SuperDB database
 created and populated by the following commands:
 
 ```mdtest-command
-export SUPER_DB=example
-super db -q init
+super db -q init example
+super db -q attach example
 super db -q create -orderby flip:desc coinflips
 echo '{flip:1,result:"heads"} {flip:2,result:"tails"}' |
   super db load -q -use coinflips -

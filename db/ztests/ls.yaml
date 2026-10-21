@@ -43,7 +43,7 @@ outputs:
       ===
       {
         type: <{
-          ts: time,
+          ts: timestamp,
           s: string,
           v: int64
         }>,

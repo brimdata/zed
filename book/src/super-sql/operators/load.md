@@ -32,8 +32,8 @@ Examples below assume the existence of a database created and populated
 by the following commands:
 
 ```mdtest-command
-export SUPER_DB=example
-super db -q init
+super db -q init example
+super db -q attach example
 super db -q create -orderby flip:asc coinflips
 super db branch -q -use coinflips onlytails
 echo '{flip:1,result:"heads"} {flip:2,result:"tails"}' |

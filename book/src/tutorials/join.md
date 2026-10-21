@@ -190,8 +190,8 @@ from fruit
 Populating the tables, then executing the query:
 
 ```mdtest-command
-export SUPER_DB=demo
-super db init -q
+super db init -q demo
+super db attach -q demo
 super db create -q -orderby flavor:asc fruit
 super db create -q -orderby likes:asc people
 super db load -q -use fruit fruit.json
