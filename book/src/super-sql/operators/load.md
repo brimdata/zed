@@ -33,13 +33,12 @@ by the following commands:
 
 ```mdtest-command
 super db -q init example
-super db -q attach example
-super db -q create -orderby flip:asc coinflips
-super db branch -q -use coinflips onlytails
+super db -attach example -q create -orderby flip:asc coinflips
+super db -attach example branch -q -use coinflips onlytails
 echo '{flip:1,result:"heads"} {flip:2,result:"tails"}' |
-  super db load -q -use coinflips -
-super db -q create -orderby flip:asc bigflips
-super db -f line -c '
+  super db -attach example load -q -use coinflips -
+super db -attach example -q create -orderby flip:asc bigflips
+super db -attach example -f line -c '
   from :branches
   | values table.name || "@" || branch.name
   | sort'
