@@ -1,0 +1,53 @@
+script: |
+  export SUPER_DB=test
+  super db init -q
+  super db create -q -orderby x t
+  super db create -q empty
+  super db load -q -use t a.sup
+  super db load -q -use t b.sup
+  echo === object types
+  super db -s -c "from t@main:objects | sort min | values type"
+  echo === fused across objects
+  super db -s -c "from t | values {x,y} | sort x"
+  super db -s -c "select x, y from t order by x"
+  echo === unknown field >&2
+  ! super db -c "from t | values z"
+  ! super db -c "select z from t"
+  echo === glob >&2
+  ! super db -c "from t* | values z"
+  echo === empty table is unknown
+  super db -s -c "from empty | values z"
+
+inputs:
+  - name: a.sup
+    data: |
+      {x:1}
+  - name: b.sup
+    data: |
+      {x:2,y:"foo"}
+
+outputs:
+  - name: stdout
+    data: |
+      === object types
+      <{x:int64}>
+      <{x:int64,y:string}>
+      === fused across objects
+      {x:1,y:error("no such field y")}
+      {x:2,y:"foo"}
+      {x:1,y:null}
+      {x:2,y:"foo"}
+      === empty table is unknown
+  - name: stderr
+    data: |
+      === unknown field
+      no such field "z" at line 1, column 17:
+      from t | values z
+                      ~
+      "z" is not a column or table at line 1, column 8:
+      select z from t
+             ~
+      === glob
+      no such field "z" at line 1, column 18:
+      from t* | values z
+                       ~
