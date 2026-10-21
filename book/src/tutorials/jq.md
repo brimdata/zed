@@ -817,11 +817,11 @@ produces the native time value:
 ```
 To be sure, you can check any value's type with the `typeof` function, e.g.,
 ```mdtest-command dir=book/src/tutorials
-super -s -c 'unnest this | head 1 | values created_at::time | typeof(this)' prs.json
+super -s -c 'unnest this | head 1 | values created_at::timestamp | typeof(this)' prs.json
 ```
 produces the native time value:
 ```mdtest-output
-<error({message:string,on:string})>
+<timestamp>
 ```
 
 ### Cleaning up the Messy JSON
