@@ -2,7 +2,7 @@ spq: collect(this)
 
 input: |
   1::(int64|string)
-  "foo"::(time|string)
+  "foo"::(timestamp|string)
   0.5
 
 output: |

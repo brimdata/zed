@@ -159,7 +159,7 @@ func (i *inferString) typeof(sctx *super.Context, typ super.Type) super.Type {
 	case i.isNet():
 		return super.TypeNet
 	case i.isTime():
-		return super.TypeTime
+		return super.TypeTimestamp
 	case i.isBool():
 		return super.TypeBool
 	}

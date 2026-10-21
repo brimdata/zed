@@ -19,7 +19,7 @@ outputs:
     data: |
       {
         type: <{
-          ts: time,
+          ts: timestamp,
           s: string,
           v: int64
         }>,
@@ -30,7 +30,7 @@ outputs:
       }
       {
         type: <{
-          ts: time,
+          ts: timestamp,
           s: string,
           v: int64
         }>,

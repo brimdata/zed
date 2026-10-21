@@ -278,7 +278,7 @@ func (v *vectorBuilder) build(a arrow.Array, nullable bool) (vector.Any, error) 
 		for i, v := range a.(*array.Date32).Date32Values() {
 			values[i] = int64(v) * int64(24*time.Hour)
 		}
-		out = vector.NewInt(super.TypeTime, values)
+		out = vector.NewInt(super.TypeTimestamp, values)
 	case arrow.TIMESTAMP:
 		multiplier := dt.(*arrow.TimestampType).TimeUnit().Multiplier()
 		values := byteconv.ReinterpretSlice[int64](a.(*array.Timestamp).TimestampValues())
@@ -287,14 +287,14 @@ func (v *vectorBuilder) build(a arrow.Array, nullable bool) (vector.Any, error) 
 				values[i] *= int64(multiplier)
 			}
 		}
-		out = vector.NewInt(super.TypeTime, values)
+		out = vector.NewInt(super.TypeTimestamp, values)
 	case arrow.TIME32:
 		multiplier := dt.(*arrow.Time32Type).TimeUnit().Multiplier()
 		values := make([]int64, length)
 		for i, v := range a.(*array.Time32).Time32Values() {
 			values[i] = int64(v) * int64(multiplier)
 		}
-		out = vector.NewInt(super.TypeTime, values)
+		out = vector.NewInt(super.TypeTimestamp, values)
 	case arrow.TIME64:
 		multiplier := dt.(*arrow.Time64Type).TimeUnit().Multiplier()
 		values := byteconv.ReinterpretSlice[int64](a.(*array.Time64).Time64Values())
@@ -303,7 +303,7 @@ func (v *vectorBuilder) build(a arrow.Array, nullable bool) (vector.Any, error) 
 				values[i] *= int64(multiplier)
 			}
 		}
-		out = vector.NewInt(super.TypeTime, values)
+		out = vector.NewInt(super.TypeTimestamp, values)
 	case arrow.DECIMAL128:
 		typ, ok := v.types[dt]
 		if !ok {

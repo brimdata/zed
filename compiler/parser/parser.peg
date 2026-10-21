@@ -2,6 +2,8 @@
     package parser
 
     import (
+        "strconv"
+
         "github.com/superdb/super/compiler/ast"
     )
 }
@@ -1466,6 +1468,8 @@ ComponentType
 
 EasyType
   = "(" __ typ:Type __ ")" { return typ, nil}
+  / PrecisionType
+  / DecimalType
   / name:PrimitiveType !IdentifierRest { return name, nil }
   / ERROR __ "(" __ t:Type __ ")" {
       return &ast.TypeError{
@@ -1602,6 +1606,36 @@ FStringExprElem
       }, nil
     }
 
+// Time-related types with fractional-second precision as in timestamp(3).
+// Precision 9 is the default and is the same type as the unadorned name.
+PrecisionType
+  = name:("timestamp_ntz" / "timestamp" / "time") __ "(" __ p:([0-9]+ { return string(c.text), nil }) __ ")" {
+      n := string(name.([]byte))
+      if p.(string) != "9" {
+        n += "(" + p.(string) + ")"
+      }
+      return &ast.TypePrimitive{
+        Kind: "TypePrimitive",
+        Name: n,
+        Loc: loc(c),
+      }, nil
+    }
+
+DecimalType
+  = ("decimal"i / "numeric"i) __ "(" __ p:Digits __ s:("," __ s:Digits { return s, nil })? __ ")" {
+      t := &ast.TypeDecimal{
+        Kind: "TypeDecimal",
+        Precision: p.(int),
+        Loc: loc(c),
+      }
+      if s != nil {
+        t.Scale = s.(int)
+      }
+      return t, nil
+    }
+
+Digits = [0-9]+ { return strconv.Atoi(string(c.text)) }
+
 PrimitiveType
   = name:PostgreSQLPrimitiveType {
         return &ast.TypePrimitive{
@@ -1614,7 +1648,10 @@ PrimitiveType
       / "int8" / "int16" / "int32" / "int64"
       / "float16" / "float32" / "float64"
       / "bool" / "string"
-      / "duration" / "time"
+      / "uint128" / "int128"
+      / "duration"
+      / "timestamp_ntz" / "timestamp" / "time" / "date" / "interval"
+      / "uuid" / "geometry" / "geography"
       / "bytes"
       / "ip" / "net"
       / "type" / "null" / "missing" / "none" / "all" ) {
@@ -1627,7 +1664,11 @@ PrimitiveType
 
 // https://www.postgresql.org/docs/current/datatype.html#DATATYPE-TABLE
 PostgreSQLPrimitiveType
-  = "bigint"i            { return "int64", nil }
+  = "timestamp with time zone"i    { return "timestamp", nil }
+  / "timestamp without time zone"i { return "timestamp_ntz", nil }
+  / "timestamptz"i                 { return "timestamp", nil }
+  / "timestamp"i !IdentifierRest   { return "timestamp", nil }
+  / "bigint"i            { return "int64", nil }
   / "boolean"i           { return "bool", nil }
   / "bytea"i             { return "bytes", nil }
   / "char"i !"a"i        { return "string", nil }
@@ -1639,7 +1680,6 @@ PostgreSQLPrimitiveType
   / "inet"i              { return "ip", nil }
   / "int"i ![1368e]i     { return "int32", nil }
   / "integer"i           { return "int32", nil }
-  / "interval"i          { return "duration", nil }
   / "real"i              { return "float32", nil }
   / "smallint"i          { return "int16", nil }
   / "text"i              { return "string", nil }
@@ -1719,7 +1759,7 @@ IDGuard
 
 Time
   = FullDate "T" FullTime {
-      return newPrimitive(c, "time", string(c.text)), nil
+      return newPrimitive(c, "timestamp", string(c.text)), nil
     }
 
 FullDate = D4 "-" D2 "-" D2

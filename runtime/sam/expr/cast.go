@@ -33,7 +33,7 @@ func LookupPrimitiveCaster(sctx *super.Context, typ super.Type) Evaluator {
 		return &casterNet{sctx}
 	case super.TypeDuration:
 		return &casterDuration{sctx}
-	case super.TypeTime:
+	case super.TypeTimestamp:
 		return &casterTime{sctx}
 	case super.TypeString:
 		return &casterString{sctx}
@@ -170,7 +170,7 @@ func (c *casterTime) Eval(val super.Value) super.Value {
 	id := val.Type().ID()
 	var ts nano.Ts
 	switch {
-	case id == super.IDTime:
+	case id == super.IDTimestamp:
 		return val
 	case id == super.IDString:
 		gotime, err := dateparse.ParseAny(byteconv.UnsafeString(val.Bytes()))
@@ -185,7 +185,7 @@ func (c *casterTime) Eval(val super.Value) super.Value {
 		}
 	case super.IsNumber(id):
 		//XXX we call coerce on integers here to avoid unsigned/signed decode
-		v, ok := coerce.ToInt(val, super.TypeTime)
+		v, ok := coerce.ToInt(val, super.TypeTimestamp)
 		if !ok {
 			return c.sctx.WrapError("cannot cast to time", val)
 		}

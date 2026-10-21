@@ -1,4 +1,4 @@
-spq: this::time
+spq: this::timestamp
 
 input: |
   "2023-10-19T23:11:20.999803Z"
@@ -29,16 +29,16 @@ output: |
   2020-01-02T00:00:00Z
   2006-02-12T19:17:00Z
   2001-09-09T01:46:40Z
-  error({message:"cannot cast to time",on:"foo"})
+  error({message:"cannot cast to timestamp",on:"foo"})
   1969-12-31T23:59:59Z
   1970-01-01T00:00:00.000000001Z
   1970-01-01T00:00:00.000000001Z
-  null::(time|null)
-  null::(time|null)
-  error({message:"cannot cast to time",on:1e+200})
+  null::(timestamp|null)
+  null::(timestamp|null)
+  error({message:"cannot cast to timestamp",on:1e+200})
   error("bad")
-  error({message:"cannot cast to time",on:{x:1}})
-  error({message:"cannot cast to time",on:[1,2]})
-  error({message:"cannot cast to time",on:set[1,2]})
-  error({message:"cannot cast to time",on:map{"x":1}})
-  error({message:"cannot cast to time",on:"e2"::enum(e1,e2)})
+  error({message:"cannot cast to timestamp",on:{x:1}})
+  error({message:"cannot cast to timestamp",on:[1,2]})
+  error({message:"cannot cast to timestamp",on:set[1,2]})
+  error({message:"cannot cast to timestamp",on:map{"x":1}})
+  error({message:"cannot cast to timestamp",on:"e2"::enum(e1,e2)})

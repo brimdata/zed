@@ -194,7 +194,7 @@ func (p *Parser) matchPrimitive() (*ast.Primitive, error) {
 	} else if _, err := strconv.ParseFloat(s, 64); err == nil {
 		typ = "float64"
 	} else if _, err := time.Parse(time.RFC3339Nano, s); err == nil {
-		typ = "time"
+		typ = "timestamp"
 	} else if _, err := nano.ParseDuration(s); err == nil {
 		typ = "duration"
 	} else if _, err := netip.ParsePrefix(s); err == nil {

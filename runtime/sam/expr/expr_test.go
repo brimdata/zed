@@ -558,12 +558,12 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, `(1.2.3.4)::net`, "", `error({message:"cannot cast to net",on:1.2.3.4})`)
 
 	// Test casts to time
-	testSuccessful(t, "((65504)::float16)::time", "", "1970-01-01T00:00:00.000065504Z")
+	testSuccessful(t, "((65504)::float16)::timestamp", "", "1970-01-01T00:00:00.000065504Z")
 	// float32 lacks sufficient precision to represent this time exactly.
-	// sam-only testSuccessful(t, "((1589126400000000000)::float32)::time", "", "2020-05-10T15:59:14.647908352Z")
-	testSuccessful(t, "((1589126400000000000)::float64)::time", "", "2020-05-10T16:00:00Z")
-	testSuccessful(t, "(1589126400000000000)::time", "", "2020-05-10T16:00:00Z")
-	testSuccessful(t, `("1589126400000000000")::time`, "", "2020-05-10T16:00:00Z")
+	// sam-only testSuccessful(t, "((1589126400000000000)::float32)::timestamp", "", "2020-05-10T15:59:14.647908352Z")
+	testSuccessful(t, "((1589126400000000000)::float64)::timestamp", "", "2020-05-10T16:00:00Z")
+	testSuccessful(t, "(1589126400000000000)::timestamp", "", "2020-05-10T16:00:00Z")
+	testSuccessful(t, `("1589126400000000000")::timestamp`, "", "2020-05-10T16:00:00Z")
 
 	testSuccessful(t, "(1.2)::string", "", `"1.2"`)
 	testSuccessful(t, "(5)::string", "", `"5"`)

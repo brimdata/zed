@@ -98,7 +98,7 @@ type zenum = string
   my_count: 123::uint64::(uint64|null),
   my_int: 456::(int64|null),
   my_double: 123.456::(float64|null),
-  my_time: 2020-06-18T17:42:31.123456Z::(time|null),
+  my_time: 2020-06-18T17:42:31.123456Z::(timestamp|null),
   my_interval: 2m3.456s::(duration|null),
   my_printable_string: "smile😁smile"::(string|null),
   my_bytes_string: "\t\u0007\u0004"::(string|null),

@@ -291,6 +291,8 @@ func isShortType(typ super.Type) bool {
 		return true
 	}
 	switch typ := typ.(type) {
+	case *super.TypeDecimal:
+		return true
 	case *super.TypeRecord:
 		if len(typ.Fields) <= 4 {
 			for _, f := range typ.Fields {
@@ -531,7 +533,7 @@ func formatPrimitive(b *strings.Builder, typ super.Type, bytes scode.Bytes) {
 		b.WriteString(strconv.FormatInt(super.DecodeInt(bytes), 10))
 	case *super.TypeOfDuration:
 		b.WriteString(super.DecodeDuration(bytes).String())
-	case *super.TypeOfTime:
+	case *super.TypeOfTimestamp:
 		b.WriteString(super.DecodeTime(bytes).Time().Format(time.RFC3339Nano))
 	case *super.TypeOfFloat16:
 		f := super.DecodeFloat16(bytes)
@@ -577,6 +579,12 @@ func formatPrimitive(b *strings.Builder, typ super.Type, bytes scode.Bytes) {
 		b.WriteString("missing")
 	case *super.TypeOfNone:
 		b.WriteString("none")
+	case *super.TypeOfUnimplemented:
+		// Values of unimplemented types should be wrapped by
+		// super.Context.NewUnimplemented but format any stray value
+		// as its bytes.
+		b.WriteString("0x")
+		b.WriteString(hex.EncodeToString(bytes))
 	case *super.TypeOfAll:
 		// Write out all values as byte encoded as they only place
 		// they may appear is inside of a fusion(all), which includes
@@ -657,6 +665,8 @@ func (f *formatterT) formatType(indent int, typ super.Type, parens bool) {
 		f.build("option(")
 		f.formatType(indent, typ.Type, false)
 		f.build(")")
+	case *super.TypeDecimal:
+		f.build(fmt.Sprintf("decimal(%d,%d)", typ.Precision, typ.Scale))
 	default:
 		panic(typ)
 	}

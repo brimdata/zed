@@ -16,6 +16,10 @@ spq: |
     <real>,
     <smallint>,
     <text>,
+    <timestamp with time zone>,
+    <timestamp without time zone>,
+    <timestamptz>,
+    <TIMESTAMP>,
     <varchar>
 
 output: |
@@ -31,8 +35,12 @@ output: |
   <ip>
   <int32>
   <int32>
-  <duration>
+  <interval>
   <float32>
   <int16>
   <string>
+  <timestamp>
+  <timestamp_ntz>
+  <timestamp>
+  <timestamp>
   <string>

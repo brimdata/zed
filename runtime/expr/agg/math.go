@@ -94,8 +94,8 @@ func (m *mathReducer) consumeNumeric(vec vector.Any) {
 			m.math = newReduceInt64(m.function, state, super.TypeInt64)
 		case super.IDDuration:
 			m.math = newReduceInt64(m.function, state, super.TypeDuration)
-		case super.IDTime:
-			m.math = newReduceInt64(m.function, state, super.TypeTime)
+		case super.IDTimestamp:
+			m.math = newReduceInt64(m.function, state, super.TypeTimestamp)
 		case super.IDFloat16, super.IDFloat32, super.IDFloat64:
 			m.math = newReduceFloat64(m.function, state)
 		default:

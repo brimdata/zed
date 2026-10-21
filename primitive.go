@@ -375,6 +375,31 @@ func (t *TypeOfNone) Kind() Kind {
 	return PrimitiveKind
 }
 
+// TypeOfUnimplemented is the type of each primitive type whose ID and name
+// are reserved but whose values are not yet implemented.  Values of these
+// types are not constructed directly.  Instead, a reader that encounters such
+// a value represents it with NewUnimplemented, which wraps the value's bytes
+// (in the reserved type's planned encoding) in an error.
+type TypeOfUnimplemented struct {
+	id   int
+	name string
+}
+
+func (t *TypeOfUnimplemented) ID() int {
+	return t.id
+}
+
+func (t *TypeOfUnimplemented) Kind() Kind {
+	return PrimitiveKind
+}
+
+// IsUnimplemented returns true if typ is a reserved primitive type whose
+// values are not yet implemented.
+func IsUnimplemented(typ Type) bool {
+	_, ok := TypeUnder(typ).(*TypeOfUnimplemented)
+	return ok
+}
+
 type TypeOfAll struct{}
 
 func (t *TypeOfAll) ID() int {
@@ -413,7 +438,7 @@ func (t *TypeOfString) Kind() Kind {
 	return PrimitiveKind
 }
 
-type TypeOfTime struct{}
+type TypeOfTimestamp struct{}
 
 func EncodeTime(t nano.Ts) scode.Bytes {
 	var b [8]byte
@@ -429,10 +454,10 @@ func DecodeTime(zv scode.Bytes) nano.Ts {
 	return nano.Ts(scode.DecodeCountedVarint(zv))
 }
 
-func (t *TypeOfTime) ID() int {
-	return IDTime
+func (t *TypeOfTimestamp) ID() int {
+	return IDTimestamp
 }
 
-func (t *TypeOfTime) Kind() Kind {
+func (t *TypeOfTimestamp) Kind() Kind {
 	return PrimitiveKind
 }

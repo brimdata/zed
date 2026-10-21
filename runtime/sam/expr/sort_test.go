@@ -19,7 +19,7 @@ func BenchmarkSort(b *testing.B) {
 		{super.TypeUint64, func() []byte { return super.EncodeUint(rand.Uint64()) }},
 		{super.TypeString, func() []byte { return strconv.AppendUint(nil, rand.Uint64(), 16) }},
 		{super.TypeDuration, func() []byte { return super.EncodeInt(int64(rand.Uint64())) }},
-		{super.TypeTime, func() []byte { return super.EncodeInt(int64(rand.Uint64())) }},
+		{super.TypeTimestamp, func() []byte { return super.EncodeInt(int64(rand.Uint64())) }},
 	}
 	for _, c := range cases {
 		b.Run(sup.FormatType(c.typ), func(b *testing.B) {

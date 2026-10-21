@@ -2,6 +2,7 @@ package sup
 
 import (
 	"errors"
+	"fmt"
 	"unicode"
 
 	"github.com/superdb/super"
@@ -93,10 +94,103 @@ func (p *Parser) matchTypeName() (ast.Type, error) {
 			Type: &ast.TypePrimitive{Kind: "TypePrimitive", Name: "all"},
 		}, nil
 	}
+	switch name {
+	case "decimal":
+		return p.matchTypeDecimalBody()
+	case "timestamp", "timestamp_ntz", "time":
+		precision, ok, err := p.matchPrecision()
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			name = PrecisionTypeName(name, precision)
+			if super.LookupPrimitive(name) == nil {
+				return nil, p.errorf("invalid precision for type %s (must be 0, 3, 6, or 9)", name)
+			}
+		}
+	}
 	if t := super.LookupPrimitive(name); t != nil {
 		return &ast.TypePrimitive{Kind: "TypePrimitive", Name: name}, nil
 	}
 	return &ast.TypeRef{Kind: "TypeRef", Name: name}, nil
+}
+
+// PrecisionTypeName returns the canonical name of the time-related primitive
+// type name with fractional-second precision p, where precision 9 is
+// the unadorned name.
+func PrecisionTypeName(name string, p int) string {
+	if p == 9 {
+		return name
+	}
+	return fmt.Sprintf("%s(%d)", name, p)
+}
+
+// matchPrecision matches an optional parenthesized precision as in timestamp(3).
+func (p *Parser) matchPrecision() (int, bool, error) {
+	ok, err := p.lexer.match('(')
+	if err != nil || !ok {
+		return 0, false, noEOF(err)
+	}
+	precision, err := p.matchTypeParam()
+	if err != nil {
+		return 0, false, err
+	}
+	if ok, err := p.lexer.match(')'); err != nil || !ok {
+		return 0, false, p.error("mismatched parentheses in type precision")
+	}
+	return precision, true, nil
+}
+
+// matchTypeDecimalBody matches the (p,s) or (p) of decimal(p,s).
+func (p *Parser) matchTypeDecimalBody() (*ast.TypeDecimal, error) {
+	l := p.lexer
+	if ok, err := l.match('('); err != nil || !ok {
+		return nil, p.error("decimal type requires precision as in decimal(p,s)")
+	}
+	precision, err := p.matchTypeParam()
+	if err != nil {
+		return nil, err
+	}
+	var scale int
+	if ok, err := l.match(','); err != nil {
+		return nil, err
+	} else if ok {
+		if scale, err = p.matchTypeParam(); err != nil {
+			return nil, err
+		}
+	}
+	if ok, err := l.match(')'); err != nil || !ok {
+		return nil, p.error("mismatched parentheses in decimal type")
+	}
+	return &ast.TypeDecimal{
+		Kind:      "TypeDecimal",
+		Precision: precision,
+		Scale:     scale,
+	}, nil
+}
+
+func (p *Parser) matchTypeParam() (int, error) {
+	l := p.lexer
+	if err := l.skipSpace(); err != nil {
+		return 0, err
+	}
+	var n, digits int
+	for {
+		r, sz, err := l.peekRune()
+		if err != nil || !unicode.IsDigit(r) {
+			break
+		}
+		n = n*10 + int(r-'0')
+		digits++
+		if digits > 4 {
+			return 0, p.error("type parameter too large")
+		}
+		l.skip(sz)
+	}
+	if digits == 0 {
+		return 0, p.error("expected integer type parameter")
+	}
+	return n, nil
 }
 
 func (p *Parser) matchTypeRecord() (*ast.TypeRecord, error) {

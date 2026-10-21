@@ -2,7 +2,7 @@ spq: strftime(f, v)
 
 input: |
   {f:"%Y-%a",v:2024-07-30T06:15:01.062681Z}
-  {f:"%Y-%a"::(string|null),v:2024-07-30T06:15:01.062681Z::(time|null)}
+  {f:"%Y-%a"::(string|null),v:2024-07-30T06:15:01.062681Z::(timestamp|null)}
   {f:"%Y-%a",v:null}
   {f:null,v:2024-07-30T06:15:01.062681Z}
   {f:1,v:2024-07-30T06:15:01.062681Z}

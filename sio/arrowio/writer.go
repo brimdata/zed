@@ -162,7 +162,7 @@ func (w *Writer) newArrowDataType(typ super.Type) (arrow.DataType, error) {
 			return arrow.FixedWidthTypes.DayTimeInterval, nil
 		}
 		return arrow.FixedWidthTypes.Duration_ns, nil
-	case *super.TypeOfTime:
+	case *super.TypeOfTimestamp:
 		switch name {
 		case "arrow_date32":
 			return arrow.FixedWidthTypes.Date32, nil

@@ -15,7 +15,7 @@ outputs:
       | output main
       // ===
       null
-      | values bucket(cast(this, <time>), 1d)
+      | values bucket(cast(this, <timestamp>), 1d)
       | output main
       // ===
       // ===

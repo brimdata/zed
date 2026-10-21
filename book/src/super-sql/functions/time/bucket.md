@@ -5,7 +5,7 @@ quantize a time or duration value into buckets of equal time spans
 ## Synopsis
 
 ```
-bucket(val: time, span: duration) -> time
+bucket(val: timestamp, span: duration) -> time
 bucket(val: duration, span: duration) -> duration
 ```
 
@@ -23,7 +23,7 @@ _Bucket a couple times to hour intervals_
 
 ```mdtest-spq
 # spq
-values bucket(this::time, 1h)
+values bucket(this::timestamp, 1h)
 # input
 2020-05-26T15:27:47Z
 "5/26/2020 3:27pm"

@@ -223,7 +223,7 @@ func (w *Writer) writePrimitive(val super.Value) {
 	switch id := val.Type().ID(); {
 	case id == super.IDDuration:
 		v = nano.Duration(val.Int()).String()
-	case id == super.IDTime:
+	case id == super.IDTimestamp:
 		v = nano.Ts(val.Int()).Time().Format(time.RFC3339Nano)
 	case super.IsSigned(id):
 		v, c = val.Int(), numberColor

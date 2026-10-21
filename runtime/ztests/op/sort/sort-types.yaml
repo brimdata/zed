@@ -14,7 +14,7 @@ input: |
   <[net]>
   <[uint8]>
   <set[ip]>
-  <set[time]>
+  <set[timestamp]>
   <{x:int64,y:int64}>
   <{x:string}>
   <{x:uint16}>
@@ -32,7 +32,7 @@ input: |
   <int64>
   <duration>
   <null>
-  <time>
+  <timestamp>
   <float32>
   <float16>
   <bool>
@@ -57,7 +57,7 @@ output: |
   <int32>
   <int64>
   <duration>
-  <time>
+  <timestamp>
   <float16>
   <float32>
   <float64>
@@ -73,7 +73,7 @@ output: |
   <{x:int64,y:int64}>
   <[uint8]>
   <[net]>
-  <set[time]>
+  <set[timestamp]>
   <set[ip]>
   <map{float64:uint8}>
   <map{float64:string}>

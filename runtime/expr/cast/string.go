@@ -22,7 +22,7 @@ func castToString(vec vector.Any, index []uint32) (vector.Any, []uint32, string,
 		switch vec.Type().ID() {
 		case super.IDDuration:
 			offs, bytes = durToString(vec, index, n)
-		case super.IDTime:
+		case super.IDTimestamp:
 			offs, bytes = timeToString(vec, index, n)
 		default:
 			for i := range n {

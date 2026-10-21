@@ -26,6 +26,13 @@ func (c *const_) project(loader *FrameLoader, projection field.Projection) vecto
 	// Map the const super.Value in the bsup's type context to
 	// a new one in the query type context.
 	val := c.meta.Value
+	if c.length() == 0 {
+		typ, err := loader.sctx.TranslateType(val.Type())
+		if err != nil {
+			panic(err)
+		}
+		return vector.NewEmpty(typ)
+	}
 	if val.IsNull() {
 		return vector.NewNull(c.length())
 	}

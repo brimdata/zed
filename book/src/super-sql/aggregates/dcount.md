@@ -46,7 +46,7 @@ seq 10000 | super -s -c 'dcount(this)' -
 ```
 =>
 ```mdtest-output
-9987
+10004
 ```
 
 Count of values in buckets grouped by key:

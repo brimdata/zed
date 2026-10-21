@@ -20,7 +20,7 @@ func (d *DatePart) Call(args ...vector.Any) vector.Any {
 	if args[0].Type().ID() != super.IDString {
 		return vector.NewWrappedError(d.sctx, "date_part: string value required for part argument", args[0])
 	}
-	if args[1].Type().ID() != super.IDTime {
+	if args[1].Type().ID() != super.IDTimestamp {
 		return vector.NewWrappedError(d.sctx, "date_part: time value required for time argument", args[1])
 	}
 	partArg, timeArg := vector.Under(args[0]), vector.Under(args[1])
@@ -44,7 +44,7 @@ func (d *DatePart) slow(partArg, timeArg vector.Any) vector.Any {
 		partVal := super.NewValue(super.TypeString, b.Bytes().Body())
 		b.Reset()
 		timeArg.Serialize(&b, i)
-		timeVal := super.NewValue(super.TypeTime, b.Bytes().Body())
+		timeVal := super.NewValue(super.TypeTimestamp, b.Bytes().Body())
 		vb.Write(fn.Call([]super.Value{partVal, timeVal}))
 	}
 	return vb.Build(d.sctx)

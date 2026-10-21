@@ -1,6 +1,7 @@
 package vbuild
 
 import (
+	"github.com/superdb/super"
 	"github.com/superdb/super/vector"
 )
 
@@ -38,4 +39,18 @@ func (n *noneBuilder) Write(vec vector.Any) {
 
 func (n *noneBuilder) Build() vector.Any {
 	return vector.NewNone(n.len)
+}
+
+type emptyBuilder struct {
+	typ super.Type
+}
+
+func (e *emptyBuilder) Write(vec vector.Any) {
+	if vec.Len() != 0 {
+		panic(e.typ)
+	}
+}
+
+func (e *emptyBuilder) Build() vector.Any {
+	return vector.NewEmpty(e.typ)
 }

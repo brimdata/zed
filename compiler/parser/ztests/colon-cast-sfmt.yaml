@@ -1,5 +1,5 @@
 script: |
-  super compile -C -C "values 1::uint8, 2::int32, 3::float64, '2025-07-01T21:53:23.26504Z'::time"
+  super compile -C -C "values 1::uint8, 2::int32, 3::float64, '2025-07-01T21:53:23.26504Z'::timestamp"
   super compile -C "values [1,2,3]::[string]"
   super compile -C "values {x:1,s:'foo'}::{x:string,s:string}"
   super compile -C "values 3.3.3.0/24::net, ::1/128::net, 2::/16::net"
@@ -17,7 +17,7 @@ script: |
 outputs:
   - name: stdout
     data: |
-      values 1::<uint8>, 2::<int32>, 3::<float64>, "2025-07-01T21:53:23.26504Z"::<time>
+      values 1::<uint8>, 2::<int32>, 3::<float64>, "2025-07-01T21:53:23.26504Z"::<timestamp>
       values [1,2,3]::<[string]>
       values {x:1,s:"foo"}::<{x:string,s:string}>
       values 3.3.3.0/24::<net>, ::1/128::<net>, 2::/16::<net>

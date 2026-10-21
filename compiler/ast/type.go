@@ -68,6 +68,12 @@ type (
 		Name string `json:"name"`
 		Loc  `json:"loc"`
 	}
+	TypeDecimal struct {
+		Kind      string `json:"kind" unpack:""`
+		Precision int    `json:"precision"`
+		Scale     int    `json:"scale"`
+		Loc       `json:"loc"`
+	}
 )
 
 func (*TypePrimitive) typeNode() {}
@@ -81,6 +87,7 @@ func (*TypeError) typeNode()     {}
 func (*TypeFusion) typeNode()    {}
 func (*TypeOption) typeNode()    {}
 func (*TypeRef) typeNode()       {}
+func (*TypeDecimal) typeNode()   {}
 
 // This is a hack that allows us to express a "date" type until we
 // get proper coverage of SQL date/time types natively in the super-structured

@@ -38,7 +38,7 @@ type port = uint16
 type zenum = string
 {
   _path: "conn",
-  ts: 2018-03-24T17:15:21.255387Z::(time|null),
+  ts: 2018-03-24T17:15:21.255387Z::(timestamp|null),
   uid: "C8Tful1TvM3Zf5x8fl"::(string|null),
   id: {
     orig_h: 10.164.94.120::(ip|null),

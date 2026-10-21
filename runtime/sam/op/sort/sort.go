@@ -212,7 +212,7 @@ func GuessSortKey(val super.Value) field.Path {
 	if f := firstMatchingField(recType, super.IsFloat); f != nil {
 		return f
 	}
-	isNotTime := func(id int) bool { return id != super.IDTime }
+	isNotTime := func(id int) bool { return id != super.IDTimestamp }
 	if f := firstMatchingField(recType, isNotTime); f != nil {
 		return f
 	}

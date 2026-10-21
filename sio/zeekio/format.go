@@ -33,7 +33,7 @@ func formatAny(val super.Value, inContainer bool) string {
 		return "F"
 	case *super.TypeOfBytes:
 		return base64.StdEncoding.EncodeToString(val.Bytes())
-	case *super.TypeOfDuration, *super.TypeOfTime:
+	case *super.TypeOfDuration, *super.TypeOfTimestamp:
 		return formatTime(nano.Ts(val.Int()))
 	case *super.TypeEnum:
 		return formatAny(super.NewValue(super.TypeUint64, val.Bytes()), false)

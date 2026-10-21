@@ -62,7 +62,7 @@ func NewValueBuilder(typ super.Type) ValueBuilder {
 		*super.TypeOfInt32,
 		*super.TypeOfInt64,
 		*super.TypeOfDuration,
-		*super.TypeOfTime:
+		*super.TypeOfTimestamp:
 		return &intValueBuilder{typ: typ}
 	case *super.TypeOfFloat16,
 		*super.TypeOfFloat32,
@@ -106,8 +106,38 @@ func NewValueBuilder(typ super.Type) ValueBuilder {
 		return &errorValueBuilder{typ: typ, ValueBuilder: NewValueBuilder(typ.Type)}
 	case *super.TypeNamed:
 		return &namedValueBuilder{typ: typ}
+	case *super.TypeOfUnimplemented, *super.TypeDecimal:
+		return &unimplementedValueBuilder{typ: typ}
 	}
 	panic(typ)
+}
+
+// unimplementedValueBuilder builds vectors of types whose values are not yet
+// implemented.  An empty vector keeps the type (e.g., for the elements of an
+// empty array of the type) while any values are converted to the errors
+// created by super.Context.NewUnimplemented.
+type unimplementedValueBuilder struct {
+	typ  super.Type
+	vals []scode.Bytes
+}
+
+func (u *unimplementedValueBuilder) Write(bytes scode.Bytes) {
+	u.vals = append(u.vals, bytes)
+}
+
+func (u *unimplementedValueBuilder) Build(sctx *super.Context) Any {
+	if len(u.vals) == 0 {
+		return NewEmpty(u.typ)
+	}
+	var builder ValueBuilder
+	for _, bytes := range u.vals {
+		val := sctx.NewUnimplemented(u.typ, bytes)
+		if builder == nil {
+			builder = NewValueBuilder(val.Type())
+		}
+		builder.Write(val.Bytes())
+	}
+	return builder.Build(sctx)
 }
 
 type namedValueBuilder struct {

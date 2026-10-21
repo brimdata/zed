@@ -120,6 +120,8 @@ func (c *cast) Cast(from super.Value, to super.Type) (super.Value, bool) {
 			return c.error(from, to)
 		}
 		return val, true
+	case *super.TypeDecimal, *super.TypeOfUnimplemented:
+		return c.sctx.WrapError("cannot cast to "+sup.FormatType(to)+": type not yet implemented", from), false
 	default:
 		caster := expr.LookupPrimitiveCaster(c.sctx, to)
 		if caster == nil {

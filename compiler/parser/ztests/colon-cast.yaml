@@ -1,5 +1,5 @@
 script: |
-  super -s -c "values 1::uint8, 2::int32, 3::float64, '2025-07-01T21:53:23.26504Z'::time"
+  super -s -c "values 1::uint8, 2::int32, 3::float64, '2025-07-01T21:53:23.26504Z'::timestamp"
   super -s -c "values [1,2,3]::[string]"
   super -s -c "values {x:1,s:'foo'}::{x:string,s:string}"
   super -s -c "values 3.3.3.0/24::net, ::1/128::net, 2::/16::net"
