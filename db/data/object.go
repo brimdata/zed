@@ -65,9 +65,14 @@ func FileMatch(s string) (kind FileKind, id uuid.UUID, ok bool) {
 // of values sorted according to the table's sort order where From is the
 // the first value in the sequence and To is the last value.  Count is the number
 // of values in the sequence and Size is total size in bytes of the Object as
-// persisted to storage (i.e., its compressed size).
+// persisted to storage (i.e., its compressed size).  Type is the fused type
+// of all values in the object, or nil if unknown (e.g., the object predates
+// this field).  Type may belong to any type context (e.g., the one used to
+// unmarshal the object), so use super.Context.TranslateType before mixing it
+// with types from another context.
 type Object struct {
 	ID    uuid.UUID   `super:"id"`
+	Type  super.Type  `super:"type"`
 	Min   super.Value `super:"min"`
 	Max   super.Value `super:"max"`
 	Count uint64      `super:"count"`
@@ -91,6 +96,34 @@ func plural(n int) string {
 
 func (o *Object) Equal(to *Object) bool {
 	return o.ID == to.ID
+}
+
+// FusedType returns the fused type of the values in the objects interpreted
+// in sctx.  It returns nil if objects is empty or if any object has no type,
+// since in either case the type of the collection cannot be known statically.
+func FusedType(sctx *super.Context, objects []*Object) (super.Type, error) {
+	if len(objects) == 0 {
+		return nil, nil
+	}
+	fuser := super.NewFuser(sctx, true)
+	// Avoid the type translation across objects.  Probably not a big deal
+	// but will help a bit for large object scans.
+	seen := make(map[super.Type]struct{})
+	for _, o := range objects {
+		if o.Type == nil {
+			return nil, nil
+		}
+		if _, ok := seen[o.Type]; ok {
+			continue
+		}
+		seen[o.Type] = struct{}{}
+		typ, err := sctx.TranslateType(o.Type)
+		if err != nil {
+			return nil, fmt.Errorf("data object %s: %w", o.ID, err)
+		}
+		fuser.Fuse(typ)
+	}
+	return fuser.Type(), nil
 }
 
 func NewObject() Object {

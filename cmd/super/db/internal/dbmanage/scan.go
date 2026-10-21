@@ -81,10 +81,12 @@ func newObjectIterator(ctx context.Context, db api.Interface, head *dbid.Committ
 		return nil, err
 	}
 	puller := sbuf.NewMaterializer(q)
+	u := super.NewUnmarshaler()
+	u.SetContext(super.NewContext())
 	return &objectIterator{
 		reader:      sbuf.PullerReader(puller),
 		puller:      puller,
-		unmarshaler: super.NewUnmarshaler(),
+		unmarshaler: u,
 	}, nil
 }
 

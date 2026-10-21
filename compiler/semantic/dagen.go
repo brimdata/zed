@@ -118,10 +118,15 @@ func (d *dagen) op(op sem.Op) dag.Op {
 			Meta: op.Meta,
 		}
 	case *sem.TableScan:
+		var typ string
+		if op.Type != nil && !isUnknown(op.Type) {
+			typ = sup.FormatType(op.Type)
+		}
 		return &dag.TableScan{
 			Kind:   "TableScan",
 			ID:     op.ID,
 			Commit: op.Commit,
+			Type:   typ,
 		}
 
 	//

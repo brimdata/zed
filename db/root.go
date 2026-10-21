@@ -264,6 +264,16 @@ func (r *Root) CommitObject(ctx context.Context, tableID uuid.UUID, branchName s
 	return branchRef.Commit, nil
 }
 
+// TableType returns the fused type of the table's data objects at commit.
+// See Table.Type.
+func (r *Root) TableType(ctx context.Context, sctx *super.Context, tableID, commit uuid.UUID) (super.Type, error) {
+	table, err := r.OpenTable(ctx, tableID)
+	if err != nil {
+		return nil, err
+	}
+	return table.Type(ctx, sctx, commit)
+}
+
 func (r *Root) SortKeys(ctx context.Context, src dag.Op) order.SortKeys {
 	switch src := src.(type) {
 	case *dag.CommitMetaScan:

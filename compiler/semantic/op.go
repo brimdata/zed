@@ -63,12 +63,28 @@ func (t *translator) parentJoin(in ast.Seq, seq sem.Seq, inType super.Type) (sem
 	return t.joinOp(join, seq, types)
 }
 
+// scanType returns the output type of a seq consisting of a scan or a fork of
+// scans (e.g., the tables matched by a glob), fusing across fork paths.
+// We just use the checker here to compute this.
+func (t *translator) scanType(seq sem.Seq) super.Type {
+	if len(seq) != 1 {
+		return t.checker.unknown
+	}
+	switch seq[0].(type) {
+	case *sem.BadOp:
+		return badType
+	case *sem.TableScan, *sem.FileScan, *sem.ForkOp:
+		return t.checker.op(nil, seq[0])
+	}
+	return t.checker.unknown
+}
+
 func (t *translator) fromSource(entity ast.FromSource, args []ast.OpArg, seq sem.Seq) (sem.Seq, super.Type, string) {
 	switch entity := entity.(type) {
 	case *ast.GlobExpr:
 		if t.env.IsAttached() {
-			// XXX need to get fused type from table
-			return t.fromTableRegexp(entity, reglob.Reglob(entity.Pattern), entity.Pattern, "glob", args), nil, ""
+			seq := t.fromTableRegexp(entity, reglob.Reglob(entity.Pattern), entity.Pattern, "glob", args)
+			return seq, t.scanType(seq), ""
 		}
 		// XXX should fuse the types across the glob instead of unknown
 		op := t.fromFileGlob(entity, entity.Pattern, args)
@@ -81,8 +97,8 @@ func (t *translator) fromSource(entity ast.FromSource, args []ast.OpArg, seq sem
 			t.error(entity, errors.New("cannot use regular expression with from operator on local file system"))
 			return seq, badType, ""
 		}
-		// XXX need to get fused type from table
-		return t.fromTableRegexp(entity, entity.Pattern, entity.Pattern, "regexp", args), t.checker.unknown, ""
+		seq := t.fromTableRegexp(entity, entity.Pattern, entity.Pattern, "regexp", args)
+		return seq, t.scanType(seq), ""
 	case *ast.Text:
 		if seq, typ := t.scope.lookupQuery(t, entity.Text); seq != nil {
 			return seq, typ, entity.Text
@@ -95,7 +111,8 @@ func (t *translator) fromSource(entity ast.FromSource, args []ast.OpArg, seq sem
 			}
 			return append(seq, op), typ, def
 		}
-		return sem.Seq{op}, t.checker.unknown, def
+		ops := sem.Seq{op}
+		return ops, t.scanType(ops), def
 	case *ast.FromEval:
 		seq, def := t.fromFString(entity, args, seq)
 		return seq, t.checker.unknown, def
@@ -522,7 +539,27 @@ func (t *translator) table(node ast.Node, tableName string, args []ast.OpArg) se
 		Node:   node,
 		ID:     tableID,
 		Commit: commitID,
+		Type:   t.tableType(node, tableID, commitID),
 	}
+}
+
+// tableType returns the fused type of the table's data objects at commit,
+// which the database computes from the commit snapshot without reading any
+// data.  It returns unknown in dynamic mode or when the type can't be
+// determined statically (e.g., an empty table).
+func (t *translator) tableType(node ast.Node, tableID, commit uuid.UUID) super.Type {
+	if t.env.Dynamic {
+		return t.checker.unknown
+	}
+	typ, err := t.env.TableType(t.ctx, t.sctx, tableID, commit)
+	if err != nil {
+		t.error(node, err)
+		return badType
+	}
+	if typ == nil {
+		return t.checker.unknown
+	}
+	return typ
 }
 
 func (t *translator) dbMeta(entity *ast.DBMeta) sem.Op {

@@ -24,4 +24,6 @@ func init() {
 		data.Object{},
 		data.Partition{},
 	)
+	// data.Object has a super.Type field, which requires a type context.
+	unmarshaler.SetContext(super.NewContext())
 }

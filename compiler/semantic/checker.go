@@ -60,8 +60,12 @@ func (c *checker) op(typ super.Type, op sem.Op) super.Type {
 			return c.unknown
 		}
 		return op.Type
+	case *sem.TableScan:
+		if op.Type == nil {
+			return c.unknown
+		}
+		return op.Type
 	case *sem.HTTPScan,
-		*sem.TableScan,
 		*sem.RobotScan,
 		*sem.DBMetaScan,
 		*sem.TableMetaScan,

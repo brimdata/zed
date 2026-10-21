@@ -19,6 +19,7 @@ type Reader struct {
 func NewReader(reader sio.Reader, templates []any) *Reader {
 	u := super.NewUnmarshaler()
 	u.Bind(templates...)
+	u.SetContext(super.NewContext())
 	return &Reader{
 		reader:      reader,
 		unmarshaler: u,
