@@ -1,0 +1,8 @@
+script: |
+  super db init -q .
+  super db attach -q .
+  super db detach
+
+outputs:
+  - name: stdout
+    data: ""

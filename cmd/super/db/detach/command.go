@@ -22,6 +22,10 @@ See https://superdb.org/command/db.html#super-db-detach
 	New: NewDetachCommand,
 }
 
+func init() {
+	db.Spec.Add(Detach)
+}
+
 type Command struct {
 	*db.Command
 }
