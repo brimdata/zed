@@ -3,7 +3,7 @@ script: |
   super db init -q
   super db create -q logs
   super db load -q -use logs in.sup
-  super db -c "from logs | cut notafield"
+  ! super db -c "from logs | cut notafield"
 
 inputs:
   - name: in.sup
@@ -14,4 +14,7 @@ inputs:
 
 outputs:
   - name: stderr
-    data: ""
+    data: |
+      no such field "notafield" at line 1, column 17:
+      from logs | cut notafield
+                      ~~~~~~~~~

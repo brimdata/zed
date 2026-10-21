@@ -73,6 +73,15 @@ func (e *Environment) CommitObject(ctx context.Context, id uuid.UUID, name strin
 	return uuid.Nil(), nil
 }
 
+// TableType returns the fused type of a table at commit, or nil if no database
+// is attached or the type can't be determined statically.
+func (e *Environment) TableType(ctx context.Context, sctx *super.Context, tableID, commit uuid.UUID) (super.Type, error) {
+	if e.db == nil {
+		return nil, nil
+	}
+	return e.db.TableType(ctx, sctx, tableID, commit)
+}
+
 func (e *Environment) SortKeys(ctx context.Context, src dag.Op) order.SortKeys {
 	if e.db != nil {
 		return e.db.SortKeys(ctx, src)

@@ -17,6 +17,11 @@ outputs:
   - name: stdout
     data: |
       {
+        type: <{
+          ts: time,
+          s: string,
+          v: int64
+        }>,
         min: 2020-04-21T22:40:30.06852324Z,
         max: 2020-04-22T01:23:40.0622373Z,
         count: 1000::uint64,

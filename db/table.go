@@ -114,6 +114,20 @@ func (t *Table) Snapshot(ctx context.Context, commit uuid.UUID) (commits.View, e
 	return t.commits.Snapshot(ctx, commit)
 }
 
+// Type returns the fused type all of the data objects in the snapshot at commit,
+// interpreted in sctx.  It returns nil if the type cannot be known statically
+// (no commit yet, an empty snapshot, or an object lacking a type).
+func (t *Table) Type(ctx context.Context, sctx *super.Context, commit uuid.UUID) (super.Type, error) {
+	if commit == uuid.Nil() {
+		return nil, nil
+	}
+	snap, err := t.Snapshot(ctx, commit)
+	if err != nil {
+		return nil, err
+	}
+	return data.FusedType(sctx, snap.SelectAll())
+}
+
 func (t *Table) OpenCommitLog(ctx context.Context, sctx *super.Context, commit uuid.UUID) sio.Reader {
 	return t.commits.OpenCommitLog(ctx, sctx, commit, uuid.Nil())
 }

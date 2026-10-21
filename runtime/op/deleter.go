@@ -29,6 +29,8 @@ type Deleter struct {
 }
 
 func NewDeleter(rctx *runtime.Context, parent sbuf.Puller, table *db.Table, where expr.Evaluator, pruner samexpr.Evaluator, progress *vio.Progress, deletes *sync.Map) *Deleter {
+	u := super.NewUnmarshaler()
+	u.SetContext(super.NewContext())
 	return &Deleter{
 		parent:      parent,
 		where:       where,
@@ -36,7 +38,7 @@ func NewDeleter(rctx *runtime.Context, parent sbuf.Puller, table *db.Table, wher
 		rctx:        rctx,
 		table:       table,
 		progress:    progress,
-		unmarshaler: super.NewUnmarshaler(),
+		unmarshaler: u,
 		deletes:     deletes,
 	}
 }

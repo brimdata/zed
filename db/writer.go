@@ -85,6 +85,7 @@ func (w *Writer) flush() error {
 		out.Close()
 		return err
 	}
+	object.Type = writer.FusedType()
 	object.Count = uint64(vec.Len())
 	object.Size = int64(size)
 	w.stats.Accumulate(ImportStats{

@@ -378,6 +378,9 @@ func (c *canonDAG) op(o dag.Op) {
 	case *dag.TableScan:
 		c.next()
 		c.write("table %s", o.ID)
+		if o.Type != "" {
+			c.write(" type %s", o.Type)
+		}
 	case *dag.TableMetaScan:
 		c.next()
 		c.write("table %s:%s", o.ID, o.Meta)

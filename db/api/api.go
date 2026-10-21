@@ -222,6 +222,7 @@ var _ sio.Writer = (*buffer)(nil)
 func newBuffer(types ...any) *buffer {
 	u := super.NewUnmarshaler()
 	u.Bind(types...)
+	u.SetContext(super.NewContext())
 	return &buffer{unmarshaler: u}
 }
 

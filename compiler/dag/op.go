@@ -286,6 +286,7 @@ type (
 		Kind   string    `json:"kind" unpack:""`
 		ID     uuid.UUID `json:"id"`
 		Commit uuid.UUID `json:"commit"`
+		Type   string    `json:"type"`
 	}
 	RobotScan struct {
 		Kind   string `json:"kind" unpack:""`

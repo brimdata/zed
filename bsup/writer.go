@@ -91,6 +91,14 @@ func (c *ColumnWriter) WriteSuperFrame(vec vector.Any) (uint64, error) {
 	return c.size, err
 }
 
+// FusedType returns the fused type of all values written so far (the type
+// whose encoding is written into the SuperFooter), or nil if nothing has been
+// written.  The type is in the writer's own type context.  Call it after
+// WriteSuperFrame or the final Push to get the type of the whole object.
+func (c *ColumnWriter) FusedType() super.Type {
+	return c.fuser.fuser.Type()
+}
+
 func (c *ColumnWriter) Push(vec vector.Any) error {
 	if vec.Len() != 0 {
 		c.dynamic.Write(vec)

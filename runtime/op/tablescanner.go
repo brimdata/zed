@@ -30,6 +30,8 @@ type TableScanner struct {
 }
 
 func NewTableScanner(rctx *runtime.Context, parent vio.Puller, table *db.Table, where expr.Evaluator, pruner samexpr.Evaluator, progress *vio.Progress) *TableScanner {
+	u := super.NewUnmarshaler()
+	u.SetContext(rctx.Sctx)
 	return &TableScanner{
 		rctx:        rctx,
 		parent:      parent,
@@ -37,7 +39,7 @@ func NewTableScanner(rctx *runtime.Context, parent vio.Puller, table *db.Table, 
 		pruner:      pruner,
 		table:       table,
 		progress:    progress,
-		unmarshaler: super.NewUnmarshaler(),
+		unmarshaler: u,
 	}
 }
 

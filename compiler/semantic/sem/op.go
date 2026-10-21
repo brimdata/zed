@@ -71,6 +71,7 @@ type (
 		ast.Node
 		ID     uuid.UUID
 		Commit uuid.UUID
+		Type   super.Type
 	}
 )
 
@@ -341,6 +342,7 @@ func CopyOp(op Op) Op {
 			Node:   op.Node,
 			ID:     op.ID,
 			Commit: op.Commit,
+			Type:   op.Type,
 		}
 
 	case *AggregateOp:

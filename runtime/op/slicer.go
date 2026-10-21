@@ -31,11 +31,13 @@ type Slicer struct {
 func NewSlicer(sctx *super.Context, parent vio.Puller) *Slicer {
 	m := super.NewMarshaler(sctx)
 	m.Decorate(super.StylePackage)
+	u := super.NewUnmarshaler()
+	u.SetContext(sctx)
 	return &Slicer{
 		sctx:        sctx,
 		parent:      parent,
 		marshaler:   m,
-		unmarshaler: super.NewUnmarshaler(),
+		unmarshaler: u,
 		//XXX check that nulls position is consistent for both dirs in database ops
 		cmp: expr.NewValueCompareFn(order.Asc, order.NullsLast),
 	}
