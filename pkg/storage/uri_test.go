@@ -3,9 +3,7 @@ package storage
 import (
 	"encoding/json"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,16 +22,39 @@ func TestURIStdio(t *testing.T) {
 func TestURIRelative(t *testing.T) {
 	dir, err := os.Getwd()
 	require.NoError(t, err)
-	dir = filepath.ToSlash(dir)
-	// This case is for windows only.
-	if !strings.HasPrefix(dir, "/") {
-		dir = "/" + dir
-	}
-	expected := "file://" + path.Join(dir, "relative", "path")
+	expected := filepath.Join(dir, "relative", "path")
 
 	u1, err := ParseURI("relative/path")
 	require.NoError(t, err)
 	assert.Equal(t, expected, u1.String())
+}
+
+func TestURIFileString(t *testing.T) {
+	// A file URI given with a scheme still prints as a plain path.
+	u, err := ParseURI("file:///databases/test")
+	require.NoError(t, err)
+	assert.Equal(t, filepath.FromSlash("/databases/test"), u.String())
+	// A file URI with a host isn't a local path so it keeps its URL form.
+	u, err = ParseURI("file://host/databases/test")
+	require.NoError(t, err)
+	assert.Equal(t, "file://host/databases/test", u.String())
+}
+
+func TestURIFileStringRoundTrip(t *testing.T) {
+	// Characters that are special in URLs must survive String and ParseURI
+	// unescaped.
+	p := filepath.Join(t.TempDir(), "a b", "%?#")
+	u, err := ParseURI(p)
+	require.NoError(t, err)
+	assert.Equal(t, p, u.String())
+	u2, err := ParseURI(u.String())
+	require.NoError(t, err)
+	assert.Equal(t, u, u2)
+	b, err := u.MarshalText()
+	require.NoError(t, err)
+	var u3 URI
+	require.NoError(t, u3.UnmarshalText(b))
+	assert.Equal(t, *u, u3)
 }
 
 type jsonStruct struct{ Test *URI }

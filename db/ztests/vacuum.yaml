@@ -17,4 +17,4 @@ outputs:
       vacuumed 1 object
   - name: stderr
     regexp: |
-      file:///.*file does not exist
+      /.*file does not exist

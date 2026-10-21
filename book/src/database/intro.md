@@ -178,9 +178,9 @@ the personality is always the server personality and the database must be
 a storage path.  This command initiates a continuous server process
 that serves client requests for the database at the configured storage path.
 
-Note that a storage path on the file system may be specified either as
-a fully qualified file URI of the form `file://` or be a standard
+Note that a storage path on the file system is a standard
 file system path, relative or absolute, e.g., `/databases/test`.
+A fully qualified file URI of the form `file://` is also accepted.
 
 Concurrent access to any database storage, of course, preserves
 data consistency.  You can run multiple `super db serve` processes while also
