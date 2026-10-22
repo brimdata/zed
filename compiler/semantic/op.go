@@ -23,7 +23,6 @@ import (
 	"github.com/superdb/super/runtime/expr/function"
 	"github.com/superdb/super/runtime/sam/expr"
 	"github.com/superdb/super/sbuf"
-	"github.com/superdb/super/sio"
 	"github.com/superdb/super/sio/anyio"
 	"github.com/superdb/super/sup"
 	"github.com/superdb/super/vector"
@@ -386,7 +385,7 @@ func (t *translator) fromURL(urlLoc ast.Node, u string, args []ast.OpArg) sem.Op
 		}
 	}
 	if format == "" {
-		format = sio.FormatFromPath(u)
+		format = anyio.ReadFormatFromPath(u)
 	}
 	return &sem.HTTPScan{
 		Node:    urlLoc,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strings"
 
 	"github.com/superdb/super"
 	"github.com/superdb/super/pkg/storage"
@@ -55,8 +56,12 @@ func NewFile(ctx context.Context, sctx *super.Context, rc io.ReadCloser, path st
 	return sbuf.NewFile(zr, rc, path), nil
 }
 
+// ReadFormatFromPath returns the input format implied by path's extension,
+// or "auto" if path is standard input, or "" if the format can't be inferred.
+// A trailing .gz is ignored (e.g., x.json.gz is json) since readers
+// decompress gzip input transparently.
 func ReadFormatFromPath(path string) string {
-	if f := sio.FormatFromPath(path); f != "" {
+	if f := sio.FormatFromPath(strings.TrimSuffix(path, ".gz")); f != "" {
 		return f
 	}
 	u, err := storage.ParseURI(path)

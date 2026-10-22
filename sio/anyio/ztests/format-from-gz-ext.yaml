@@ -1,0 +1,34 @@
+# The input format is inferred from the extension that precedes .gz.
+script: |
+  gzip -c x.sup > x.sup.gz
+  gzip -c y.json > y.json.gz
+  super -s x.sup.gz y.json.gz
+  echo ===
+  super -s -c "from x.sup.gz | values a"
+  echo ===
+  super -s -c 'values "y.json.gz" | from f"{this}"'
+  echo ===
+  gzip -c x.sup > noext.gz
+  ! super -s noext.gz
+
+inputs:
+  - name: x.sup
+    data: |
+      {a:1}
+  - name: y.json
+    data: |
+      {"a":2}
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1}
+      {a:2}
+      ===
+      1
+      ===
+      {a:2}
+      ===
+  - name: stderr
+    data: |
+      noext.gz: file format required
