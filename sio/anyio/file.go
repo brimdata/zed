@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strings"
 
 	"github.com/superdb/super"
 	"github.com/superdb/super/pkg/storage"
@@ -56,7 +57,7 @@ func NewFile(ctx context.Context, sctx *super.Context, rc io.ReadCloser, path st
 }
 
 func ReadFormatFromPath(path string) string {
-	if f := sio.FormatFromPath(path); f != "" {
+	if f := sio.FormatFromPath(strings.TrimSuffix(path, ".gz")); f != "" {
 		return f
 	}
 	u, err := storage.ParseURI(path)

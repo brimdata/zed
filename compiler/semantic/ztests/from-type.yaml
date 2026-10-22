@@ -2,15 +2,20 @@ script: |
   super -o test.bsup test.sup
   super -o test.json test.sup
   super -o test.parquet -c blend test.sup
-  for format in bsup json parquet sup; do
+  gzip -c test.sup > test.sup.gz
+  for format in bsup json parquet sup sup.gz; do
     echo "=== $format (default)"
-    super compile -dag -C "from test.$format"
+    super compile -C -dag "from test.$format"
+    super compile -C -dag pass test.$format
     echo "=== $format (static)"
-    super compile -static -dag -C "from test.$format"
+    super compile -C -dag -static "from test.$format"
+    super compile -C -dag -static pass test.$format
     echo "=== $format (default pipe)"
-    cat "test.$format" | super compile -dag -C "from /dev/stdin"
+    cat test.$format | super compile -C -dag "from /dev/stdin"
+    cat test.$format | super compile -C -dag pass /dev/stdin
     echo "=== $format (static pipe)"
-    ! cat "test.$format" | super compile -static -dag -C "from /dev/stdin" 2>&1
+    ! cat test.$format | super compile -C -dag -static "from /dev/stdin" 2>&1
+    ! cat test.$format | super compile -C -dag -static pass /dev/stdin 2>&1
   done
 
 inputs:
@@ -25,52 +30,115 @@ outputs:
       === bsup (default)
       file test.bsup format bsup type {x:fusion(int64|missing),y:fusion(int64|missing)}
       | output main
+      file test.bsup format bsup type {x:int64|missing,y:int64|missing}
+      | pass
+      | output main
       === bsup (static)
       file test.bsup format bsup type {x:fusion(int64|missing),y:fusion(int64|missing)}
       | output main
+      file test.bsup format bsup type {x:int64|missing,y:int64|missing}
+      | pass
+      | output main
       === bsup (default pipe)
       file /dev/stdin format auto
+      | output main
+      file /dev/stdin format auto
+      | pass
       | output main
       === bsup (static pipe)
       cannot get file type of non-seekable input at line 1, column 6:
       from /dev/stdin
            ~~~~~~~~~~
+      /dev/stdin: cannot get file type of non-seekable input
       === json (default)
       file test.json format json
+      | output main
+      file test.json format json
+      | pass
       | output main
       === json (static)
       file test.json format json type {x:fusion(int64|missing),y:fusion(int64|missing)}
       | output main
+      file test.json format json type {x:int64|missing,y:int64|missing}
+      | pass
+      | output main
       === json (default pipe)
       file /dev/stdin format auto
+      | output main
+      file /dev/stdin format auto
+      | pass
       | output main
       === json (static pipe)
       cannot get file type of non-seekable input at line 1, column 6:
       from /dev/stdin
            ~~~~~~~~~~
+      /dev/stdin: cannot get file type of non-seekable input
       === parquet (default)
       file test.parquet format parquet type {x:int64|null,y:int64|null}
+      | output main
+      file test.parquet format parquet type {x:int64|null,y:int64|null}
+      | pass
       | output main
       === parquet (static)
       file test.parquet format parquet type {x:int64|null,y:int64|null}
       | output main
+      file test.parquet format parquet type {x:int64|null,y:int64|null}
+      | pass
+      | output main
       === parquet (default pipe)
       file /dev/stdin format auto
+      | output main
+      file /dev/stdin format auto
+      | pass
       | output main
       === parquet (static pipe)
       cannot get file type of non-seekable input at line 1, column 6:
       from /dev/stdin
            ~~~~~~~~~~
+      /dev/stdin: cannot get file type of non-seekable input
       === sup (default)
       file test.sup format sup type {x:fusion(int64|missing),y:fusion(int64|missing)}
+      | output main
+      file test.sup format sup type {x:int64|missing,y:int64|missing}
+      | pass
       | output main
       === sup (static)
       file test.sup format sup type {x:fusion(int64|missing),y:fusion(int64|missing)}
       | output main
+      file test.sup format sup type {x:int64|missing,y:int64|missing}
+      | pass
+      | output main
       === sup (default pipe)
       file /dev/stdin format auto
+      | output main
+      file /dev/stdin format auto
+      | pass
       | output main
       === sup (static pipe)
       cannot get file type of non-seekable input at line 1, column 6:
       from /dev/stdin
            ~~~~~~~~~~
+      /dev/stdin: cannot get file type of non-seekable input
+      === sup.gz (default)
+      file test.sup.gz format sup type {x:fusion(int64|missing),y:fusion(int64|missing)}
+      | output main
+      file test.sup.gz format sup type {x:int64|missing,y:int64|missing}
+      | pass
+      | output main
+      === sup.gz (static)
+      file test.sup.gz format sup type {x:fusion(int64|missing),y:fusion(int64|missing)}
+      | output main
+      file test.sup.gz format sup type {x:int64|missing,y:int64|missing}
+      | pass
+      | output main
+      === sup.gz (default pipe)
+      file /dev/stdin format auto
+      | output main
+      file /dev/stdin format auto
+      | pass
+      | output main
+      === sup.gz (static pipe)
+      cannot get file type of non-seekable input at line 1, column 6:
+      from /dev/stdin
+           ~~~~~~~~~~
+      /dev/stdin: cannot get file type of non-seekable input
