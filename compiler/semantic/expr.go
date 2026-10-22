@@ -815,13 +815,14 @@ func (t *translator) semCallByName(call *ast.CallExpr, name string, args []sem.E
 			Op:   "!=",
 			// Comparing none result of ok requires a noneish operator to turn
 			// option nones into untyped nones since comparing nones is type sensitive.
+			//XXX fix type sensitivity?
 			LHS: &sem.BinaryExpr{
 				Node: call,
 				Op:   "??",
 				LHS:  sem.NewCall(call, "ok", args),
-				RHS:  sem.NewLiteral(call, super.NewValue(super.TypeMissing, nil), t.defs),
+				RHS:  sem.NewLiteral(call, super.None, t.defs),
 			},
-			RHS: sem.NewLiteral(call, super.NewValue(super.TypeMissing, nil), t.defs),
+			RHS: sem.NewLiteral(call, super.None, t.defs),
 		}, super.TypeBool
 	case nameLower == "map":
 		return t.semMapCall(call, args, argTypes)

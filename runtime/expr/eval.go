@@ -43,18 +43,27 @@ const (
 )
 
 func CatchFirst(sctx *super.Context, opts int, vecs []vector.Any, msg string) (vector.Any, bool) {
-	nullOrErr := opts & (CatchError | CatchNull | CatchWrapError)
-	if nullOrErr != 0 {
-		for _, vec := range vecs {
-			if vec, ok := Catch(sctx, nullOrErr, vec, msg); ok {
-				return vec, true
+	if nullOrErr := opts & (CatchError | CatchNull | CatchWrapError); nullOrErr != 0 {
+		if catchErr := nullOrErr & (CatchError | CatchWrapError); catchErr != 0 {
+			for _, vec := range vecs {
+				if vec, ok := Catch(sctx, catchErr, vec, msg); ok {
+					return vec, true
+				}
+			}
+		}
+		if catchNull := nullOrErr & CatchNull; catchNull != 0 {
+			for _, vec := range vecs {
+				if vec, ok := Catch(sctx, catchNull, vec, msg); ok {
+					return vec, true
+				}
 			}
 		}
 	}
-	opts &= ^(CatchError | CatchNull | CatchWrapError)
-	for _, vec := range vecs {
-		if vec, ok := Catch(sctx, opts, vec, msg); ok {
-			return vec, true
+	if opts &= ^(CatchError | CatchNull | CatchWrapError); opts != 0 {
+		for _, vec := range vecs {
+			if vec, ok := Catch(sctx, opts, vec, msg); ok {
+				return vec, true
+			}
 		}
 	}
 	return nil, false
