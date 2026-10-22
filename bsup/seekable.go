@@ -52,7 +52,7 @@ func (s *Seekable) FusedType(sctx *super.Context) (super.Type, error) {
 	}
 	fuser := super.NewFuser(sctx, true)
 	for off > 0 {
-		footer, err := s.readFooterBackward(sctx, off)
+		footer, err := s.readFooterBackward(off)
 		if err != nil {
 			if err == io.EOF {
 				err = nil
@@ -83,7 +83,7 @@ func (s *Seekable) FusedType(sctx *super.Context) (super.Type, error) {
 	return fuser.Type(), nil
 }
 
-func (s *Seekable) readFooterBackward(sctx *super.Context, off int64) (*SuperFooter, error) {
+func (s *Seekable) readFooterBackward(off int64) (*SuperFooter, error) {
 	var sizeBytes [8]byte
 	if int(off) < len(sizeBytes) {
 		return nil, fmt.Errorf("short super footer: %d bytes", off)
