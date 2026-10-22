@@ -32,9 +32,10 @@ func NewVectorProjection(sctx *super.Context, frame *loader.FrameLoader, paths [
 }
 
 func (p *Projection) Pull(bool) (vector.Any, error) {
-	if loader := p.loader; loader != nil {
-		p.loader = nil
-		return loader.Load(p.sctx, p.projection)
+	if p.loader == nil {
+		return nil, nil
 	}
-	return nil, nil
+	loader := p.loader
+	p.loader = nil
+	return loader.Load(p.sctx, p.projection), nil
 }

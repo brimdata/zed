@@ -214,27 +214,22 @@ func (r *reader) Pull(done bool) (vector.Any, error) {
 				atomic.AddInt64(&r.progress.FramesSkippedMetaFilter, 1)
 				continue
 			}
-			var pick []uint32
 			loader := loader.NewFrameLoader(r.sctx, frame)
 			if r.searchFilter != nil {
-				if ok, err := loader.Search(r.searchFilter); err != nil {
-					return nil, err
-				} else if !ok {
+				if !loader.Search(r.searchFilter) {
 					atomic.AddInt64(&r.progress.FramesSkippedSearchFilter, 1)
 					continue
 				}
 			}
+			var pick []uint32
 			if r.dataFilter != nil && len(r.dataFilter.Projection) != 0 {
-				skip, idx, err := r.evalDataFilter(loader)
-				if err != nil {
-					return nil, err
-				}
-				if skip {
+				index, ok := r.evalDataFilter(loader)
+				if !ok {
 					atomic.AddInt64(&r.progress.ValuesSkippedDataFilter, int64(loader.Len()))
 					atomic.AddInt64(&r.progress.FramesSkippedDataFilter, 1)
 					continue
 				}
-				pick = idx
+				pick = index
 				atomic.AddInt64(&r.progress.ValuesSkippedDataFilter, int64(loader.Len()-uint32(len(pick))))
 			}
 			var proj field.Projection
@@ -250,17 +245,12 @@ func (r *reader) Pull(done bool) (vector.Any, error) {
 				vec = vector.NewNull(loader.Len())
 			} else {
 				if r.pushdown != nil && r.pushdown.Unordered() {
-					vecs, err := loader.LoadUnordered(r.q[:0], r.sctx, proj)
-					if err != nil {
-						return nil, err
-					}
-					vec = vecs[0]
-					r.q = vecs[1:]
+					r.q = loader.LoadUnordered(r.q[:0], r.sctx, proj)
+					n := len(r.q)
+					vec = r.q[n-1]
+					r.q = r.q[:n-1]
 				} else {
-					vec, err = loader.Load(r.sctx, proj)
-					if err != nil {
-						return nil, err
-					}
+					vec = loader.Load(r.sctx, proj)
 					if pick != nil {
 						vec = vector.Pick(vec, pick)
 					}
@@ -290,22 +280,19 @@ func (r *reader) Pull(done bool) (vector.Any, error) {
 	}
 }
 
-func (r *reader) evalDataFilter(loader *loader.FrameLoader) (bool, []uint32, error) {
-	vec, err := loader.Load(r.sctx, r.dataFilter.Projection)
-	if err != nil {
-		return false, nil, err
-	}
+func (r *reader) evalDataFilter(loader *loader.FrameLoader) (pickIndex []uint32, ok bool) {
+	vec := loader.Load(r.sctx, r.dataFilter.Projection)
 	result := r.dataFilter.Expr.Eval(vec)
 	// XXX should pass down a flag here to ignore errors since this can happen often in fast path
 	bits, _ := expr.BoolMask(result)
 	if bits.IsEmpty() {
-		return true, nil, nil
+		return nil, false
 	}
 	if bits.GetCardinality() == uint64(result.Len()) {
-		return false, nil, nil
+		return nil, true
 	}
 	// Return the pick index for stuff not ruled out.
-	return false, bits.ToArray(), nil
+	return bits.ToArray(), true
 }
 
 type frame struct {
