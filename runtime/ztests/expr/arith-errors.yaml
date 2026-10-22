@@ -27,7 +27,7 @@ spq: this+1
 flags: -dynamic
 
 input: |
-  missing
+  none
 
 output: |
-  error("+: missing value not handled (consider ??)")
+  error("+: none value not handled (consider ??)")

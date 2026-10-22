@@ -17,8 +17,7 @@ func newUnion() *union {
 }
 
 func (u *union) Consume(vec vector.Any) {
-	// XXX TBD - missing should be error
-	if vec.Kind() == vector.KindMissing {
+	if vec.Kind() == vector.KindNone {
 		return
 	}
 	switch vec := vec.(type) {

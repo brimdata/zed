@@ -25,7 +25,7 @@ func (n *Not) Eval(val vector.Any) vector.Any {
 }
 
 func (n *Not) eval(vecs ...vector.Any) vector.Any {
-	if vec, ok := Catch(n.sctx, true, vecs, "'not' operator"); ok {
+	if vec, ok := CatchFirst(n.sctx, CatchAll, vecs, "'not' operator"); ok {
 		return vec
 	}
 	switch vec := vecs[0].(type) {
@@ -196,7 +196,7 @@ func FlattenBool(vec vector.Any) *vector.Bool {
 	case *vector.Bool:
 		return vec
 	default:
-		panic(vec)
+		panic(vector.Format(vec))
 	}
 }
 
@@ -219,7 +219,7 @@ func (i *In) Eval(this vector.Any) vector.Any {
 }
 
 func (i *In) eval(vecs ...vector.Any) vector.Any {
-	if vec, ok := Catch(i.sctx, true, vecs, "'in' operator"); ok {
+	if vec, ok := CatchFirst(i.sctx, CatchAll, vecs, "'in' operator"); ok {
 		return vec
 	}
 	return i.pw.Eval(vecs[0], vecs[1])

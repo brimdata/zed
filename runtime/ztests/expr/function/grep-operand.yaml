@@ -1,0 +1,12 @@
+# grep and ~ search only their operand, not the whole input value.
+
+spq: values grep("x", a), grep("x", this), a ~ 'x', this.b ~ 'x'
+
+input: |
+  {a:"y",b:"x"}
+
+output: |
+  false
+  true
+  false
+  true

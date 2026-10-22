@@ -10,25 +10,29 @@ import (
 )
 
 type collect struct {
+	sctx    *super.Context
 	builder *vbuild.DynamicBuilder
 	defuse  *expr.Defuse
 }
 
 func newCollect(sctx *super.Context) *collect {
-	return &collect{defuse: expr.NewDefuse(sctx)}
+	return &collect{sctx: sctx, defuse: expr.NewDefuse(sctx)}
 }
 
 func (c *collect) NoRip() bool { return true }
 
 func (c *collect) Consume(vec vector.Any) {
 	vec = vector.Apply(vector.ApplyRipUnions, func(vecs ...vector.Any) vector.Any {
+		// catch missing values
+		if vec, ok := expr.Catch(c.sctx, 0, vecs[0], "collect"); ok {
+			return vec
+		}
 		return vecs[0]
 	}, c.defuse.Eval(vec))
 	if d, ok := vec.(*vector.Dynamic); ok {
 		vec = filterNonesFromDynamic(d)
 	}
-	// XXX TBD - this should be an error
-	if vec.Kind() == vector.KindMissing {
+	if vec.Kind() == vector.KindNone {
 		return
 	}
 	if c.builder == nil {
@@ -42,8 +46,7 @@ func filterNonesFromDynamic(d *vector.Dynamic) vector.Any {
 	tagMap := slices.Repeat([]int{-1}, len(d.Values))
 	var n uint32
 	for i, vec := range d.Values {
-		// XXX TBD - this should be an error
-		if vec.Kind() == vector.KindMissing {
+		if vec.Kind() == vector.KindNone {
 			continue
 		}
 		tagMap[i] = len(vecs)
@@ -54,7 +57,7 @@ func filterNonesFromDynamic(d *vector.Dynamic) vector.Any {
 		return d
 	}
 	if n == 0 {
-		return vector.NewMissing(0)
+		return vector.NewNone(0)
 	}
 	tags := make([]uint32, 0, n)
 	for _, tag := range d.Tags {

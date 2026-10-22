@@ -214,7 +214,6 @@ func (t *translator) expr(e ast.Expr, inType super.Type) (sem.Expr, super.Type) 
 				fields[name] = struct{}{}
 				e, typ := t.expr(elem.Value, inType)
 				if elem.Opt {
-					t.checkNone(elem.Value, typ)
 					e = &sem.CallExpr{Node: elem.Value, Tag: "some", Args: []sem.Expr{e}}
 				}
 				out = append(out, &sem.FieldElem{
@@ -233,7 +232,6 @@ func (t *translator) expr(e ast.Expr, inType super.Type) (sem.Expr, super.Type) 
 			case *ast.ExprElem:
 				e, typ := t.expr(elem.Expr, inType)
 				if elem.Opt {
-					t.checkNone(elem.Expr, typ)
 					e = &sem.CallExpr{Node: elem.Expr, Tag: "some", Args: []sem.Expr{e}}
 				}
 				name := deriveNameFromExpr(elem.Expr)
@@ -398,7 +396,6 @@ func (t *translator) expr(e ast.Expr, inType super.Type) (sem.Expr, super.Type) 
 		return t.semType(e.Value)
 	case *ast.UnaryExpr:
 		operand, typ := t.expr(e.Operand, inType)
-		t.checkNone(e.Operand, typ)
 		if e.Op == "+" {
 			return operand, typ
 		}
@@ -555,10 +552,6 @@ func (t *translator) binaryExpr(e *ast.BinaryExpr, inType super.Type) (sem.Expr,
 	}
 	lhs, lhsType := t.expr(e.LHS, inType)
 	rhs, rhsType := t.expr(e.RHS, inType)
-	if op != "::" {
-		t.checkNone(e.LHS, lhsType)
-		t.checkNone(e.RHS, rhsType)
-	}
 	if op == "like" || op == "not like" {
 		s, ok := t.mustEvalString(rhs)
 		if !ok {
@@ -616,22 +609,7 @@ func (t *translator) binaryExpr(e *ast.BinaryExpr, inType super.Type) (sem.Expr,
 	}, t.checker.binary(e.Op, e, e.LHS, e.RHS, lhsType, rhsType)
 }
 
-var errNoneOperand = errors.New("illegal use of none value")
-
-// checkNone reports an error if typ is the type of the singleton none
-// (or a union containing it), which may only be cast to an option type.
-func (t *translator) checkNone(loc ast.Node, typ super.Type) {
-	switch typ := super.TypeUnder(typ).(type) {
-	case *super.TypeOfNone:
-		t.error(loc, errNoneOperand)
-	case *super.TypeFusion:
-		t.checkNone(loc, typ.Type)
-	case *super.TypeUnion:
-		if slices.Contains(typ.Types, super.Type(super.TypeNone)) {
-			t.error(loc, errNoneOperand)
-		}
-	}
-}
+var errNoneOperand = errors.New("illegal use of none value (consider ??)")
 
 func (t *translator) stringy(loc ast.Node, typ super.Type) {
 	if !hasString(typ) {
@@ -711,11 +689,6 @@ func (t *translator) semCall(call *ast.CallExpr, inType super.Type) (sem.Expr, s
 		return e, typ
 	}
 	args, argTypes := t.exprs(call.Args, inType)
-	if f, ok := call.Func.(*ast.FuncNameExpr); !ok || f.Name != "cast" {
-		for k, typ := range argTypes {
-			t.checkNone(call.Args[k], typ)
-		}
-	}
 	switch f := call.Func.(type) {
 	case *ast.FuncNameExpr:
 		return t.semCallByName(call, f.Name, args, argTypes, inType)
@@ -815,13 +788,14 @@ func (t *translator) semCallByName(call *ast.CallExpr, name string, args []sem.E
 			Op:   "!=",
 			// Comparing none result of ok requires a noneish operator to turn
 			// option nones into untyped nones since comparing nones is type sensitive.
+			//XXX fix type sensitivity?
 			LHS: &sem.BinaryExpr{
 				Node: call,
 				Op:   "??",
 				LHS:  sem.NewCall(call, "ok", args),
-				RHS:  sem.NewLiteral(call, super.NewValue(super.TypeMissing, nil), t.defs),
+				RHS:  sem.NewLiteral(call, super.None, t.defs),
 			},
-			RHS: sem.NewLiteral(call, super.NewValue(super.TypeMissing, nil), t.defs),
+			RHS: sem.NewLiteral(call, super.None, t.defs),
 		}, super.TypeBool
 	case nameLower == "map":
 		return t.semMapCall(call, args, argTypes)
@@ -1284,9 +1258,7 @@ func (t *translator) fstringExpr(f *ast.FStringExpr, inType super.Type) (sem.Exp
 		var e sem.Expr
 		switch elem := elem.(type) {
 		case *ast.FStringExprElem:
-			var typ super.Type
-			e, typ = t.expr(elem.Expr, inType)
-			t.checkNone(elem.Expr, typ)
+			e, _ = t.expr(elem.Expr, inType)
 			e = sem.NewCast(f, e, super.TypeString, t.defs)
 		case *ast.FStringTextElem:
 			e = sem.NewLiteral(elem, super.NewString(elem.Text), t.defs)

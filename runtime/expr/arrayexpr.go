@@ -58,6 +58,9 @@ func buildList(sctx *super.Context, elems []ListElem, in []vector.Any) ([]uint32
 	for i, elem := range elems {
 		var offsets []uint32
 		vec := in[i]
+		if vec.Kind() == vector.KindNone {
+			continue
+		}
 		if elem.Spread != nil {
 			vec, offsets = unwrapSpread(in[i])
 			if vec == nil {

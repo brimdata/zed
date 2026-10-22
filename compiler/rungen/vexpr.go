@@ -341,7 +341,7 @@ func (b *Builder) compileVamRegexpSearch(search *dag.RegexpSearchExpr) (expr.Eva
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewSearchRegexp(re, e), nil
+	return expr.NewSearchRegexp(b.sctx(), re, e), nil
 }
 
 func (b *Builder) compileVamSearch(search *dag.SearchExpr) (expr.Evaluator, error) {
@@ -357,7 +357,7 @@ func (b *Builder) compileVamSearch(search *dag.SearchExpr) (expr.Evaluator, erro
 		// Do a grep-style substring search instead of an
 		// exact match on each value.
 		term := norm.NFC.Bytes(val.Bytes())
-		return expr.NewSearchString(string(term), e), nil
+		return expr.NewSearchString(b.sctx(), string(term), e), nil
 	}
 	return expr.NewSearch(b.sctx(), search.Text, val, e), nil
 }

@@ -70,9 +70,16 @@ func (r *recordExpr) eval(vecs ...vector.Any) vector.Any {
 	clear(r.fieldIndexes)
 	r.fieldVecs = make([]vector.Any, 0, len(r.elems))
 	for k, vec := range vecs {
+		// We catch just the errors, nulls, and missings and we don't wrap the errors
+		// because they appear in the record expression so context is obvious.
+		if v, ok := Catch(r.sctx, CatchError|CatchNull, vec, ""); ok {
+			vec = v
+		}
 		switch elem := r.elems[k].(type) {
 		case *FieldElem:
-			if vec.Type() == super.TypeMissing {
+			// Only pure nones disappear in record expressions.
+			// Named nones survive in their named type.
+			if vec.Type() == super.TypeNone {
 				r.deleteField(elem.Name)
 				continue
 			}

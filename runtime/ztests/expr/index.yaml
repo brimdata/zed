@@ -59,7 +59,7 @@ output: |
   1
   2
   1
-  missing
+  none
   127.0.0.1
 
 ---
@@ -105,7 +105,7 @@ output: |
   5
   error("cannot access field 'x' of set")
   "foo"
-  missing
+  none
   error({message:"invalid record index",on:1})
   123
 

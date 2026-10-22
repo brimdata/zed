@@ -459,9 +459,7 @@ func (t *translator) sortExpr(sch relScope, s ast.SortExpr, reverse bool, inType
 			e, _ = t.expr(s.Expr, inType)
 		}
 	} else {
-		var typ super.Type
-		e, typ = t.expr(s.Expr, inType)
-		t.checkNone(s.Expr, typ)
+		e, _ = t.expr(s.Expr, inType)
 	}
 	o := order.Asc
 	if s.Order != nil {
@@ -692,9 +690,6 @@ func (t *translator) semOp(o ast.Op, seq sem.Seq, inType super.Type) (sem.Seq, s
 		return sem.Seq{t.deleteScan(o)}, t.checker.unknown
 	case *ast.AggregateOp:
 		keys, keyPaths := t.assignments(o.Keys, inType)
-		for k, path := range keyPaths {
-			t.checkNone(o.Keys[k].RHS, path.typ)
-		}
 		t.checkStaticAssignment(o.Keys, keys)
 		if len(keys) == 0 && len(o.Aggs) == 1 {
 			if seq, typ := t.singletonAgg(&o.Aggs[0], seq, inType); seq != nil {

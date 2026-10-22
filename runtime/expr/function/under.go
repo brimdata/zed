@@ -2,13 +2,19 @@ package function
 
 import (
 	"github.com/superdb/super"
+	"github.com/superdb/super/runtime/expr"
 	"github.com/superdb/super/vector"
 )
 
-type Under struct{}
+type Under struct {
+	sctx *super.Context
+}
 
 func (u *Under) Call(args ...vector.Any) vector.Any {
 	vec := args[0]
+	if _, ok := expr.Catch(u.sctx, expr.CatchNone, args[0], "under"); ok {
+		return vec
+	}
 	var index []uint32
 	switch vec2 := vec.(type) {
 	case *vector.Const:
@@ -23,6 +29,10 @@ func (u *Under) Call(args ...vector.Any) vector.Any {
 		out = vec.Any
 	case *vector.Error:
 		out = vec.Vals
+	case *vector.Option:
+		out = vector.Apply(vector.ApplyRipOptions, func(vecs ...vector.Any) vector.Any {
+			return vecs[0].(*vector.Option).Any
+		}, vec)
 	case *vector.Union:
 		return vec.Dynamic()
 	case *vector.TypeValue:
