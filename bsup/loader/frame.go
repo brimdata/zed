@@ -38,7 +38,7 @@ func (f *FrameLoader) Len() uint32 {
 // storage and cached in memory so that subsequent calls run from memory.
 // The vectors returned will have types from the provided sctx.  Multiple
 // Load calls to the same object may run concurrently.
-func (f *FrameLoader) Load(sctx *super.Context, projection field.Projection) (vector.Any, error) {
+func (f *FrameLoader) Load(sctx *super.Context, projection field.Projection) vector.Any {
 	f.root.unmarshal(f.frame.Context(), projection)
 	// Load all vector data into the in-memory shadow that is needed and not yet loaded
 	// and return a new vector.Any using the data vectors in cache.  This may be called
@@ -47,19 +47,18 @@ func (f *FrameLoader) Load(sctx *super.Context, projection field.Projection) (ve
 	// when only one thread is calling load).  If paths is nil, then the entire value
 	// is loaded.  All of the projected paths in the shadow must have been properly
 	// unmarshaled before calling.
-	return f.root.project(f, projection), nil //XXX always nil
+	return f.root.project(f, projection)
 }
 
 // LoadUnordered is like Load, but if the frame's root vector is dynamic,
 // LoadUnordered returns the underlying values vectors instead of a
 // vector.Dynamic.
-func (f *FrameLoader) LoadUnordered(vecs []vector.Any, sctx *super.Context, projection field.Projection) ([]vector.Any, error) {
+func (f *FrameLoader) LoadUnordered(vecs []vector.Any, sctx *super.Context, projection field.Projection) []vector.Any {
 	f.root.unmarshal(f.frame.Context(), projection)
 	if d, ok := f.root.(*dynamic); ok {
-		return d.projectUnordered(vecs, f, projection), nil
+		return d.projectUnordered(vecs, f, projection)
 	}
-	vec := f.root.project(f, projection)
-	return append(vecs, vec), nil
+	return append(vecs, f.root.project(f, projection))
 }
 
 // Strings loads every string buffer in the frame (string columns, dict
@@ -74,6 +73,6 @@ func (f *FrameLoader) Strings() []string {
 	return c.strings
 }
 
-func (f *FrameLoader) Search(expr vio.SearchEvaluator) (bool, error) {
-	return expr.Eval(f.Strings()), nil
+func (f *FrameLoader) Search(expr vio.SearchEvaluator) bool {
+	return expr.Eval(f.Strings())
 }
