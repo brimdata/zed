@@ -32,19 +32,36 @@ func CheckForErrorThenNull(sctx *super.Context, vecs []vector.Any, msg string) (
 	return nil, false
 }
 
-func Catch(sctx *super.Context, options bool, vecs []vector.Any, msg string) (vector.Any, bool) {
+const (
+	CatchBasic  = 0
+	CatchOption = 1
+	CatchNone   = 2
+	CatchAll    = CatchOption | CatchNone
+)
+
+func Catch(sctx *super.Context, opts int, vecs []vector.Any, msg string) (vector.Any, bool) {
 	if vec, ok := CheckForErrorThenNull(sctx, vecs, msg); ok {
 		return vec, true
 	}
 	for _, vec := range vecs {
 		if vec.Kind() == vector.KindMissing {
-			return vector.NewStringError(sctx, fmt.Sprintf("%s: missing value not handled (consider ??)", msg), vec.Len()), true
+			return catchErr(sctx, msg, "unexpected missing value", vec), true
 		}
-		if options && vec.Kind() == vector.KindOption {
-			return vector.NewStringError(sctx, fmt.Sprintf("%s: option value not handled (consider ??)", msg), vec.Len()), true
+		if (opts&CatchOption) != 0 && vec.Kind() == vector.KindOption {
+			return catchErr(sctx, msg, "option value not handled (consider ??)", vec), true
+		}
+		if (opts&CatchNone) != 0 && vec.Kind() == vector.KindNone {
+			return catchErr(sctx, msg, "none value not handled (consider ??)", vec), true
 		}
 	}
 	return nil, false
+}
+
+func catchErr(sctx *super.Context, prefix, msg string, vec vector.Any) *vector.Error {
+	if prefix != "" {
+		prefix += ": "
+	}
+	return vector.NewStringError(sctx, prefix+msg, vec.Len())
 }
 
 type Call struct {

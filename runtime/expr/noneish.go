@@ -23,7 +23,7 @@ func (i *Noneish) eval(vecs ...vector.Any) vector.Any {
 	lhs := vecs[0]
 	rhs := vecs[1]
 	k := vector.Under(lhs).Kind()
-	if k == vector.KindNull || k == vector.KindMissing || k == vector.KindNone {
+	if k == vector.KindNull || k == vector.KindNone {
 		return rhs
 	}
 	if k == vector.KindOption {

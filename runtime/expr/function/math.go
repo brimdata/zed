@@ -14,7 +14,7 @@ type Abs struct {
 }
 
 func (a *Abs) Call(args ...vector.Any) vector.Any {
-	if vec, ok := expr.Catch(a.sctx, true, args, "abs"); ok {
+	if vec, ok := expr.Catch(a.sctx, expr.CatchAll, args, "abs"); ok {
 		return vec
 	}
 	vec := vector.Under(args[0])
@@ -69,7 +69,7 @@ type Ceil struct {
 }
 
 func (c *Ceil) Call(args ...vector.Any) vector.Any {
-	if vec, ok := expr.Catch(c.sctx, true, args, "ceil"); ok {
+	if vec, ok := expr.Catch(c.sctx, expr.CatchAll, args, "ceil"); ok {
 		return vec
 	}
 	vec := vector.Under(args[0])
@@ -107,7 +107,7 @@ type Floor struct {
 }
 
 func (f *Floor) Call(args ...vector.Any) vector.Any {
-	if vec, ok := expr.Catch(f.sctx, true, args, "floor"); ok {
+	if vec, ok := expr.Catch(f.sctx, expr.CatchAll, args, "floor"); ok {
 		return vec
 	}
 	vec := vector.Under(args[0])
@@ -145,7 +145,7 @@ type Log struct {
 }
 
 func (l *Log) Call(args ...vector.Any) vector.Any {
-	if vec, ok := expr.Catch(l.sctx, true, args, "log"); ok {
+	if vec, ok := expr.Catch(l.sctx, expr.CatchAll, args, "log"); ok {
 		return vec
 	}
 	arg := vector.Under(args[0])
@@ -177,7 +177,7 @@ type Pow struct {
 }
 
 func (p *Pow) Call(args ...vector.Any) vector.Any {
-	if vec, ok := expr.Catch(p.sctx, true, args, "pow"); ok {
+	if vec, ok := expr.Catch(p.sctx, expr.CatchAll, args, "pow"); ok {
 		return vec
 	}
 	a, b := vector.Under(args[0]), vector.Under(args[1])
@@ -203,7 +203,7 @@ type Round struct {
 }
 
 func (r *Round) Call(args ...vector.Any) vector.Any {
-	if vec, ok := expr.Catch(r.sctx, true, args, "round"); ok {
+	if vec, ok := expr.Catch(r.sctx, expr.CatchAll, args, "round"); ok {
 		return vec
 	}
 	vec := args[0]
@@ -226,7 +226,7 @@ type Sqrt struct {
 }
 
 func (s *Sqrt) Call(args ...vector.Any) vector.Any {
-	if vec, ok := expr.Catch(s.sctx, true, args, "sqrt"); ok {
+	if vec, ok := expr.Catch(s.sctx, expr.CatchAll, args, "sqrt"); ok {
 		return vec
 	}
 	vec := vector.Under(args[0])
