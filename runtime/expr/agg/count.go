@@ -11,7 +11,7 @@ type count struct {
 
 func (a *count) Consume(vec vector.Any) {
 	switch vec.Kind() {
-	// XXX TBD - missing should be error
+	// XXX TBD - missing should be error, these things can be in unions?
 	case vector.KindNull, vector.KindMissing:
 		return
 	case vector.KindOption:

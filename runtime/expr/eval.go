@@ -1,8 +1,6 @@
 package expr
 
 import (
-	"fmt"
-
 	"github.com/superdb/super"
 	"github.com/superdb/super/vector"
 )
@@ -15,6 +13,7 @@ type Function interface {
 	Call(...vector.Any) vector.Any
 }
 
+/*
 // CheckForErrorThenNull returns the first element of vecs with an error
 // type. If no element has an error type, it returns the first element with the
 // null type.
@@ -31,27 +30,58 @@ func CheckForErrorThenNull(sctx *super.Context, vecs []vector.Any, msg string) (
 	}
 	return nil, false
 }
+*/
 
 const (
-	CatchBasic  = 0
-	CatchOption = 1
-	CatchNone   = 2
-	CatchAll    = CatchOption | CatchNone
+	CatchOption    = 1
+	CatchNone      = 2
+	CatchError     = 4
+	CatchNull      = 8
+	CatchWrapError = 16
+	CatchAll       = CatchOption | CatchNone | CatchError | CatchNull | CatchWrapError
+	CatchBasic     = CatchError | CatchNull | CatchWrapError
 )
 
-func Catch(sctx *super.Context, opts int, vecs []vector.Any, msg string) (vector.Any, bool) {
-	if vec, ok := CheckForErrorThenNull(sctx, vecs, msg); ok {
-		return vec, true
+func CatchFirst(sctx *super.Context, opts int, vecs []vector.Any, msg string) (vector.Any, bool) {
+	nullOrErr := opts & (CatchError | CatchNull | CatchWrapError)
+	if nullOrErr != 0 {
+		for _, vec := range vecs {
+			if vec, ok := Catch(sctx, nullOrErr, vec, msg); ok {
+				return vec, true
+			}
+		}
 	}
+	opts &= ^(CatchError | CatchNull | CatchWrapError)
 	for _, vec := range vecs {
-		if vec.Kind() == vector.KindMissing {
-			return catchErr(sctx, msg, "unexpected missing value", vec), true
+		if vec, ok := Catch(sctx, opts, vec, msg); ok {
+			return vec, true
 		}
-		if (opts&CatchOption) != 0 && vec.Kind() == vector.KindOption {
-			return catchErr(sctx, msg, "option value not handled (consider ??)", vec), true
+	}
+	return nil, false
+}
+
+func Catch(sctx *super.Context, opts int, vec vector.Any, msg string) (vector.Any, bool) {
+	switch vec.Kind() {
+	case vector.KindError:
+		if opts&CatchError != 0 {
+			if opts&CatchWrapError != 0 {
+				vec = catchErr(sctx, msg, "error value encountered", vec)
+			}
+			return vec, true
 		}
-		if (opts&CatchNone) != 0 && vec.Kind() == vector.KindNone {
+	case vector.KindMissing:
+		return catchErr(sctx, msg, "unexpected missing value", vec), true
+	case vector.KindNone:
+		if opts&CatchNone != 0 {
 			return catchErr(sctx, msg, "none value not handled (consider ??)", vec), true
+		}
+	case vector.KindNull:
+		if opts&CatchNull != 0 {
+			return vec, true
+		}
+	case vector.KindOption:
+		if opts&CatchOption != 0 {
+			return catchErr(sctx, msg, "option value not handled (consider ??)", vec), true
 		}
 	}
 	return nil, false

@@ -2,13 +2,20 @@ package function
 
 import (
 	"github.com/superdb/super"
+	"github.com/superdb/super/runtime/expr"
 	"github.com/superdb/super/vector"
 )
 
-type Under struct{}
+type Under struct {
+	sctx *super.Context
+}
 
 func (u *Under) Call(args ...vector.Any) vector.Any {
-	vec := args[0]
+	//XXX under(option) should do an unwrap?
+	vec, ok := expr.Catch(u.sctx, expr.CatchNone|expr.CatchOption, args[0], "under")
+	if ok {
+		return vec
+	}
 	var index []uint32
 	switch vec2 := vec.(type) {
 	case *vector.Const:

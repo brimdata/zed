@@ -51,17 +51,17 @@ func (a *Aggregator) Eval(this vector.Any) vector.Any {
 		}
 		return vec
 	}
-	where := a.Where.Eval(this)
+	where := a.Where.Eval(this) // XXX propagate errors here
 	bools, _ := BoolMask(where)
 	if bools.IsEmpty() {
 		// everything is filtered.
-		return vector.NewMissing(vec.Len())
+		return vector.NewNone(vec.Len())
 	}
 	if bools.GetCardinality() != uint64(vec.Len()) {
 		index := bools.ToArray()
 		// XXX TBD - add type safe error checking here
-		missing := vector.NewMissing(vec.Len() - uint32(len(index)))
-		vec = vector.Combine(missing, index, vector.Pick(vec, index))
+		none := vector.NewNone(vec.Len() - uint32(len(index)))
+		vec = vector.Combine(none, index, vector.Pick(vec, index))
 	}
 	if a.NoRip {
 		vec = &vector.NoRip{Any: vec}

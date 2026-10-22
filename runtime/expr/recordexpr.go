@@ -70,12 +70,10 @@ func (r *recordExpr) eval(vecs ...vector.Any) vector.Any {
 	clear(r.fieldIndexes)
 	r.fieldVecs = make([]vector.Any, 0, len(r.elems))
 	for k, vec := range vecs {
-		// Don't wrap errors because they appear in the record expression so we know
-		// the context.
-		if vec.Kind() != vector.KindError {
-			if v, ok := Catch(r.sctx, CatchBasic, []vector.Any{vec}, ""); ok {
-				vec = v
-			}
+		// We catch just the errors, nulls, and missings and we don't wrap the errors
+		// because they appear in the record expression so context is obvious.
+		if v, ok := Catch(r.sctx, CatchError|CatchNull, vec, ""); ok {
+			vec = v
 		}
 		switch elem := r.elems[k].(type) {
 		case *FieldElem:
