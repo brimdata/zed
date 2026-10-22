@@ -74,7 +74,8 @@ func Catch(sctx *super.Context, opts int, vec vector.Any, msg string) (vector.An
 	case vector.KindError:
 		if opts&CatchError != 0 {
 			if opts&CatchWrapError != 0 {
-				vec = catchErr(sctx, msg, "error value encountered", vec)
+				//XXX change this to error encountered or something better
+				return wrapErr(sctx, msg, "error value encountered", vec), true
 			}
 			return vec, true
 		}
@@ -101,6 +102,13 @@ func catchErr(sctx *super.Context, prefix, msg string, vec vector.Any) *vector.E
 		prefix += ": "
 	}
 	return vector.NewStringError(sctx, prefix+msg, vec.Len())
+}
+
+func wrapErr(sctx *super.Context, prefix, msg string, vec vector.Any) *vector.Error {
+	if prefix != "" {
+		prefix += ": "
+	}
+	return vector.NewWrappedError(sctx, prefix+msg, vec)
 }
 
 type Call struct {
