@@ -70,6 +70,12 @@ func (r *recordExpr) eval(vecs ...vector.Any) vector.Any {
 	clear(r.fieldIndexes)
 	r.fieldVecs = make([]vector.Any, 0, len(r.elems))
 	for k, vec := range vecs {
+		if vec.Kind() != vector.KindError {
+			// XXX maybe wrap if we include the field name in the error
+			if v, ok := Catch(r.sctx, false, []vector.Any{vec}, "record expression"); ok {
+				vec = v
+			}
+		}
 		switch elem := r.elems[k].(type) {
 		case *FieldElem:
 			if vec.Type() == super.TypeMissing {

@@ -40,7 +40,7 @@ output: |
 
 ---
 
-spq: cut a:=x.ok() ?? missing,b:=x
+spq: cut a:=x.ok()::option(int64),b:=x
 
 input: |
   {x:1}
