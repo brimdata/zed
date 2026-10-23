@@ -1,0 +1,44 @@
+# A where with a catch handler round-trips through the formatter, and the
+# optimizer neither merges it with an adjacent where nor pushes its predicate
+# into the scan, either of which would keep the handler from seeing the
+# errors it must handle.  A plain where before it is still pushed down.
+
+script: |
+  super compile -C 'where x + 1 > 2 catch ( values {bad:this} )'
+  echo ===
+  super compile -O -C 'from in.sup | where y > 0 | where x + 1 > 2 catch ( values {bad:this} ) | where y < 9'
+  echo ===
+  super -o in.bsup in.sup
+  super -s -c 'from in.bsup | where x + 1 > 2 catch ( values {bad:this} )'
+
+inputs:
+  - name: in.sup
+    data: |
+      {x:2,y:1}
+      {x:"a",y:2}
+      {x:3,y:3}
+
+outputs:
+  - name: stdout
+    data: |
+      where x+1>2 catch (
+          values {bad:this}
+        )
+      ===
+      file in.sup format sup type {x:fusion(int64|string),y:int64}
+        meta-filter project [y.max] (
+          compare(y.max, 0, true)>0
+        )
+        data-filter project [y] (
+          y>0
+        )
+      | where y>0
+      | where x+1>2 catch (
+          -- correlated
+          values {bad:this})
+      | where y<9
+      | output main
+      ===
+      {x:2,y:1}
+      {bad:error({message:">: error value encountered",on:error("incompatible types")})}
+      {x:3,y:3}
