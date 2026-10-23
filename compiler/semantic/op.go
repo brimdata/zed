@@ -916,9 +916,15 @@ func (t *translator) semOp(o ast.Op, seq sem.Seq, inType super.Type) (sem.Seq, s
 		t.checker.boolean(o.Expr, typ)
 		return append(seq, &sem.FilterOp{Node: o, Expr: e}), inType
 	case *ast.WhereOp:
-		e, typ := t.expr(o.Expr, inType)
-		t.checker.boolean(o.Expr, typ)
-		return append(seq, &sem.FilterOp{Node: o, Expr: e}), inType
+		e, typ := t.expr(o.Expr.Expr, inType)
+		t.checker.boolean(o.Expr.Expr, typ)
+		filter := &sem.FilterOp{Node: o, Expr: e}
+		if h := o.Expr.Handler; h != nil {
+			// The handler's input is each error the predicate produces,
+			// whose type isn't known statically.
+			filter.Catch, _ = t.subqueryExpr(h, false, h.Body, t.checker.unknown)
+		}
+		return append(seq, filter), inType
 	case *ast.TopOp:
 		limit := 1
 		if o.Limit != nil {

@@ -291,7 +291,13 @@ func (b *Builder) compileVamLeaf(o dag.Op, parent vio.Puller) (vio.Puller, error
 		if err != nil {
 			return nil, err
 		}
-		return op.NewFilter(b.sctx(), parent, e), nil
+		var catch expr.Evaluator
+		if o.Catch != nil {
+			if catch, err = b.compileVamSubquery(o.Catch); err != nil {
+				return nil, err
+			}
+		}
+		return op.NewFilter(b.sctx(), parent, e, catch), nil
 	case *dag.FuseOp:
 		return op.NewFuse(b.sctx(), parent, o.Complete), nil
 	case *dag.HTTPScan:

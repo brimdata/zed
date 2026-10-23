@@ -444,6 +444,10 @@ func (c *canonDAG) op(o dag.Op) {
 		c.next()
 		c.open("where ")
 		c.expr(o.Expr, "")
+		if o.Catch != nil {
+			c.write(" catch ")
+			c.expr(o.Catch, "")
+		}
 		c.close()
 	case *dag.ForkOp:
 		c.next()

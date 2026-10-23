@@ -63,6 +63,9 @@ func clrOp(op sem.Op) {
 	case *sem.FilterOp:
 		op.Node = nil
 		clrExpr(op.Expr)
+		if op.Catch != nil {
+			clrExpr(op.Catch)
+		}
 	case *sem.ForkOp:
 		op.Node = nil
 		for _, seq := range op.Paths {

@@ -237,6 +237,12 @@ func (c *canon) expr(e ast.Expr, parent string) {
 			c.expr(e.Value, "")
 		}
 		c.write("}")
+	case *ast.CatchExpr:
+		c.expr(e.Expr, "")
+		if e.Handler != nil {
+			c.write(" catch ")
+			c.expr(e.Handler, "")
+		}
 	case *ast.SubqueryExpr:
 		open, close := "(", ")"
 		if e.Array {

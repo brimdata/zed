@@ -580,6 +580,7 @@ CatchExpr
         Kind: "CatchExpr",
         Expr: expr.(ast.Expr),
         Handler: h,
+        Loc: loc(c),
       }, nil
     }
 
@@ -2546,6 +2547,7 @@ BY         = "BY"i              !IdentifierRest
 CALL       = "CALL"i            !IdentifierRest
 CASE       = "CASE"i            !IdentifierRest
 CAST       = "CAST"i            !IdentifierRest
+CATCH      = "CATCH"i           !IdentifierRest
 CONST      = "CONST"i           !IdentifierRest
 COUNT      = "COUNT"i           !IdentifierRest
 CROSS      = "CROSS"i           !IdentifierRest

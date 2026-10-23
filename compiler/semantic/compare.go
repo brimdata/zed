@@ -77,7 +77,10 @@ func eqOp(aop, bop sem.Op) bool {
 		return ok && eqExprs(a.Args, b.Args)
 	case *sem.FilterOp:
 		b, ok := bop.(*sem.FilterOp)
-		return ok && eqExpr(a.Expr, b.Expr)
+		if !ok || !eqExpr(a.Expr, b.Expr) || (a.Catch == nil) != (b.Catch == nil) {
+			return false
+		}
+		return a.Catch == nil || eqExpr(a.Catch, b.Catch)
 	case *sem.ForkOp:
 		b, ok := bop.(*sem.ForkOp)
 		if !ok || len(a.Paths) != len(b.Paths) {

@@ -45,8 +45,10 @@ func mergeFilters(seq dag.Seq) dag.Seq {
 	walkT(reflect.ValueOf(&seq), func(seq dag.Seq) dag.Seq {
 		// Start at the next to last element and work toward the first.
 		for i := len(seq) - 2; i >= 0; i-- {
-			if f1, ok := seq[i].(*dag.FilterOp); ok {
-				if f2, ok := seq[i+1].(*dag.FilterOp); ok {
+			// A filter with a catch handler must see exactly its own
+			// predicate's errors so it isn't merged with another.
+			if f1, ok := plainFilter(seq[i]); ok {
+				if f2, ok := plainFilter(seq[i+1]); ok {
 					// Merge the second filter into the
 					// first and then delete the second.
 					f1.Expr = dag.NewBinaryExpr("and", f1.Expr, f2.Expr)
@@ -409,11 +411,24 @@ func matchFilter(seq dag.Seq) (dag.Expr, dag.Seq) {
 	if len(seq) == 0 {
 		return nil, seq
 	}
-	filter, ok := seq[0].(*dag.FilterOp)
+	// A filter with a catch handler isn't lifted into the scanner since the
+	// scanner would drop the values whose errors the handler must see.
+	filter, ok := plainFilter(seq[0])
 	if !ok {
 		return nil, seq
 	}
 	return filter.Expr, seq[1:]
+}
+
+// plainFilter returns op as a filter if it is one with no catch handler.
+// Optimizations that split, merge, or move a filter's predicate apply only to
+// plain filters.
+func plainFilter(op dag.Op) (*dag.FilterOp, bool) {
+	filter, ok := op.(*dag.FilterOp)
+	if !ok || filter.Catch != nil {
+		return nil, false
+	}
+	return filter, true
 }
 
 // inlineRecordExprSpreads transforms "{...{a}}" to "{a}".
@@ -449,7 +464,7 @@ func joinFilterPullup(seq dag.Seq) dag.Seq {
 	for i := 0; i <= len(seq)-3; i++ {
 		fork, isfork := seq[i].(*dag.ForkOp)
 		leftAlias, rightAlias, isjoin := isJoin(seq[i+1])
-		filter, isfilter := seq[i+2].(*dag.FilterOp)
+		filter, isfilter := plainFilter(seq[i+2])
 		if !isfork || !isjoin || !isfilter {
 			continue
 		}
@@ -575,7 +590,7 @@ func liftFilterOps(seq dag.Seq) dag.Seq {
 				continue
 			}
 			re, ok1 := y.Exprs[0].(*dag.RecordExpr)
-			f, ok2 := seq[i+1].(*dag.FilterOp)
+			f, ok2 := plainFilter(seq[i+1])
 			if !ok1 || !ok2 || hasThisWithEmptyPath(f) {
 				continue
 			}

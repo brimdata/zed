@@ -130,6 +130,10 @@ type (
 	FilterOp struct {
 		ast.Node
 		Expr Expr
+		// Catch, if not nil, is a correlated subquery that handles the
+		// errors Expr produces.  It's evaluated once for each error and its
+		// results are output in place of the erroring values.
+		Catch *SubqueryExpr
 	}
 	ForkOp struct {
 		ast.Node
@@ -381,9 +385,14 @@ func CopyOp(op Op) Op {
 			Args: copyExprs(op.Args),
 		}
 	case *FilterOp:
+		var catch *SubqueryExpr
+		if op.Catch != nil {
+			catch = CopyExpr(op.Catch).(*SubqueryExpr)
+		}
 		return &FilterOp{
-			Node: op.Node,
-			Expr: CopyExpr(op.Expr),
+			Node:  op.Node,
+			Expr:  CopyExpr(op.Expr),
+			Catch: catch,
 		}
 	case *ForkOp:
 		var paths []Seq

@@ -108,7 +108,9 @@ func (e *evaluator) op(op sem.Op) bool {
 	case *sem.DropOp:
 		return e.exprs(op.Args) && e.constThis
 	case *sem.FilterOp:
-		return e.expr(op.Expr) && e.constThis
+		// A handler may have side effects (e.g., debug or load) so a
+		// filter with one is never evaluated at compile time.
+		return op.Catch == nil && e.expr(op.Expr) && e.constThis
 	case *sem.ForkOp:
 		isConst := true
 		for _, seq := range op.Paths {

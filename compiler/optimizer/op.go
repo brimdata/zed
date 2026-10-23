@@ -40,7 +40,14 @@ func (o *Optimizer) analyzeSortKeys(op dag.Op, in order.SortKeys) (order.SortKey
 	case *dag.ListerScan:
 		// This shouldn't happen.
 		return nil, errors.New("internal error: dag.Lister encountered in anaylzeSortKeys")
-	case *dag.FilterOp, *dag.HeadOp, *dag.InferOp, *dag.PassOp, *dag.UniqOp, *dag.TailOp, *dag.FuseOp, *dag.OutputOp:
+	case *dag.FilterOp:
+		if op.Catch != nil {
+			// A catch handler's results take the place of the values
+			// whose predicate erred and needn't have the sort key.
+			return nil, nil
+		}
+		return in, nil
+	case *dag.HeadOp, *dag.InferOp, *dag.PassOp, *dag.UniqOp, *dag.TailOp, *dag.FuseOp, *dag.OutputOp:
 		return in, nil
 	case *dag.CutOp:
 		return analyzeCuts(op.Args, in), nil

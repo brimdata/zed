@@ -87,6 +87,9 @@ type (
 	FilterOp struct {
 		Kind string `json:"kind" unpack:""`
 		Expr Expr   `json:"expr"`
+		// Catch, if not nil, handles the errors Expr produces.  See
+		// sem.FilterOp.
+		Catch *SubqueryExpr `json:"catch,omitempty"`
 	}
 	ForkOp struct {
 		Kind  string `json:"kind" unpack:""`

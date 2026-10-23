@@ -171,9 +171,14 @@ func (d *dagen) op(op sem.Op) dag.Op {
 			Args: d.exprs(op.Args),
 		}
 	case *sem.FilterOp:
+		var catch *dag.SubqueryExpr
+		if op.Catch != nil {
+			catch = d.subquery(op.Catch)
+		}
 		return &dag.FilterOp{
-			Kind: "FilterOp",
-			Expr: d.expr(op.Expr),
+			Kind:  "FilterOp",
+			Expr:  d.expr(op.Expr),
+			Catch: catch,
 		}
 	case *sem.ForkOp:
 		return &dag.ForkOp{
