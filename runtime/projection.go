@@ -37,5 +37,5 @@ func (p *Projection) Pull(bool) (vector.Any, error) {
 	}
 	loader := p.loader
 	p.loader = nil
-	return loader.Load(p.sctx, p.projection), nil
+	return loader.Load(p.projection), nil
 }

@@ -245,12 +245,12 @@ func (r *reader) Pull(done bool) (vector.Any, error) {
 				vec = vector.NewNull(loader.Len())
 			} else {
 				if r.pushdown != nil && r.pushdown.Unordered() {
-					r.q = loader.LoadUnordered(r.q[:0], r.sctx, proj)
+					r.q = loader.LoadUnordered(r.q[:0], proj)
 					n := len(r.q)
 					vec = r.q[n-1]
 					r.q = r.q[:n-1]
 				} else {
-					vec = loader.Load(r.sctx, proj)
+					vec = loader.Load(proj)
 					if pick != nil {
 						vec = vector.Pick(vec, pick)
 					}
@@ -281,7 +281,7 @@ func (r *reader) Pull(done bool) (vector.Any, error) {
 }
 
 func (r *reader) evalDataFilter(loader *loader.FrameLoader) (pickIndex []uint32, ok bool) {
-	vec := loader.Load(r.sctx, r.dataFilter.Projection)
+	vec := loader.Load(r.dataFilter.Projection)
 	result := r.dataFilter.Expr.Eval(vec)
 	// XXX should pass down a flag here to ignore errors since this can happen often in fast path
 	bits, _ := expr.BoolMask(result)

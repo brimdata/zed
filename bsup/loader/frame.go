@@ -38,7 +38,7 @@ func (f *FrameLoader) Len() uint32 {
 // storage and cached in memory so that subsequent calls run from memory.
 // The vectors returned will have types from the provided sctx.  Multiple
 // Load calls to the same object may run concurrently.
-func (f *FrameLoader) Load(sctx *super.Context, projection field.Projection) vector.Any {
+func (f *FrameLoader) Load(projection field.Projection) vector.Any {
 	f.root.unmarshal(f.frame.Context(), projection)
 	// Load all vector data into the in-memory shadow that is needed and not yet loaded
 	// and return a new vector.Any using the data vectors in cache.  This may be called
@@ -53,7 +53,7 @@ func (f *FrameLoader) Load(sctx *super.Context, projection field.Projection) vec
 // LoadUnordered is like Load, but if the frame's root vector is dynamic,
 // LoadUnordered returns the underlying values vectors instead of a
 // vector.Dynamic.
-func (f *FrameLoader) LoadUnordered(vecs []vector.Any, sctx *super.Context, projection field.Projection) []vector.Any {
+func (f *FrameLoader) LoadUnordered(vecs []vector.Any, projection field.Projection) []vector.Any {
 	f.root.unmarshal(f.frame.Context(), projection)
 	if d, ok := f.root.(*dynamic); ok {
 		return d.projectUnordered(vecs, f, projection)
