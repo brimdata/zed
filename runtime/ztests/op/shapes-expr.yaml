@@ -1,4 +1,6 @@
-spq: shapes s2 | sort
+# Sort by type name first so the order of differently typed errors doesn't
+# depend on type IDs, which differ when input is fused.
+spq: shapes s2 | sort typeof(this)::string, this
 
 input: |
   {s1:"a",s2:"b"}
@@ -10,5 +12,8 @@ input: |
   {s1:"a",s2:error({x:1})}
 
 output: |
+  error({message:"where: error value encountered",on:error({message:"'not' operator: error value encountered",on:error(1)})})
+  error({message:"where: error value encountered",on:error({message:"'not' operator: error value encountered",on:error("no such field s2")})})
+  error({message:"where: error value encountered",on:error({message:"'not' operator: error value encountered",on:error({x:1})})})
   0
   "b"

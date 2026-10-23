@@ -23,10 +23,28 @@ func (f *Filter) Pull(done bool) (vector.Any, error) {
 		if vec == nil || err != nil {
 			return nil, err
 		}
-		if masked, ok := applyMask(vec, f.expr.Eval(vec)); ok {
-			return masked, nil
+		if out := f.filter(vec); out != nil {
+			return out, nil
 		}
 	}
+}
+
+// filter returns the values of vec for which f.expr is true, merged in input
+// order with any errors f.expr produced, which are side errors that would
+// otherwise vanish since an error isn't true.  It returns nil if there's
+// nothing to output.
+func (f *Filter) filter(vec vector.Any) vector.Any {
+	mask := f.expr.Eval(vec)
+	keep, other := expr.BoolMask(mask)
+	var errs vector.Any
+	var errSlots []uint32
+	if !other.IsEmpty() {
+		errs, errSlots = expr.CatchSlots(f.sctx, expr.CatchError|expr.CatchWrapError, mask, "where")
+	}
+	if keep.IsEmpty() && len(errSlots) == 0 {
+		return nil
+	}
+	return withSideErrors(vec, keep.ToArray(), errs, errSlots)
 }
 
 // applyMask applies the mask vector mask to vec.  Elements of mask that are not

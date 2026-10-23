@@ -162,7 +162,7 @@ func (b *Builder) compileVamExprSwitch(swtch *dag.SwitchOp, parent vio.Puller) (
 }
 
 func (b *Builder) compileVamSwitch(swtch *dag.SwitchOp, parent vio.Puller) ([]vio.Puller, error) {
-	s := op.NewSwitch(b.rctx, parent)
+	s := op.NewSwitch(b.rctx, b.sctx(), parent)
 	var exits []vio.Puller
 	for _, c := range swtch.Cases {
 		e, err := b.compileVamExpr(c.Expr)

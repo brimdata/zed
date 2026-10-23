@@ -30,4 +30,8 @@ outputs:
     data: |
       {a:1,b?:1}
       ===
+      error({message:"where: error value encountered",on:error("==: option value not handled (consider ??)")})
+      error({message:"where: error value encountered",on:error("==: option value not handled (consider ??)")})
       ===
+      error({message:"where: error value encountered",on:error("==: option value not handled (consider ??)")})
+      error({message:"where: error value encountered",on:error("==: option value not handled (consider ??)")})

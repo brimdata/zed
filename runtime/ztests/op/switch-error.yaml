@@ -11,5 +11,5 @@ input: |
 
 output: |
   {a:1,s:"a",v:"one"}
-  error("divide by zero")
-  error("divide by zero")
+  error({message:"switch: error value encountered",on:error("divide by zero")})
+  error({message:"switch: error value encountered",on:error("divide by zero")})

@@ -142,12 +142,14 @@ func newObjectScanner(ctx context.Context, sctx *super.Context, table *db.Table,
 		return nil, err
 	}
 	return &filterScanner{
+		sctx:   sctx,
 		reader: reader,
 		filter: filter,
 	}, nil
 }
 
 type filterScanner struct {
+	sctx   *super.Context
 	reader vio.PullCloser
 	err    error
 	filter expr.Evaluator
@@ -170,9 +172,16 @@ func (f *filterScanner) Pull(done bool) (vector.Any, error) {
 		if f.filter == nil {
 			return vec, err
 		}
-		if masked, ok := applyMask(vec, f.filter.Eval(vec)); ok {
-			return masked, nil
+		// The filter is pushed down from a where operator downstream, so
+		// keep values the filter errors on for it to report.
+		keep := expr.PushdownMask(f.sctx, f.filter.Eval(vec))
+		if keep.IsEmpty() {
+			continue
 		}
+		if keep.GetCardinality() == uint64(vec.Len()) {
+			return vec, nil
+		}
+		return vector.Pick(vec, keep.ToArray()), nil
 	}
 }
 

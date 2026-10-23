@@ -15,4 +15,5 @@ outputs:
     data: |
       {s:"axb"}
       ===
+      error({message:"where: error value encountered",on:error({message:"==: error value encountered",on:error({message:"*: error value encountered",on:error("no such field a")})})})
       {s:6,a:2,b:3}

@@ -184,7 +184,9 @@ func GetCommit(ctx context.Context, api Interface, tableName, revision string) (
 		}
 	}
 	b := newBuffer(commits.Commit{})
-	query := fmt.Sprintf("from %q:log | where id == %s", tableID, commit)
+	// The log holds actions of several types and only commits have an id, so
+	// skip the others rather than have where report them as side errors.
+	query := fmt.Sprintf("from %q:log | where not is_error(id) and id == %s", tableID, commit)
 	q, err := api.Query(ctx, srcfiles.Plain(query))
 	if err != nil {
 		return nil, err

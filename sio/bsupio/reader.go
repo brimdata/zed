@@ -283,8 +283,9 @@ func (r *reader) Pull(done bool) (vector.Any, error) {
 func (r *reader) evalDataFilter(loader *loader.FrameLoader) (pickIndex []uint32, ok bool) {
 	vec := loader.Load(r.sctx, r.dataFilter.Projection)
 	result := r.dataFilter.Expr.Eval(vec)
-	// XXX should pass down a flag here to ignore errors since this can happen often in fast path
-	bits, _ := expr.BoolMask(result)
+	// The filter is pushed down from a where operator downstream, so keep
+	// values the filter errors on for it to report.
+	bits := expr.PushdownMask(r.sctx, result)
 	if bits.IsEmpty() {
 		return nil, false
 	}

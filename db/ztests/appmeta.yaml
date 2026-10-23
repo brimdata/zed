@@ -16,3 +16,4 @@ outputs:
     data: |
       {meta:"normalized-v1"}
       {meta:"normalized-v2"}
+      {meta:error({message:"where: error value encountered",on:error({message:"search: error value encountered",on:error("no such field meta")})})}

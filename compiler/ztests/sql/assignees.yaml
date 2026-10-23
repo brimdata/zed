@@ -20,6 +20,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
+      {assignee:error({message:"where: error value encountered",on:error({message:"'not' operator: error value encountered",on:error("no such field assignee")})}),count:2}
       {assignee:"sue",count:2}
       {assignee:"joe",count:2}
       {assignee:"fred",count:1}

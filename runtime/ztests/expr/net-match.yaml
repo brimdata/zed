@@ -10,5 +10,10 @@ input: |
   {nets:[192.168.3.0/24,192.168.4.0/24]}
 
 output: |
+  error({message:"where: error value encountered",on:error({message:"==: error value encountered",on:error("no such field n")})})
+  error({message:"where: error value encountered",on:error({message:"==: error value encountered",on:error("no such field n")})})
   {a:192.168.2.3}
+  error({message:"where: error value encountered",on:error({message:"cidr_match: error value encountered",on:error("no such field a")})})
   {n:192.168.2.0/24}
+  error({message:"where: error value encountered",on:error({message:"cidr_match: error value encountered",on:error("no such field a")})})
+  error({message:"where: error value encountered",on:error({message:"cidr_match: error value encountered",on:error("no such field a")})})

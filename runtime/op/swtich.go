@@ -4,18 +4,20 @@ import (
 	"context"
 
 	"github.com/RoaringBitmap/roaring/v2"
+	"github.com/superdb/super"
 	"github.com/superdb/super/runtime/expr"
 	"github.com/superdb/super/vector"
 	"github.com/superdb/super/vector/vio"
 )
 
 type Switch struct {
+	sctx   *super.Context
 	router *router
 	cases  []expr.Evaluator
 }
 
-func NewSwitch(ctx context.Context, parent vio.Puller) *Switch {
-	s := &Switch{}
+func NewSwitch(ctx context.Context, sctx *super.Context, parent vio.Puller) *Switch {
+	s := &Switch{sctx: sctx}
 	s.router = newRouter(ctx, s, parent)
 	return s
 }
@@ -29,46 +31,24 @@ func (s *Switch) forward(vec vector.Any) bool {
 	doneMap := roaring.New()
 	for i, c := range s.cases {
 		maskVec := c.Eval(vec)
-		boolMap, errMap := expr.BoolMask(maskVec)
+		boolMap, other := expr.BoolMask(maskVec)
 		boolMap.AndNot(doneMap)
-		errMap.AndNot(doneMap)
+		var errs vector.Any
+		var errSlots []uint32
+		if !other.IsEmpty() {
+			// A case's errors are side errors sent down its route.  An error
+			// doesn't claim its value, so later cases still see it, but skip
+			// values an earlier case already took.
+			errs, errSlots = expr.CatchSlots(s.sctx, expr.CatchError|expr.CatchWrapError, maskVec, "switch")
+			if len(errSlots) > 0 {
+				errs, errSlots = notDone(errs, errSlots, doneMap)
+			}
+		}
 		doneMap.Or(boolMap)
-		if !errMap.IsEmpty() {
-			// Clone because iteration results are undefined if the bitmap is modified.
-			for it := errMap.Clone().Iterator(); it.HasNext(); {
-				i := it.Next()
-				if isMissing(maskVec, i) {
-					errMap.Remove(i)
-				}
-			}
+		if boolMap.IsEmpty() && len(errSlots) == 0 {
+			continue
 		}
-		var vec2 vector.Any
-		if errMap.IsEmpty() {
-			if boolMap.IsEmpty() {
-				continue
-			}
-			vec2 = vector.Pick(vec, boolMap.ToArray())
-		} else if boolMap.IsEmpty() {
-			vec2 = vector.Pick(maskVec, errMap.ToArray())
-		} else {
-			valIndex := boolMap.ToArray()
-			errIndex := errMap.ToArray()
-			tags := make([]uint32, 0, len(valIndex)+len(errIndex))
-			for len(valIndex) > 0 && len(errIndex) > 0 {
-				if valIndex[0] < errIndex[0] {
-					valIndex = valIndex[1:]
-					tags = append(tags, 0)
-				} else {
-					errIndex = errIndex[1:]
-					tags = append(tags, 1)
-				}
-			}
-			tags = append(tags, valIndex...)
-			tags = append(tags, errIndex...)
-			valVec := vector.Pick(vec, valIndex)
-			errVec := vector.Pick(maskVec, errIndex)
-			vec2 = vector.NewDynamic(tags, []vector.Any{valVec, errVec})
-		}
+		vec2 := withSideErrors(vec, boolMap.ToArray(), errs, errSlots)
 		if !s.router.routes[i].send(vec2, nil) {
 			return false
 		}
@@ -76,11 +56,18 @@ func (s *Switch) forward(vec vector.Any) bool {
 	return true
 }
 
-func isMissing(vec vector.Any, i uint32) bool {
-	vec = vector.Under(vec)
-	if dynVec, ok := vec.(*vector.Dynamic); ok {
-		vec = dynVec.Values[dynVec.Tags[i]]
+// notDone returns the values of errs and their slots, dropping those whose
+// slots are in done.
+func notDone(errs vector.Any, slots []uint32, done *roaring.Bitmap) (vector.Any, []uint32) {
+	var index, keep []uint32
+	for k, slot := range slots {
+		if !done.Contains(slot) {
+			index = append(index, uint32(k))
+			keep = append(keep, slot)
+		}
 	}
-	_, ok := vec.(*vector.Missing)
-	return ok
+	if len(index) == len(slots) {
+		return errs, slots
+	}
+	return vector.Pick(errs, index), keep
 }

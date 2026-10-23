@@ -13,6 +13,8 @@ output: |
   true
   true::(bool|null)
   true
+  error({message:"where: error value encountered",on:error("divide by zero")})
+  error({message:"where: error value encountered",on:error("missing")})
 
 ---
 
@@ -30,3 +32,5 @@ input: |
 output: |
   true
   true::(bool|null)
+  error({message:"where: error value encountered",on:error("divide by zero")})
+  error({message:"where: error value encountered",on:error("missing")})
