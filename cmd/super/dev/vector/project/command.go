@@ -5,7 +5,6 @@ import (
 	"flag"
 	"uuid"
 
-	"github.com/superdb/super"
 	"github.com/superdb/super/cli/outputflags"
 	"github.com/superdb/super/cmd/super/dev/vector"
 	"github.com/superdb/super/pkg/charm"
@@ -69,9 +68,8 @@ func (c *Command) Run(args []string) error {
 	}
 	writer, err := c.outputFlags.Open(ctx, local)
 	projection := field.NewProjection(paths)
-	sctx := super.NewContext()
 	for _, loader := range object.Loaders() {
-		vec := loader.Load(sctx, projection)
+		vec := loader.Load(projection)
 		if err := writer.Push(vec); err != nil {
 			writer.Close()
 			return err
