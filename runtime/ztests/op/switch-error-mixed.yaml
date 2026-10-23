@@ -1,0 +1,19 @@
+# A switch case whose expression is true for some values and an error for
+# others routes both, in input order, with each error wrapped to identify the
+# switch.  This used to panic.
+
+spq: |
+  switch case x + 1 > 2 ( values {ok:this} )
+
+input: |
+  {x:2}
+  {x:"a"}
+  {x:3}
+  {x:1}
+  {x:4}
+
+output: |
+  {ok:{x:2}}
+  {ok:error({message:"switch: error value encountered",on:error({message:">: error value encountered",on:error("incompatible types")})})}
+  {ok:{x:3}}
+  {ok:{x:4}}

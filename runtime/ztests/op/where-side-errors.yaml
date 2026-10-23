@@ -1,0 +1,34 @@
+# Errors produced by a where predicate are side errors: rather than being
+# dropped, they're wrapped to identify the operator and output in input order
+# alongside the values that pass.  This holds when the predicate is also
+# pushed down into the scan of a BSUP file.
+
+script: |
+  super -o in.bsup in.sup
+  for f in in.sup in.bsup; do
+    echo "=== $f"
+    super -s -c "from $f | where x + 1 > 2"
+  done
+
+inputs:
+  - name: in.sup
+    data: |
+      {x:2}
+      {x:"a"}
+      {x:3}
+      {x:null}
+      {x:4}
+
+outputs:
+  - name: stdout
+    data: |
+      === in.sup
+      {x:2}
+      error({message:"where: error value encountered",on:error({message:">: error value encountered",on:error("incompatible types")})})
+      {x:3}
+      {x:4}
+      === in.bsup
+      {x:2}
+      error({message:"where: error value encountered",on:error({message:">: error value encountered",on:error("incompatible types")})})
+      {x:3}
+      {x:4}

@@ -1,0 +1,73 @@
+# Without a catch handler, where drops the values on which its predicate
+# errs.
+spq: where x + 1 > 2
+
+input: |
+  {x:2}
+  {x:"a"}
+  {x:3}
+  {x:{y:1}}
+  {x:4}
+
+output: |
+  {x:2}
+  {x:3}
+  {x:4}
+
+---
+
+# A catch handler is evaluated on each error the predicate produces and its
+# results take the place of the erroring values, in input order.
+spq: where x + 1 > 2 catch ( values {bad:this} )
+
+input: |
+  {x:2}
+  {x:"a"}
+  {x:3}
+  {x:{y:1}}
+  {x:4}
+
+output: |
+  {x:2}
+  {bad:error({message:">: error value encountered",on:error("incompatible types")})}
+  {x:3}
+  {bad:error({message:">: error value encountered",on:error("incompatible types")})}
+  {x:4}
+
+---
+
+# The handler's input is the error, which it can examine like any value.
+spq: where x + 1 > 2 catch ( values {msg:under(this).on} )
+
+input: |
+  {x:2}
+  {x:"a"}
+  {x:3}
+  {x:{y:1}}
+  {x:4}
+
+output: |
+  {x:2}
+  {msg:error("incompatible types")}
+  {x:3}
+  {msg:error("incompatible types")}
+  {x:4}
+
+---
+
+# As with any subquery, a handler that outputs nothing yields null.
+spq: where x + 1 > 2 catch ( where false )
+
+input: |
+  {x:2}
+  {x:"a"}
+  {x:3}
+  {x:{y:1}}
+  {x:4}
+
+output: |
+  {x:2}
+  null
+  {x:3}
+  null
+  {x:4}
