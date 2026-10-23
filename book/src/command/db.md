@@ -241,13 +241,15 @@ super db -f db -c "from logs:objects"
 ### super db attach
 
 ```
-super db attach <endpoint>
+super db attach [options] [endpoint]
 ```
 * [Global](options.md#global)
 * [Database](options.md#database)
 
-The `attach` command binds the local CLI to a database.
-The `<endpoint>` argument specifies a local file system path,
+The `attach` command binds the local CLI to a database, or, if the `endpoint`
+argument is not provided, shows the currently attached database.
+
+The `endpoint` argument specifies a local file system path,
 an `s3` URL, or the URL of a service endpoint.
 When connecting to a service that requires authentication,
 attach initiates a login to obtain credentials.
