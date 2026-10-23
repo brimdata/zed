@@ -21,6 +21,7 @@ var unpacker = unpack.New(
 	CallOp{},
 	CaseExpr{},
 	CastExpr{},
+	CatchExpr{},
 	CondExpr{},
 	ConstDecl{},
 	CountOp{},

@@ -565,11 +565,21 @@ SkipOp
     }
 
 WhereOp
-  = WHERE _ expr:Expr {
+  = WHERE _ expr:CatchExpr {
       return &ast.WhereOp{
         Kind: "WhereOp",
-        Expr: expr.(ast.Expr),
+        Expr: expr.(*ast.CatchExpr),
         Loc: loc(c),
+      }, nil
+    }
+
+CatchExpr
+  = expr:Expr handler:(_ CATCH _ "(" __ e:SubqueryExpr __ ")" { return e, nil })? {
+      h, _ := handler.(*ast.SubqueryExpr)
+      return &ast.CatchExpr{
+        Kind: "CatchExpr",
+        Expr: expr.(ast.Expr),
+        Handler: h,
       }, nil
     }
 

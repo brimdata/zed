@@ -64,6 +64,12 @@ type (
 		Type Type   `json:"type"`
 		Loc  `json:"loc"`
 	}
+	CatchExpr struct {
+		Kind    string        `json:"kind" unpack:""`
+		Expr    Expr          `json:"expr"`
+		Handler *SubqueryExpr `json:"handler"`
+		Loc     `json:"loc"`
+	}
 	CondExpr struct {
 		Kind string `json:"kind" unpack:""`
 		Cond Expr   `json:"cond"`
@@ -282,6 +288,7 @@ func (*BinaryExpr) exprNode()      {}
 func (*CallExpr) exprNode()        {}
 func (*CaseExpr) exprNode()        {}
 func (*CastExpr) exprNode()        {}
+func (*CatchExpr) exprNode()       {}
 func (*CondExpr) exprNode()        {}
 func (*DoubleQuoteExpr) exprNode() {}
 func (*ExistsExpr) exprNode()      {}

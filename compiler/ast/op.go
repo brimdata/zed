@@ -227,8 +227,8 @@ type (
 		Loc   `json:"loc"`
 	}
 	WhereOp struct {
-		Kind string `json:"kind" unpack:""`
-		Expr Expr   `json:"expr"`
+		Kind string     `json:"kind" unpack:""`
+		Expr *CatchExpr `json:"expr"`
 		Loc  `json:"loc"`
 	}
 )
