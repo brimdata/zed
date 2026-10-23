@@ -24,9 +24,6 @@ func (o *Ok) call(args ...vector.Any) vector.Any {
 	if vec.Kind() == vector.KindError {
 		return vector.NewNone(vec.Len())
 	}
-	if !super.IsOptionType(vec.Type()) {
-		vec = vector.NewOptionSome(o.sctx, vec)
-	}
 	return vec
 }
 
