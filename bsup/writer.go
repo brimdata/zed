@@ -25,13 +25,15 @@ const DefaultFrameCap = 20_000
 // ColumnWriter implements the vio.Pusher interface. A Pusher creates a vector
 // BSUP object from a stream of vector.Any.
 type ColumnWriter struct {
-	writer   io.WriteCloser
-	dynamic  *vbuild.DynamicBuilder
-	sctx     *super.Context
-	fuser    fuser
-	size     uint64
-	ctrl     *RowWriter
-	framecap uint64
+	writer     io.WriteCloser
+	dynamic    *vbuild.DynamicBuilder
+	sctx       *super.Context
+	fuser      fuser
+	size       uint64
+	ctrl       *RowWriter
+	framecap   uint64
+	frameStats [][]ColumnStats
+	frameOffs  []uint64
 }
 
 var _ vio.Pusher = (*ColumnWriter)(nil)
@@ -65,7 +67,8 @@ func NewWriterWithOpts(w io.WriteCloser, opt WriterOpts) vio.PushCloser {
 func (c *ColumnWriter) Close() error {
 	firstErr := c.pushFrame()
 	if firstErr == nil {
-		_, firstErr = writeFooter(c.writer, c.size, c.fuser.typeBytes())
+		statsBytes := encodeStats(c.frameOffs, c.frameStats)
+		_, firstErr = writeFooter(c.writer, c.size, c.fuser.typeBytes(), statsBytes)
 	}
 	if err := c.writer.Close(); err != nil && firstErr == nil {
 		firstErr = err
@@ -148,6 +151,8 @@ func (c *ColumnWriter) pushFrame() error {
 		return err
 	}
 	typedefs := bctx.typedefs.Bytes()
+	c.frameOffs = append(c.frameOffs, c.size)
+	c.frameStats = append(c.frameStats, enc.Stats())
 	header := newColumnHeader(root, uint64(metaDataSize), uint64(len(typedefs)), uint64(len(fusedTypeBytes)), dataSectionSize)
 	if _, err := c.writer.Write(header.Serialize()); err != nil {
 		return fmt.Errorf("system error: could not write BSUP header: %w", err)
@@ -187,19 +192,22 @@ func fuse(sctx *super.Context, dynamic *vector.Dynamic) super.Type {
 	return fuser.Type()
 }
 
-func writeFooter(w io.Writer, size uint64, fusedTypeBytes []byte) (uint64, error) {
+func writeFooter(w io.Writer, size uint64, fusedTypeBytes, statsBytes []byte) (uint64, error) {
 	if size == 0 {
 		return 0, nil
 	}
-	footer := newSuperFooter(size, uint64(len(fusedTypeBytes)))
+	footer := newSuperFooter(size, uint64(len(fusedTypeBytes)), uint64(len(statsBytes)))
 	if _, err := w.Write(footer.Serialize()); err != nil {
 		return 0, err
 	}
 	if _, err := w.Write(fusedTypeBytes); err != nil {
 		return 0, err
 	}
+	if _, err := w.Write(statsBytes); err != nil {
+		return 0, err
+	}
 	var trailer [8]byte
-	binary.LittleEndian.PutUint64(trailer[:], footer.FooterSize)
+	binary.LittleEndian.PutUint64(trailer[:], footer.Size())
 	if _, err := w.Write(trailer[:]); err != nil {
 		return 0, err
 	}
@@ -327,7 +335,8 @@ func (r *RowWriter) EndSuperFrame() (uint64, error) {
 	err := r.pushFrame(false)
 	if err == nil {
 		var n uint64
-		n, err = writeFooter(r.writer, r.size, r.superfuser.typeBytes())
+		// Do not collects stats for rows.
+		n, err = writeFooter(r.writer, r.size, r.superfuser.typeBytes(), nil)
 		r.size += n
 	}
 	return r.size, err

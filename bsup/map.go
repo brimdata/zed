@@ -3,6 +3,7 @@ package bsup
 import (
 	"io"
 
+	"github.com/superdb/super/pkg/field"
 	"github.com/superdb/super/vector"
 	"golang.org/x/sync/errgroup"
 )
@@ -43,6 +44,8 @@ func (m *MapEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 		Length:  m.count,
 	})
 }
+
+func (*MapEncoder) Stats(field.Path, CollectStatsFunc) {} // Map stats are ignored for now.
 
 func (m *MapEncoder) Encode(group *errgroup.Group) {
 	m.offsets.Encode(group)

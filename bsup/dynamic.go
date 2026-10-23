@@ -2,7 +2,12 @@ package bsup
 
 import (
 	"io"
+	"slices"
 
+	"github.com/superdb/super"
+	"github.com/superdb/super/order"
+	"github.com/superdb/super/pkg/field"
+	"github.com/superdb/super/runtime/sam/expr"
 	"github.com/superdb/super/vector"
 	"golang.org/x/sync/errgroup"
 )
@@ -55,6 +60,38 @@ func (d *DynamicEncoder) Encode() (ID, uint64, error) {
 		Values: values,
 		Length: d.len,
 	}), off, nil
+}
+
+func (d *DynamicEncoder) Stats() []ColumnStats {
+	var paths field.List
+	var stats []ColumnStats
+	cmp := expr.NewValueCompareFn(order.Asc, order.NullsLast)
+	for _, v := range d.values {
+		v.Stats(nil, func(path field.Path, min, max super.Value) {
+			i := paths.Index(path)
+			if i < 0 {
+				p := slices.Clone(path)
+				paths = append(paths, p)
+				stats = append(stats, ColumnStats{p, min, max})
+				return
+			}
+			stat := &stats[i]
+			// XXX strings values should get truncated if min/max is greater than
+			// a certain length... Perhaps 128 bytes?
+			if cmp(min, stat.Min) < 0 {
+				stat.Min = min
+			}
+			if cmp(max, stat.Max) > 0 {
+				stat.Max = max
+			}
+		})
+	}
+	// Sort by path so we don't get panics when merging this into
+	// a single record.
+	slices.SortFunc(stats, func(a, b ColumnStats) int {
+		return a.Path.Compare(b.Path)
+	})
+	return stats
 }
 
 func (d *DynamicEncoder) Emit(w io.Writer) error {

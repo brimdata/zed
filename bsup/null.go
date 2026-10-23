@@ -3,6 +3,7 @@ package bsup
 import (
 	"io"
 
+	"github.com/superdb/super/pkg/field"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -18,5 +19,6 @@ func (n *NullEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	return off, bctx.enter(&Null{n.len})
 }
 
-func (*NullEncoder) Encode(*errgroup.Group) {}
-func (*NullEncoder) Emit(io.Writer) error   { return nil }
+func (*NullEncoder) Encode(*errgroup.Group)             {}
+func (*NullEncoder) Stats(field.Path, CollectStatsFunc) {}
+func (*NullEncoder) Emit(io.Writer) error               { return nil }

@@ -134,3 +134,8 @@ func (r *RawSuperFooter) FusedTypeBytes() ([]byte, error) {
 	off, size := r.footer.FusedTypeSection()
 	return io.ReadAll(io.NewSectionReader(r.readerAt, off, size))
 }
+
+func (r *RawSuperFooter) StatsBytes() ([]byte, error) {
+	off, size := r.footer.StatsSection()
+	return io.ReadAll(io.NewSectionReader(r.readerAt, off, size))
+}

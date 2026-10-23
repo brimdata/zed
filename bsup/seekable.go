@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/superdb/super"
+	"github.com/superdb/super/pkg/field"
 )
 
 type Seekable struct {
@@ -60,11 +61,11 @@ func (s *Seekable) FusedType(sctx *super.Context) (super.Type, error) {
 			return nil, err
 		}
 		// Move off to the start of the footer.
-		off -= int64(footer.FooterSize)
-		fusedTypeBytesSize := footer.FusedTypeSize()
-		if fusedTypeBytesSize != 0 {
-			fusedTypeBytes := make([]byte, fusedTypeBytesSize)
-			if err := readHeaderBytes(s.readerAt, off+SuperFooterSize, fusedTypeBytes, "super footer fused type"); err != nil {
+		off -= int64(footer.Size())
+		fusedTypeOff, fusedTypeSize := footer.FusedTypeSection()
+		if fusedTypeSize != 0 {
+			fusedTypeBytes := make([]byte, fusedTypeSize)
+			if err := readHeaderBytes(s.readerAt, off+fusedTypeOff, fusedTypeBytes, "super footer fused type"); err != nil {
 				return nil, err
 			}
 			typ, err := sctx.LookupByValue(fusedTypeBytes)
@@ -117,6 +118,79 @@ func (s *Seekable) readFooterBackward(off int64) (*SuperFooter, error) {
 		return nil, fmt.Errorf("super footer size mismatch: %d vs %d (ending at offset %d)", footerSize, footer.FooterSize, off)
 	}
 	return &footer, footer.check()
+}
+
+func (s *Seekable) FilterFrames(sctx *super.Context, projection field.Projection, skip func(super.Value) bool) ([]int64, bool, error) {
+	off, err := fileSize(s.readerAt)
+	if err != nil {
+		return nil, false, err
+	}
+	var frameOffs []int64
+	projPaths := projection.Paths()
+	for off > 0 {
+		footer, err := s.readFooterBackward(off)
+		if err != nil {
+			if err == io.EOF {
+				err = nil
+			}
+			return frameOffs, false, err
+		}
+		off -= int64(footer.Size())
+		statsOff, statsSize := footer.StatsSection()
+		statsOff += off
+		off -= int64(footer.SuperFrameSize)
+		if statsSize == 0 {
+			// If statsSize is 0 we have a row file. We cannot do stats filter
+			// so return here.
+			return nil, false, nil
+		}
+		statsBytes := make([]byte, statsSize)
+		if err := readHeaderBytes(s.readerAt, statsOff, statsBytes, "super footer stats"); err != nil {
+			return nil, false, err
+		}
+		offs, stats, err := DecodeStats(statsBytes)
+		if err != nil {
+			return nil, false, err
+		}
+		for i, o := range offs {
+			if skip(statsValue(sctx, projPaths, stats[i])) {
+				continue
+			}
+			// Need to adjust offset relative to current offsets
+			frameOffs = append(frameOffs, off+int64(o))
+		}
+		if off < 0 {
+			return nil, false, fmt.Errorf("super footer back pointer overflow")
+		}
+	}
+	return frameOffs, true, nil
+
+}
+
+type OffsetsSeekable struct {
+	*Seekable
+	offs []int64
+}
+
+func NewOffsetsSeekable(s *Seekable, offs []int64) *OffsetsSeekable {
+	return &OffsetsSeekable{s, offs}
+}
+
+func (o *OffsetsSeekable) Next() (Frame, error) {
+	if len(o.offs) == 0 {
+		return nil, nil
+	}
+	off := o.offs[0]
+	o.offs = o.offs[1:]
+	h, err := readNextHeader(o.readerAt, int64(off))
+	if h == nil || err != nil {
+		return nil, err
+	}
+	c, ok := h.(*ColumnHeader)
+	if !ok {
+		panic("invalid stats section")
+	}
+	return newColFrame(io.NewSectionReader(o.readerAt, off, int64(c.FrameSize)), c)
 }
 
 func fileSize(r io.ReaderAt) (int64, error) {

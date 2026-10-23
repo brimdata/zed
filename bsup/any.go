@@ -3,6 +3,7 @@ package bsup
 import (
 	"io"
 
+	"github.com/superdb/super/pkg/field"
 	"github.com/superdb/super/vector"
 	"golang.org/x/sync/errgroup"
 )
@@ -39,3 +40,5 @@ func (a *AnyEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 		Subtypes: subtypes,
 	})
 }
+
+func (*AnyEncoder) Stats(field.Path, CollectStatsFunc) {}

@@ -3,6 +3,7 @@ package bsup
 import (
 	"io"
 
+	"github.com/superdb/super/pkg/field"
 	"github.com/superdb/super/vector"
 	"golang.org/x/sync/errgroup"
 )
@@ -43,6 +44,8 @@ func (a *ArrayEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 		Values:  vals,
 	})
 }
+
+func (a *ArrayEncoder) Stats(field.Path, CollectStatsFunc) {} // Array/Set stats are ignored for now.
 
 type SetEncoder struct {
 	ArrayEncoder

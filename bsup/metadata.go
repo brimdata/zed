@@ -1,14 +1,7 @@
 package bsup
 
 import (
-	"net/netip"
-	"slices"
-
 	"github.com/superdb/super"
-	"github.com/superdb/super/order"
-	"github.com/superdb/super/pkg/field"
-	"github.com/superdb/super/runtime/sam/expr"
-	"github.com/superdb/super/scode"
 )
 
 type Metadata interface {
@@ -152,8 +145,6 @@ func (a *Any) Len(bctx *Context) uint32 {
 type Int struct {
 	Typ      super.Type `super:"Type"`
 	Location Segment
-	Min      int64
-	Max      int64
 	Count    uint32
 }
 
@@ -168,8 +159,6 @@ func (i *Int) Len(*Context) uint32 {
 type Uint struct {
 	Typ      super.Type `super:"Type"`
 	Location Segment
-	Min      uint64
-	Max      uint64
 	Count    uint32
 }
 
@@ -184,8 +173,6 @@ func (u *Uint) Len(*Context) uint32 {
 type Float struct {
 	Typ      super.Type `super:"Type"`
 	Location Segment
-	Min      float64
-	Max      float64
 	Count    uint32
 }
 
@@ -210,8 +197,6 @@ type Bytes struct {
 	Typ     super.Type `super:"Type"`
 	Bytes   Segment
 	Offsets Segment
-	Min     []byte
-	Max     []byte
 	Count   uint32
 }
 
@@ -235,8 +220,6 @@ func (t *TypeValue) Len(*Context) uint32 {
 type IP struct {
 	Bytes   Segment
 	Offsets Segment
-	Min     netip.Addr
-	Max     netip.Addr
 	Count   uint32
 }
 
@@ -247,8 +230,6 @@ func (n *IP) Len(*Context) uint32 {
 type Net struct {
 	Bytes   Segment
 	Offsets Segment
-	Min     netip.Prefix
-	Max     netip.Prefix
 	Count   uint32
 }
 
@@ -323,106 +304,6 @@ func (*Dynamic) Type(*Context, *super.Context) super.Type {
 
 func (d *Dynamic) Len(*Context) uint32 {
 	return d.Length
-}
-
-func newMetadataValue(bctx *Context, sctx *super.Context, b *scode.Builder, id ID, p field.Projection) super.Value {
-	b.Truncate()
-	typ := metadataValue(bctx, sctx, b, id, p)
-	return super.NewValue(typ, b.Bytes().Body())
-}
-
-// XXX this should live in shadow so we don't load it twice
-func metadataValue(bctx *Context, sctx *super.Context, b *scode.Builder, id ID, projection field.Projection) super.Type {
-	m := bctx.Lookup(id)
-	switch m := under(bctx, m).(type) {
-	case *Any:
-		// XXX Do not have min/max on all values for now.
-		b.Append(nil)
-		return super.TypeNull
-	case *Fusion:
-		return metadataValue(bctx, sctx, b, m.Values, projection)
-	case *Option:
-		return metadataValue(bctx, sctx, b, m.Values, projection)
-	case *Dict:
-		return metadataValue(bctx, sctx, b, m.Values, projection)
-	case *Record:
-		var fields []super.Field
-		b.BeginContainer()
-		if len(projection) == 0 {
-			for _, f := range m.Fields {
-				typ := metadataValue(bctx, sctx, b, f.Values, nil)
-				fields = append(fields, super.NewField(f.Name, typ))
-			}
-		} else {
-			for _, node := range projection {
-				if k := indexOfField(node.Name, m.Fields); k >= 0 {
-					typ := metadataValue(bctx, sctx, b, m.Fields[k].Values, node.Proj)
-					fields = append(fields, super.NewField(node.Name, typ))
-				}
-			}
-		}
-		b.EndContainer()
-		return sctx.MustLookupTypeRecord(fields)
-	case *Union:
-		cmp := expr.NewValueCompareFn(order.Asc, order.NullsLast)
-		max, min := super.Null, super.Null
-		var bb scode.Builder
-		for _, id := range m.Values {
-			val := newMetadataValue(bctx, sctx, &bb, id, projection)
-			if val.IsNull() {
-				continue
-			}
-			min2, max2 := val.Deref("min"), val.Deref("max")
-			if min2 == nil {
-				continue
-			}
-			if min.IsNull() || cmp(min, *min2) > 0 {
-				min = min2.Copy()
-			}
-			if max.IsNull() || cmp(max, *max2) < 0 {
-				max = max2.Copy()
-			}
-		}
-		if min.IsNull() {
-			b.Append(nil)
-			return super.TypeNull
-		}
-		return metadataLeaf(sctx, b, min, max)
-	case *Int:
-		return metadataLeaf(sctx, b, super.NewInt(m.Typ, m.Min), super.NewInt(m.Typ, m.Max))
-	case *Uint:
-		return metadataLeaf(sctx, b, super.NewUint(m.Typ, m.Min), super.NewUint(m.Typ, m.Max))
-	case *Float:
-		return metadataLeaf(sctx, b, super.NewFloat(m.Typ, m.Min), super.NewFloat(m.Typ, m.Max))
-	case *Bytes:
-		return metadataLeaf(sctx, b, super.NewValue(m.Typ, m.Min), super.NewValue(m.Typ, m.Max))
-	case *IP:
-		return metadataLeaf(sctx, b, super.NewIP(m.Min), super.NewIP(m.Max))
-	case *Net:
-		return metadataLeaf(sctx, b, super.NewNet(m.Min), super.NewNet(m.Max))
-	case *Const:
-		return metadataLeaf(sctx, b, m.Value, m.Value)
-	default:
-		b.Append(nil)
-		return super.TypeNull
-	}
-}
-
-func metadataLeaf(sctx *super.Context, b *scode.Builder, min, max super.Value) super.Type {
-	b.BeginContainer()
-	b.Append(min.Bytes())
-	b.Append(max.Bytes())
-	b.EndContainer()
-	return sctx.MustLookupTypeRecord([]super.Field{
-		super.NewField("min", min.Type()),
-		super.NewField("max", max.Type()),
-	})
-}
-
-func indexOfField(name string, fields []Field) int {
-	return slices.IndexFunc(fields, func(f Field) bool {
-		return f.Name == name
-	})
 }
 
 var Template = []any{

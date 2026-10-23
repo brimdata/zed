@@ -40,6 +40,7 @@ type Command struct {
 	metas       bool
 	typedefs    bool
 	metabytes   bool
+	stats       bool
 	marshaler   *super.Marshaler
 	vals        []super.Value
 	writer      vio.Pusher
@@ -59,6 +60,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.metabytes, "metabytes", false, "dump raw BSUP columns metas as BSUP row frames to stdout")
 	f.BoolVar(&c.typedefs, "typedefs", false, "emit file's typedefs table")
 	f.BoolVar(&c.fused, "fused", false, "emit the fused types")
+	f.BoolVar(&c.stats, "stats", false, "emit stats section")
 	f.IntVar(&c.limit, "limit", 0, "cap number of values output")
 	f.IntVar(&c.framelimit, "framelimit", 0, "cap number of frames output")
 	return c, nil
@@ -317,6 +319,29 @@ func (c *Command) superFooter(frame *bsup.RawSuperFooter) error {
 		}
 		if err := c.marshal(wrapType("SuperFrameFusedType", fusedType)); err != nil {
 			return err
+		}
+	}
+	if c.stats {
+		statsBytes, err := frame.StatsBytes()
+		if err != nil {
+			return err
+		}
+		type FrameStats struct {
+			Offset uint64
+		}
+		offs, frameStats, err := bsup.DecodeStats(statsBytes)
+		if err != nil {
+			return err
+		}
+		for i, off := range offs {
+			if err := c.marshal(FrameStats{off}); err != nil {
+				return err
+			}
+			for _, s := range frameStats[i] {
+				if err := c.marshal(s); err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return nil

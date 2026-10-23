@@ -8,8 +8,6 @@ import (
 	"sync/atomic"
 
 	"github.com/superdb/super"
-	"github.com/superdb/super/pkg/field"
-	"github.com/superdb/super/scode"
 	"github.com/superdb/super/vector"
 	"github.com/superdb/super/vector/vio"
 )
@@ -117,23 +115,6 @@ func (c *ColFrame) ReadAt(p []byte, off int64) (int, error) {
 		atomic.AddInt64(&c.progress.DataBytesLoaded, int64(n))
 	}
 	return n, nil
-}
-
-func (c *ColFrame) ProjectMetadata(sctx *super.Context, projection field.Projection) []super.Value {
-	var b scode.Builder
-	var values []super.Value
-	root := c.bctx.Lookup(c.Root())
-	if root, ok := root.(*Dynamic); ok {
-		for _, id := range root.Values {
-			b.Reset()
-			typ := metadataValue(c.bctx, sctx, &b, id, projection)
-			values = append(values, super.NewValue(typ, b.Bytes().Body()))
-		}
-	} else {
-		typ := metadataValue(c.bctx, sctx, &b, c.Root(), projection)
-		values = append(values, super.NewValue(typ, b.Bytes().Body()))
-	}
-	return values
 }
 
 type RowFrame struct {

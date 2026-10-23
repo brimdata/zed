@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/superdb/super/pkg/byteconv"
+	"github.com/superdb/super/pkg/field"
 	"github.com/superdb/super/vector"
 	"github.com/superdb/super/vector/bitvec"
 	"golang.org/x/sync/errgroup"
@@ -49,6 +50,8 @@ func (b *BoolEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 		Count:    b.bits.Len(),
 	})
 }
+
+func (b *BoolEncoder) Stats(field.Path, CollectStatsFunc) {}
 
 func (b *BoolEncoder) Emit(w io.Writer) error {
 	_, err := w.Write(b.out)
