@@ -213,14 +213,12 @@ func (t *translator) expr(e ast.Expr, inType super.Type) (sem.Expr, super.Type) 
 				}
 				fields[name] = struct{}{}
 				e, typ := t.expr(elem.Value, inType)
-				//XXX
 				if elem.Opt {
 					e = &sem.CallExpr{Node: elem.Value, Tag: "some", Args: []sem.Expr{e}}
-				if elem.Opt && typ == super.TypeNone {
-					//t.error(elem, fmt.Errorf("non-union none assigned to optional field %s", name))
-					//typ = t.checker.unknown
-					//XXX we want untyped nones to cause field to be dropped?
+					typ = t.checker.optionize(typ)
 				}
+				// XXX we need to check for untyped none to cause field to be dropped...
+				// i.e., union(T|none) models this?
 				out = append(out, &sem.FieldElem{
 					Node:  elem,
 					Name:  elem.Name.Text,

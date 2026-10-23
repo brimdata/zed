@@ -442,7 +442,10 @@ func (c *checker) checkOk(typ super.Type, call *sem.CallExpr, errs []errloc) sup
 		c.keepErrs(others[:1])
 		return c.unknown
 	}
-	//XXX move this into a c.optionize()
+	return c.optionize(typ)
+}
+
+func (c *checker) optionize(typ super.Type) super.Type {
 	if hasUnknown(typ) {
 		return typ
 	}
@@ -592,11 +595,6 @@ func (c *checker) formRecordElems(elems []sem.RecordElem, types []super.Type) su
 				//XXX need dup_2 algo here
 				fields[k] = super.NewField(elem.Name, typ)
 			} else {
-				if elem.Opt {
-					typ = c.t.sctx.Optionize(typ)
-				} else if super.IsOptionType(typ) {
-					c.error(elem, errors.New("cannot assign option value to non-optional field"))
-				}
 				order[elem.Name] = len(fields)
 				fields = append(fields, super.NewField(elem.Name, typ))
 			}
@@ -851,16 +849,6 @@ func (c *checker) deref(loc ast.Node, inType super.Type, field string, noneish b
 		}
 		return typ.Fields[which].Type
 	case *super.TypeUnion:
-		if super.IsOptionType(typ) {
-			// This is an option type so call deref on the plain some type
-			// and rewrap it as an option type.  This way the type checker
-			// above can make sure the nones are handled.
-			typ := c.deref(loc, c.t.sctx.SomeType(typ), field, noneish)
-			if typ != c.unknown && !super.IsOptionType(typ) {
-				typ = c.t.sctx.Optionize(typ)
-			}
-			return typ
-		}
 		c.pushErrs()
 		var types []super.Type
 		for _, t := range typ.Types {
@@ -883,14 +871,10 @@ func (c *checker) deref(loc ast.Node, inType super.Type, field string, noneish b
 			}
 			c.error(missings[0].loc, fmt.Errorf("no such field %s in %s", field, in))
 		}
-		return c.fuse(types), valid
-	case *super.TypeOption:
-		return c.deref(loc, typ.Type, field)
-		// XXX
-		//for _, eloc := range others {
-		//	c.error(eloc.loc, fmt.Errorf("type mismatch may arise: %w (within %s)", eloc.err, sup.FormatType(defuse(inType))))
-		//}
 		return c.fuse(types)
+	case *super.TypeOption:
+		//XXX need to error when on !noneish
+		return c.deref(loc, typ.Type, field, noneish)
 	}
 	c.error(loc, fmt.Errorf("'.': applied to %s", sup.FormatType(inType)))
 	return c.unknown
