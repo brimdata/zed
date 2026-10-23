@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/superdb/super"
+	"github.com/superdb/super/pkg/field"
 	"github.com/superdb/super/vector"
 	"golang.org/x/sync/errgroup"
 )
@@ -54,4 +55,8 @@ func (o *OptionEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 		Length: o.count,
 		Type:   o.typ,
 	})
+}
+
+func (o *OptionEncoder) Stats(path field.Path, fn CollectStatsFunc) {
+	o.values.Stats(path, fn)
 }

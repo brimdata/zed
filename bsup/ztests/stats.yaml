@@ -1,0 +1,28 @@
+script: |
+  super -o t1.bsup in.sup
+  seq 20 | super -inputcap=10 -framecap=10 -o t2.bsup -c '{x:this}' -
+  cat t1.bsup t2.bsup > test.bsup
+  super dev bsup -headers=false -stats -s test.bsup
+
+inputs:
+  - name: in.sup
+    data: |
+      {a:{b:1,c:"foo"}}
+      {a:{b:2,c:"bar"}}
+      {a:{b:"zz"}}
+      {a:1}
+
+outputs:
+  - name: stdout
+    data: |
+      type FrameStats={Offset:uint64}
+      {Offset:0}::FrameStats
+      type Path=[string]
+      type ColumnStats={Path:Path,Min:any,Max:any}
+      {Path:["a"],Min:1::any,Max:1::any}::ColumnStats
+      {Path:["a","b"],Min:1::any,Max:"zz"::any}::ColumnStats
+      {Path:["a","c"],Min:"bar"::any,Max:"foo"::any}::ColumnStats
+      {Offset:0}::FrameStats
+      {Path:["x"],Min:1::any,Max:10::any}::ColumnStats
+      {Offset:623}::FrameStats
+      {Path:["x"],Min:11::any,Max:20::any}::ColumnStats

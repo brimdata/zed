@@ -3,6 +3,7 @@ package bsup
 import (
 	"io"
 
+	"github.com/superdb/super/pkg/field"
 	"github.com/superdb/super/vector"
 	"golang.org/x/sync/errgroup"
 )
@@ -42,4 +43,8 @@ func (f *FusionEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 		Values:   values,
 		Subtypes: subtypes,
 	})
+}
+
+func (i *FusionEncoder) Stats(path field.Path, fn CollectStatsFunc) {
+	i.values.Stats(path, fn)
 }

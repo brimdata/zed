@@ -60,7 +60,7 @@ import (
 // which simply produces a larger and still-valid Container.
 
 const (
-	Version           = 27
+	Version           = 28
 	MaxMetaSize       = 100 * 1024 * 1024
 	MaxFrameSize      = 2 * 1024 * 1024 * 1024
 	MaxSuperFrameSize = 256 * MaxFrameSize
@@ -257,23 +257,28 @@ func (r RowHeader) check() error {
 // Version (2 bytes)
 // Footer size (8 bytes) - total size of footer including SuperFooterPad
 // Total size of previous SuperFrame (8 bytes) - excludes this SuperFrame footer
-// Fused type value (variable bytes) - length is FooterSize - SuperFooterSize
+// Fused type value (variable bytes)
+// Stats Section (variable bytes)
 // Footer size (8 bytes) - same as above for backward traversal
 type SuperFooter struct {
 	Version        uint16 // off 4
 	FooterSize     uint64 // off 6
-	SuperFrameSize uint64 // off 14
+	FusedTypeSize  uint64 // off 14
+	StatsSize      uint64 // off 22
+	SuperFrameSize uint64 // off 30
 }
 
 const (
-	SuperFooterSize = 22 // size of header excluding fused type and length trailer
+	SuperFooterSize = 38 // size of header excluding fused type, stats section and length trailer
 	SuperFooterPad  = 8  // extra space for length trailer
 )
 
-func newSuperFooter(superFrameSize, fusedTypeSize uint64) SuperFooter {
+func newSuperFooter(superFrameSize, fusedTypeSize, statsSize uint64) SuperFooter {
 	return SuperFooter{
 		Version:        Version,
-		FooterSize:     fusedTypeSize + SuperFooterSize + SuperFooterPad,
+		FooterSize:     SuperFooterSize + SuperFooterPad + fusedTypeSize + statsSize,
+		FusedTypeSize:  fusedTypeSize,
+		StatsSize:      statsSize,
 		SuperFrameSize: superFrameSize,
 	}
 }
@@ -282,12 +287,12 @@ func (s *SuperFooter) Size() uint64 {
 	return s.FooterSize
 }
 
-func (s *SuperFooter) FusedTypeSize() uint64 {
-	return s.FooterSize - (SuperFooterSize + SuperFooterPad)
+func (s SuperFooter) FusedTypeSection() (int64, int64) {
+	return SuperFooterSize, int64(s.FusedTypeSize)
 }
 
-func (s SuperFooter) FusedTypeSection() (int64, int64) {
-	return SuperFooterSize, int64(s.FusedTypeSize())
+func (s SuperFooter) StatsSection() (int64, int64) {
+	return int64(SuperFooterSize + s.FusedTypeSize), int64(s.StatsSize)
 }
 
 // Serialize the front part of a SuperHeader.  The caller is responsible for
@@ -297,14 +302,18 @@ func (s SuperFooter) Serialize() []byte {
 	copy(bytes[0:4], []byte(SuperMagic))
 	binary.LittleEndian.PutUint16(bytes[4:], s.Version)
 	binary.LittleEndian.PutUint64(bytes[6:], s.FooterSize)
-	binary.LittleEndian.PutUint64(bytes[14:], s.SuperFrameSize)
+	binary.LittleEndian.PutUint64(bytes[14:], s.FusedTypeSize)
+	binary.LittleEndian.PutUint64(bytes[22:], s.StatsSize)
+	binary.LittleEndian.PutUint64(bytes[30:], s.SuperFrameSize)
 	return bytes[:]
 }
 
 func (s *SuperFooter) Deserialize(bytes [SuperFooterSize]byte) {
 	s.Version = binary.LittleEndian.Uint16(bytes[4:])
 	s.FooterSize = binary.LittleEndian.Uint64(bytes[6:])
-	s.SuperFrameSize = binary.LittleEndian.Uint64(bytes[14:])
+	s.FusedTypeSize = binary.LittleEndian.Uint64(bytes[14:])
+	s.StatsSize = binary.LittleEndian.Uint64(bytes[22:])
+	s.SuperFrameSize = binary.LittleEndian.Uint64(bytes[30:])
 }
 
 func (s SuperFooter) check() error {
@@ -312,6 +321,12 @@ func (s SuperFooter) check() error {
 		return err
 	}
 	if err := checkSize("super footer", int(s.FooterSize), MaxMetaSize); err != nil {
+		return err
+	}
+	if err := checkSize("footer fused types", int(s.FusedTypeSize), MaxMetaSize); err != nil {
+		return err
+	}
+	if err := checkSize("footer stats", int(s.StatsSize), MaxMetaSize); err != nil {
 		return err
 	}
 	return checkSize("super frame", int(s.SuperFrameSize), MaxSuperFrameSize)

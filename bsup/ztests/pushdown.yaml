@@ -19,10 +19,10 @@ outputs:
   - name: stderr
     data: |
       === x > 51 ===
-      {bytes_scanned:10777,values_scanned:49,frames_scanned:10,frames_skipped_search_filter:0,frames_skipped_meta_filter:5,frames_skipped_data_filter:0,values_skipped_data_filter:41,meta_bytes_loaded:8066,data_bytes_loaded:1076,type_bytes_loaded:0}
+      {bytes_scanned:5065,values_scanned:49,frames_scanned:5,frames_skipped_search_filter:0,frames_skipped_meta_filter:5,frames_skipped_data_filter:0,values_skipped_data_filter:41,meta_bytes_loaded:3714,data_bytes_loaded:1076,type_bytes_loaded:0}
       === tag='foo18' ===
-      {bytes_scanned:10777,values_scanned:1,frames_scanned:10,frames_skipped_search_filter:9,frames_skipped_meta_filter:0,frames_skipped_data_filter:0,values_skipped_data_filter:9,meta_bytes_loaded:8066,data_bytes_loaded:865,type_bytes_loaded:0}
+      {bytes_scanned:10140,values_scanned:1,frames_scanned:10,frames_skipped_search_filter:9,frames_skipped_meta_filter:0,frames_skipped_data_filter:0,values_skipped_data_filter:9,meta_bytes_loaded:7429,data_bytes_loaded:865,type_bytes_loaded:0}
       === count() ===
-      {bytes_scanned:10777,values_scanned:100,frames_scanned:10,frames_skipped_search_filter:0,frames_skipped_meta_filter:0,frames_skipped_data_filter:0,values_skipped_data_filter:0,meta_bytes_loaded:8066,data_bytes_loaded:0,type_bytes_loaded:0}
+      {bytes_scanned:10140,values_scanned:100,frames_scanned:10,frames_skipped_search_filter:0,frames_skipped_meta_filter:0,frames_skipped_data_filter:0,values_skipped_data_filter:0,meta_bytes_loaded:7429,data_bytes_loaded:0,type_bytes_loaded:0}
       === values tag | this='foo18' | count() ===
-      {bytes_scanned:10777,values_scanned:100,frames_scanned:10,frames_skipped_search_filter:0,frames_skipped_meta_filter:0,frames_skipped_data_filter:0,values_skipped_data_filter:0,meta_bytes_loaded:8066,data_bytes_loaded:721,type_bytes_loaded:0}
+      {bytes_scanned:10140,values_scanned:100,frames_scanned:10,frames_skipped_search_filter:0,frames_skipped_meta_filter:0,frames_skipped_data_filter:0,values_skipped_data_filter:0,meta_bytes_loaded:7429,data_bytes_loaded:721,type_bytes_loaded:0}

@@ -1,6 +1,7 @@
 package field
 
 import (
+	"cmp"
 	"slices"
 	"strings"
 )
@@ -51,6 +52,16 @@ func (p Path) HasPrefixIn(set []Path) bool {
 	return slices.ContainsFunc(set, p.HasPrefix)
 }
 
+func (p Path) Compare(to Path) int {
+	n := min(len(p), len(to))
+	for k := range n {
+		if i := cmp.Compare(p[k], to[k]); i != 0 {
+			return i
+		}
+	}
+	return cmp.Compare(len(p), len(to))
+}
+
 func (p Path) Chain() Chain {
 	return NewChain([]string(p)...)
 }
@@ -84,6 +95,10 @@ func (l List) AppendTo(b []byte) []byte {
 
 func (l List) Has(in Path) bool {
 	return slices.ContainsFunc(l, in.Equal)
+}
+
+func (l List) Index(in Path) int {
+	return slices.IndexFunc(l, in.Equal)
 }
 
 func (l List) Equal(to List) bool {

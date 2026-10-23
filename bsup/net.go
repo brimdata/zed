@@ -4,6 +4,8 @@ import (
 	"io"
 	"net/netip"
 
+	"github.com/superdb/super"
+	"github.com/superdb/super/pkg/field"
 	"github.com/superdb/super/vector"
 	"golang.org/x/sync/errgroup"
 )
@@ -56,10 +58,14 @@ func (n *NetEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	return off, bctx.enter(&Net{
 		Bytes:   bytesLoc,
 		Offsets: offsLoc,
-		Min:     n.min,
-		Max:     n.max,
 		Count:   uint32(len(n.vals)),
 	})
+}
+
+func (i *NetEncoder) Stats(path field.Path, fn CollectStatsFunc) {
+	if len(i.vals) > 0 {
+		fn(path, super.NewNet(i.min), super.NewNet(i.max))
+	}
 }
 
 func (n *NetEncoder) Emit(w io.Writer) error {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/superdb/super"
 	"github.com/superdb/super/pkg/byteconv"
+	"github.com/superdb/super/pkg/field"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -36,27 +37,31 @@ func (f *FloatEncoder) Encode(group *errgroup.Group) {
 	}
 }
 
-func (u *FloatEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
+func (f *FloatEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	loc := Segment{
 		Offset:            off,
-		MemLength:         uint64(len(u.vals)) * 8,
-		Length:            uint64(len(u.out)),
-		CompressionFormat: u.fmt,
+		MemLength:         uint64(len(f.vals)) * 8,
+		Length:            uint64(len(f.out)),
+		CompressionFormat: f.fmt,
 	}
 	off += loc.Length
 	return off, bctx.enter(&Float{
-		Typ:      u.typ,
+		Typ:      f.typ,
 		Location: loc,
-		Min:      u.min,
-		Max:      u.max,
-		Count:    uint32(len(u.vals)),
+		Count:    uint32(len(f.vals)),
 	})
 }
 
-func (u *FloatEncoder) Emit(w io.Writer) error {
+func (f *FloatEncoder) Stats(path field.Path, fn CollectStatsFunc) {
+	if len(f.vals) > 0 {
+		fn(path, super.NewFloat(f.typ, f.min), super.NewFloat(f.typ, f.max))
+	}
+}
+
+func (f *FloatEncoder) Emit(w io.Writer) error {
 	var err error
-	if len(u.out) > 0 {
-		_, err = w.Write(u.out)
+	if len(f.out) > 0 {
+		_, err = w.Write(f.out)
 	}
 	return err
 }

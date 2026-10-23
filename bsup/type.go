@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/superdb/super"
+	"github.com/superdb/super/pkg/field"
 	"github.com/superdb/super/vector"
 	"golang.org/x/sync/errgroup"
 )
@@ -37,3 +38,5 @@ func (t *TypeValueEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 		Location: loc,
 	})
 }
+
+func (*TypeValueEncoder) Stats(field.Path, CollectStatsFunc) {}

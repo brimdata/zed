@@ -3,6 +3,7 @@ package bsup
 import (
 	"io"
 
+	"github.com/superdb/super/pkg/field"
 	"github.com/superdb/super/vector"
 	"golang.org/x/sync/errgroup"
 )
@@ -39,6 +40,12 @@ func (r *RecordEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 		off = next
 	}
 	return off, bctx.enter(&Record{Length: r.count, Fields: fields})
+}
+
+func (r *RecordEncoder) Stats(path field.Path, fn CollectStatsFunc) {
+	for _, field := range r.fields {
+		field.Stats(path, fn)
+	}
 }
 
 func (r *RecordEncoder) Emit(w io.Writer) error {

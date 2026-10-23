@@ -7,6 +7,7 @@ import (
 	"net/netip"
 
 	"github.com/superdb/super"
+	"github.com/superdb/super/pkg/field"
 	"github.com/superdb/super/scode"
 	"github.com/superdb/super/vector"
 	"golang.org/x/sync/errgroup"
@@ -26,6 +27,7 @@ type Encoder interface {
 	// that the metadata can be computed and the BSUP header written before the
 	// vector data is written via Emit.
 	Metadata(*Context, uint64) (uint64, ID)
+	Stats(field.Path, CollectStatsFunc)
 	Emit(w io.Writer) error
 }
 

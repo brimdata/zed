@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/superdb/super"
+	"github.com/superdb/super/pkg/field"
 	"github.com/superdb/super/vector"
 	"golang.org/x/sync/errgroup"
 )
@@ -50,10 +51,14 @@ func (b *BytesEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 		Typ:     b.typ,
 		Bytes:   bytesLoc,
 		Offsets: offsLoc,
-		Min:     b.min,
-		Max:     b.max,
 		Count:   b.bytes.table.Len(),
 	})
+}
+
+func (b *BytesEncoder) Stats(path field.Path, fn CollectStatsFunc) {
+	if b.bytes.table.Len() > 0 {
+		fn(path, super.NewValue(b.typ, b.min).Copy(), super.NewValue(b.typ, b.max).Copy())
+	}
 }
 
 func (b *BytesEncoder) Emit(w io.Writer) error {

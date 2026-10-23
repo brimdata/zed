@@ -25,7 +25,10 @@ func NewReader(ctx context.Context, sctx *super.Context, r io.Reader, p vio.Push
 	}
 	var fit bsup.FrameIter
 	if ra, ok := readerAt(r); ok {
-		fit = bsup.NewSeekable(sctx, ra)
+		var err error
+		if fit, err = filteredSeekable(sctx, ra, p, progress); err != nil {
+			return nil, err
+		}
 	} else {
 		fit = bsup.NewStream(sctx, r)
 	}
@@ -141,15 +144,10 @@ type reader struct {
 }
 
 func newReader(ctx context.Context, sctx *super.Context, d *dispatcher, pushdown vio.Pushdown, progress *vio.Progress) (reader, error) {
-	var metaFilter *vio.ValueFilter
 	var dataFilter *vio.Filter
 	var searchFilter vio.SearchEvaluator
 	if pushdown != nil {
 		var err error
-		metaFilter, err = pushdown.MetaFilter()
-		if err != nil {
-			return reader{}, err
-		}
 		dataFilter, err = pushdown.DataFilter()
 		if err != nil {
 			return reader{}, err
@@ -163,7 +161,6 @@ func newReader(ctx context.Context, sctx *super.Context, d *dispatcher, pushdown
 		ctx:          ctx,
 		sctx:         sctx,
 		dispatcher:   d,
-		metaFilter:   metaFilter,
 		dataFilter:   dataFilter,
 		searchFilter: searchFilter,
 		pushdown:     pushdown,
@@ -210,10 +207,6 @@ func (r *reader) Pull(done bool) (vector.Any, error) {
 				MetaBytesLoaded:  int64(frame.MetaSize()),
 				TypesBytesLoaded: int64(frame.TypeSize()),
 			})
-			if r.metaFilter != nil && evalMetaFilter(r.sctx, r.metaFilter, frame) {
-				atomic.AddInt64(&r.progress.FramesSkippedMetaFilter, 1)
-				continue
-			}
 			loader := loader.NewFrameLoader(r.sctx, frame)
 			if r.searchFilter != nil {
 				if !loader.Search(r.searchFilter) {
@@ -300,12 +293,26 @@ type frame struct {
 	err   error
 }
 
-func evalMetaFilter(sctx *super.Context, mf *vio.ValueFilter, frame *bsup.ColFrame) bool {
-	vals := frame.ProjectMetadata(sctx, mf.Projection)
-	for _, val := range vals {
-		if !mf.Expr.Eval(val).Equal(super.False) {
-			return false
-		}
+func filteredSeekable(sctx *super.Context, s io.ReaderAt, p vio.Pushdown, progress *vio.Progress) (bsup.FrameIter, error) {
+	seekable := bsup.NewSeekable(sctx, s)
+	if p == nil {
+		return seekable, nil
 	}
-	return true
+	mf, err := p.MetaFilter()
+	if mf == nil || err != nil {
+		return seekable, err
+	}
+	var skipped int64
+	offs, ok, err := seekable.FilterFrames(sctx, mf.Projection, func(val super.Value) bool {
+		skip := mf.Expr.Eval(val).Equal(super.False)
+		if skip {
+			skipped++
+		}
+		return skip
+	})
+	if err != nil || !ok {
+		return seekable, err
+	}
+	atomic.AddInt64(&progress.FramesSkippedMetaFilter, skipped)
+	return bsup.NewOffsetsSeekable(seekable, offs), nil
 }

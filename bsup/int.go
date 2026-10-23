@@ -7,6 +7,7 @@ import (
 	"github.com/ronanh/intcomp"
 	"github.com/superdb/super"
 	"github.com/superdb/super/pkg/byteconv"
+	"github.com/superdb/super/pkg/field"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -52,10 +53,14 @@ func (i *IntEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	return off, bctx.enter(&Int{
 		Typ:      i.typ,
 		Location: loc,
-		Min:      i.min,
-		Max:      i.max,
 		Count:    uint32(len(i.vals)),
 	})
+}
+
+func (i *IntEncoder) Stats(path field.Path, stats CollectStatsFunc) {
+	if len(i.vals) > 0 {
+		stats(path, super.NewInt(i.typ, i.min), super.NewInt(i.typ, i.max))
+	}
 }
 
 func (i *IntEncoder) Emit(w io.Writer) error {
@@ -67,10 +72,13 @@ func (i *IntEncoder) Emit(w io.Writer) error {
 }
 
 type UintEncoder struct {
-	typ      super.Type
-	vals     []uint64
-	min, max uint64
-	out      []byte
+	typ  super.Type
+	vals []uint64
+
+	// computed after encode is called
+	min uint64
+	max uint64
+	out []byte
 }
 
 func (u *UintEncoder) Encode(group *errgroup.Group) {
@@ -111,10 +119,14 @@ func (u *UintEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 	return off, bctx.enter(&Uint{
 		Typ:      u.typ,
 		Location: loc,
-		Min:      u.min,
-		Max:      u.max,
 		Count:    uint32(len(u.vals)),
 	})
+}
+
+func (u *UintEncoder) Stats(path field.Path, fn CollectStatsFunc) {
+	if len(u.vals) > 0 {
+		fn(path, super.NewUint(u.typ, u.min), super.NewUint(u.typ, u.max))
+	}
 }
 
 func (u *UintEncoder) Emit(w io.Writer) error {

@@ -3,6 +3,7 @@ package bsup
 import (
 	"io"
 
+	"github.com/superdb/super/pkg/field"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -28,6 +29,10 @@ func (d *DictEncoder) Metadata(bctx *Context, off uint64) (uint64, ID) {
 		MemLength: len,
 	}
 	return off + len, bctx.enter(meta)
+}
+
+func (d *DictEncoder) Stats(path field.Path, fn CollectStatsFunc) {
+	d.values.Stats(path, fn)
 }
 
 func (d *DictEncoder) Emit(w io.Writer) error {
