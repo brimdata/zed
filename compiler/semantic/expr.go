@@ -1263,7 +1263,11 @@ func (t *translator) arrayElems(elems []ast.ArrayElem, inType super.Type) ([]sem
 		case *ast.ExprElem:
 			elemExpr, elemType := t.expr(elem.Expr, inType)
 			out = append(out, &sem.ExprElem{Node: elem, Expr: elemExpr})
-			types = append(types, elemType)
+			// A none element is dropped from the array at runtime so it
+			// doesn't contribute to the element type.
+			if !isNoneType(elemType) {
+				types = append(types, elemType)
+			}
 		default:
 			panic(elem)
 		}

@@ -65,11 +65,12 @@ func (d *DotExpr) eval(vecs ...vector.Any) vector.Any {
 		return d.noFieldErr(vec)
 	case *vector.Option:
 		// This is either a pure some or a pure none since we called
-		// Apply with RipOptions.  For option nones with ?. access
-		// we just return the none as in its option form.
+		// Apply with RipOptions.  For option nones with ?. access, the
+		// result is a none of the field's type so e?.f keeps the type of
+		// e.f, e.g., so that {y:e?.f} has an optional field y.
 		if _, ok := vec.Any.(*vector.None); ok {
 			if d.noneish {
-				return vec
+				return d.noneOfField(vec)
 			}
 			return d.noneErr(vec)
 		}
@@ -132,6 +133,20 @@ func (d *DotExpr) eval(vecs ...vector.Any) vector.Any {
 		return vec
 	}
 	return vector.NewStringError(d.sctx, fmt.Sprintf("cannot access field '%s' of %s", d.key, kindName(vec.Type())), vec.Len())
+}
+
+// noneOfField returns a none vector of an option of the type of field d.key
+// in the type of the option none vec, or a bare none if there's no such field.
+func (d *DotExpr) noneOfField(vec *vector.Option) vector.Any {
+	if rec, ok := super.TypeUnder(vec.Typ.Type).(*super.TypeRecord); ok {
+		if typ, ok := rec.TypeOfField(d.key); ok && super.TypeUnder(typ) != super.TypeNone {
+			opt := d.sctx.Optionize(typ)
+			if typ, ok := opt.(*super.TypeOption); ok {
+				return vector.NewOptionNone(typ, vec.Len())
+			}
+		}
+	}
+	return vector.NewNone(vec.Len())
 }
 
 func (d *DotExpr) noneErr(vec vector.Any) *vector.Error {

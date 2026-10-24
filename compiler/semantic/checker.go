@@ -442,14 +442,29 @@ func (c *checker) checkOk(typ super.Type, call *sem.CallExpr, errs []errloc) sup
 		c.keepErrs(others[:1])
 		return c.unknown
 	}
-	// ok() turns a missing value into none, so the option holds only the
-	// types that aren't missing.
+	// ok() turns a missing value into none, so its value is either one of
+	// the types that aren't missing or none.
 	typ, ok := c.withoutTypes(defuse(typ), isMissingType)
 	if !ok {
 		// The value is always missing so ok() is always none.
 		return super.TypeNone
 	}
-	return c.optionize(typ)
+	return c.orNone(typ)
+}
+
+// orNone returns fusion(typ|none), the type of a value that is either of
+// type typ or a bare none, as for ok(e), which the runtime produces as
+// plain values of typ or none rather than as options.
+func (c *checker) orNone(typ super.Type) super.Type {
+	if hasUnknown(typ) {
+		return typ
+	}
+	typ = defuse(typ)
+	if super.TypeUnder(typ) == super.TypeNone {
+		return typ
+	}
+	types := super.Flatten([]super.Type{typ, super.TypeNone})
+	return c.t.sctx.MustLookupTypeFusion(c.t.sctx.MustLookupTypeUnion(types))
 }
 
 // withoutTypes returns typ with the types for which drop is true removed
@@ -479,6 +494,10 @@ func (c *checker) withoutTypes(typ super.Type, drop func(super.Type) bool) (supe
 
 func isMissingType(typ super.Type) bool {
 	return super.TypeUnder(typ) == super.TypeMissing
+}
+
+func isNoneType(typ super.Type) bool {
+	return super.TypeUnder(typ) == super.TypeNone
 }
 
 // isNoneishType reports whether typ is a type whose values ?? replaces with
@@ -543,7 +562,7 @@ func (c *checker) binary(op string, loc, lloc, rloc ast.Node, lhs, rhs super.Typ
 				c.error(lloc, errMissing)
 				return c.unknown
 			}
-			if hasOption(lhs) {
+			if hasOption(lhs) || hasNone(lhs) {
 				c.error(lloc, fmt.Errorf("%s: %w", sup.FormatType(lhs), errNone))
 				return c.unknown
 			}
@@ -553,7 +572,7 @@ func (c *checker) binary(op string, loc, lloc, rloc ast.Node, lhs, rhs super.Typ
 				c.error(rloc, errMissing)
 				return c.unknown
 			}
-			if hasOption(rhs) {
+			if hasOption(rhs) || hasNone(rhs) {
 				c.error(rloc, fmt.Errorf("%s: %w", sup.FormatType(rhs), errNone))
 				return c.unknown
 			}
@@ -624,7 +643,11 @@ func (c *checker) arrayElems(typ super.Type, elems []sem.ArrayElem) super.Type {
 			}
 			fuser.fuse(spreadType)
 		case *sem.ExprElem:
-			fuser.fuse(c.expr(typ, elem.Expr))
+			// A none element is dropped from the array at runtime so it
+			// doesn't contribute to the element type.
+			if elemType := c.expr(typ, elem.Expr); !isNoneType(elemType) {
+				fuser.fuse(elemType)
+			}
 		default:
 			panic(elem)
 		}
@@ -680,6 +703,20 @@ func (c *checker) formRecordElems(elems []sem.RecordElem, types []super.Type) su
 				}
 			}
 		case *sem.FieldElem:
+			if isNoneType(typ) {
+				// A field whose value is none is deleted from the record at
+				// runtime, including a field of the same name from a spread.
+				if k, ok := order[elem.Name]; ok {
+					fields = slices.Delete(fields, k, k+1)
+					delete(order, elem.Name)
+					for name, j := range order {
+						if j > k {
+							order[name] = j - 1
+						}
+					}
+				}
+				continue
+			}
 			if k, ok := order[elem.Name]; ok {
 				//XXX need dup_2 algo here
 				fields[k] = super.NewField(elem.Name, typ)
@@ -963,6 +1000,20 @@ func (c *checker) deref(loc ast.Node, inType super.Type, field string, noneish b
 		}
 		return typ.Fields[which].Type
 	case *super.TypeUnion:
+		if hasNone(typ) {
+			// The value may be a bare none (e.g., it's from ok()), which
+			// has no type to carry, so e?.f is a bare none when e is and
+			// e.f doesn't handle none.
+			if !noneish {
+				c.error(loc, fmt.Errorf("%s: %w", sup.FormatType(typ), errNone))
+				return c.unknown
+			}
+			rest, ok := c.withoutTypes(typ, isNoneType)
+			if !ok {
+				return super.TypeNone
+			}
+			return c.orNone(c.deref(loc, rest, field, noneish))
+		}
 		c.pushErrs()
 		var types []super.Type
 		for _, t := range typ.Types {
@@ -989,6 +1040,8 @@ func (c *checker) deref(loc ast.Node, inType super.Type, field string, noneish b
 	case *super.TypeOption:
 		// e?.f is none when e is none and otherwise e.f, so its type is
 		// option(typeof(e.f)), whereas e.f on an option doesn't handle none.
+		// The none keeps the type of e.f so, e.g., {y:e?.f} has an optional
+		// field y rather than y being dropped.
 		if !noneish {
 			c.error(loc, fmt.Errorf("%s: %w", sup.FormatType(inType), errNone))
 			return c.unknown
@@ -1257,6 +1310,15 @@ func hasMissing(typ super.Type) bool {
 func mayBeMissing(typ super.Type) bool {
 	u, ok := super.TypeUnder(typ).(*super.TypeUnion)
 	return ok && slices.ContainsFunc(u.Types, hasMissing)
+}
+
+// hasNone reports whether typ is none or a union with none as one of its
+// types.
+func hasNone(typ super.Type) bool {
+	if u, ok := super.TypeUnder(typ).(*super.TypeUnion); ok {
+		return slices.ContainsFunc(u.Types, hasNone)
+	}
+	return super.TypeUnder(typ) == super.TypeNone
 }
 
 func hasOption(typ super.Type) bool {
