@@ -442,7 +442,76 @@ func (c *checker) checkOk(typ super.Type, call *sem.CallExpr, errs []errloc) sup
 		c.keepErrs(others[:1])
 		return c.unknown
 	}
+	// ok() turns a missing value into none, so the option holds only the
+	// types that aren't missing.
+	typ, ok := c.withoutTypes(defuse(typ), isMissingType)
+	if !ok {
+		// The value is always missing so ok() is always none.
+		return super.TypeNone
+	}
 	return c.optionize(typ)
+}
+
+// withoutTypes returns typ with the types for which drop is true removed
+// from it (from its members if it's a union).  It returns false if nothing
+// is left.
+func (c *checker) withoutTypes(typ super.Type, drop func(super.Type) bool) (super.Type, bool) {
+	u, ok := super.TypeUnder(typ).(*super.TypeUnion)
+	if !ok {
+		return typ, !drop(typ)
+	}
+	var keep []super.Type
+	for _, t := range u.Types {
+		if !drop(t) {
+			keep = append(keep, t)
+		}
+	}
+	switch len(keep) {
+	case 0:
+		return nil, false
+	case 1:
+		return keep[0], true
+	case len(u.Types):
+		return typ, true
+	}
+	return c.union(keep), true
+}
+
+func isMissingType(typ super.Type) bool {
+	return super.TypeUnder(typ) == super.TypeMissing
+}
+
+// isNoneishType reports whether typ is a type whose values ?? replaces with
+// its right-hand side.
+func isNoneishType(typ super.Type) bool {
+	switch super.TypeUnder(typ) {
+	case super.TypeNone, super.TypeNull:
+		return true
+	}
+	return false
+}
+
+// coalesce returns the type of lhs ?? rhs: the types of lhs that aren't
+// none or null, with any options unwrapped, fused with the type of rhs.
+func (c *checker) coalesce(lhs, rhs super.Type) super.Type {
+	if hasUnknown(lhs) {
+		return c.fuse([]super.Type{lhs, rhs})
+	}
+	var types []super.Type
+	unwrap := func(t super.Type) {
+		t = deoption(t)
+		if typ, ok := c.withoutTypes(t, isNoneishType); ok {
+			types = append(types, typ)
+		}
+	}
+	if u, ok := super.TypeUnder(lhs).(*super.TypeUnion); ok {
+		for _, t := range u.Types {
+			unwrap(t)
+		}
+	} else {
+		unwrap(lhs)
+	}
+	return c.fuse(append(types, rhs))
 }
 
 func (c *checker) optionize(typ super.Type) super.Type {
@@ -506,7 +575,14 @@ func (c *checker) binary(op string, loc, lloc, rloc ast.Node, lhs, rhs super.Typ
 	case "-", "*", "/", "%":
 		return c.arithmetic(lloc, rloc, lhs, rhs)
 	case "??":
-		return c.fuse([]super.Type{lhs, rhs})
+		// ?? handles none (and null) but not a field that may be missing,
+		// which ok() converts to none.  A value that is only ever missing
+		// (e.g., the literal missing) passes through ?? unchanged.
+		if !hasUnknown(lhs) && mayBeMissing(lhs) {
+			c.error(lloc, errMissing)
+			return c.unknown
+		}
+		return c.coalesce(lhs, rhs)
 	default:
 		panic(op)
 	}
@@ -911,10 +987,25 @@ func (c *checker) deref(loc ast.Node, inType super.Type, field string, noneish b
 		}
 		return c.fuse(types)
 	case *super.TypeOption:
-		//XXX need to error when on !noneish
-		return c.deref(loc, typ.Type, field, noneish)
+		// e?.f is none when e is none and otherwise e.f, so its type is
+		// option(typeof(e.f)), whereas e.f on an option doesn't handle none.
+		if !noneish {
+			c.error(loc, fmt.Errorf("%s: %w", sup.FormatType(inType), errNone))
+			return c.unknown
+		}
+		return c.optionize(c.deref(loc, typ.Type, field, noneish))
+	case *super.TypeOfNone:
+		if !noneish {
+			c.error(loc, fmt.Errorf("%s: %w", sup.FormatType(inType), errNone))
+			return c.unknown
+		}
+		return typ
+	case *super.TypeOfMissing:
+		// A field of a missing value is missing too, so leave the missing
+		// in the type for whatever uses it to catch.
+		return typ
 	}
-	c.error(loc, fmt.Errorf("no such field '%s': . applied to %s", field, sup.FormatType(inType)))
+	c.error(loc, fmt.Errorf("no such field %q: . applied to %s", field, sup.FormatType(inType)))
 	return c.unknown
 
 }
@@ -1159,6 +1250,13 @@ func hasMissing(typ super.Type) bool {
 		}
 	}
 	return super.TypeUnder(typ) == super.TypeMissing
+}
+
+// mayBeMissing reports whether typ is a union with missing as one of its
+// types, as for a field that's absent from some records.
+func mayBeMissing(typ super.Type) bool {
+	u, ok := super.TypeUnder(typ).(*super.TypeUnion)
+	return ok && slices.ContainsFunc(u.Types, hasMissing)
 }
 
 func hasOption(typ super.Type) bool {

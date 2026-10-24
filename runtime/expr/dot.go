@@ -71,9 +71,15 @@ func (d *DotExpr) eval(vecs ...vector.Any) vector.Any {
 			if d.noneish {
 				return vec
 			}
-			return vector.NewStringError(d.sctx, fmt.Sprintf("cannot access field '%s' of none (use ?. or ok())", d.key), vec.Len())
+			return d.noneErr(vec)
 		}
 		return d.eval(vec.Any)
+	case *vector.None:
+		// A bare none (e.g., from ok()) is handled like an option none.
+		if d.noneish {
+			return vec
+		}
+		return d.noneErr(vec)
 	case *vector.Record:
 		i, ok := vec.Typ.IndexOfField(d.key)
 		if !ok {
@@ -126,6 +132,10 @@ func (d *DotExpr) eval(vecs ...vector.Any) vector.Any {
 		return vec
 	}
 	return vector.NewStringError(d.sctx, fmt.Sprintf("cannot access field '%s' of %s", d.key, kindName(vec.Type())), vec.Len())
+}
+
+func (d *DotExpr) noneErr(vec vector.Any) *vector.Error {
+	return vector.NewStringError(d.sctx, fmt.Sprintf("cannot access field '%s' of none (use ?. or ok())", d.key), vec.Len())
 }
 
 func (d *DotExpr) noFieldErr(on vector.Any) *vector.Error {
