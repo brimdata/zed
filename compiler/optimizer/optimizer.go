@@ -416,7 +416,11 @@ func matchFilter(seq dag.Seq) (dag.Expr, dag.Seq) {
 	return filter.Expr, seq[1:]
 }
 
-// inlineRecordExprSpreads transforms "{...{a}}" to "{a}".
+// inlineRecordExprSpreads transforms "{...{a}}" to "{a}".  This may leave
+// duplicate fields in the record expression, e.g., "{...{a:1,b:2},a:3}"
+// becomes "{a:1,b:2,a:3}", which the runtime handles as it does a spread,
+// where a later field replaces the value of an earlier field of the same
+// name in place (and a later field whose value is none deletes it).
 func inlineRecordExprSpreads(v any) {
 	walkT(reflect.ValueOf(v), func(r *dag.RecordExpr) *dag.RecordExpr {
 		for i := range r.Elems {
@@ -429,16 +433,6 @@ func inlineRecordExprSpreads(v any) {
 				continue
 			}
 			r.Elems = slices.Concat(r.Elems[:i], r2.Elems, r.Elems[i+1:])
-		}
-		// dedupe elems from spreads
-		m := map[string]struct{}{}
-		for i, elem := range slices.Backward(r.Elems) {
-			if f, ok := elem.(*dag.Field); ok {
-				if _, ok := m[f.Name]; ok {
-					r.Elems = slices.Delete(r.Elems, i, i+1)
-				}
-				m[f.Name] = struct{}{}
-			}
 		}
 		return r
 	})
