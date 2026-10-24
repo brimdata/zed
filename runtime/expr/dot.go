@@ -135,16 +135,31 @@ func (d *DotExpr) eval(vecs ...vector.Any) vector.Any {
 	return vector.NewStringError(d.sctx, fmt.Sprintf("cannot access field '%s' of %s", d.key, kindName(vec.Type())), vec.Len())
 }
 
-// noneOfField returns a none vector of an option of the type of field d.key
-// in the type of the option none vec, or a bare none if there's no such field.
+// noneOfField returns a none vector for e?.f where vec is an option none.
+// The none is an option of the type of field d.key so e?.f keeps the type
+// of e.f.  ?. handles only the none, so it's an error, as it would be for
+// a some, if the option's type has no field d.key.
 func (d *DotExpr) noneOfField(vec *vector.Option) vector.Any {
-	if rec, ok := super.TypeUnder(vec.Typ.Type).(*super.TypeRecord); ok {
-		if typ, ok := rec.TypeOfField(d.key); ok && super.TypeUnder(typ) != super.TypeNone {
-			opt := d.sctx.Optionize(typ)
-			if typ, ok := opt.(*super.TypeOption); ok {
-				return vector.NewOptionNone(typ, vec.Len())
-			}
+	var typ super.Type
+	switch t := super.TypeUnder(vec.Typ.Type).(type) {
+	case *super.TypeRecord:
+		var ok bool
+		if typ, ok = t.TypeOfField(d.key); !ok {
+			return d.noFieldErr(vec)
 		}
+	case *super.TypeMap:
+		typ = t.ValType
+	case *super.TypeUnion, *super.TypeFusion:
+		// Which type the none stands in for isn't known.
+		return vector.NewNone(vec.Len())
+	default:
+		return vector.NewStringError(d.sctx, fmt.Sprintf("cannot access field '%s' of %s", d.key, kindName(t)), vec.Len())
+	}
+	if super.TypeUnder(typ) == super.TypeNone {
+		return vector.NewNone(vec.Len())
+	}
+	if opt, ok := d.sctx.Optionize(typ).(*super.TypeOption); ok {
+		return vector.NewOptionNone(opt, vec.Len())
 	}
 	return vector.NewNone(vec.Len())
 }
