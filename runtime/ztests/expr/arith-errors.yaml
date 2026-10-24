@@ -14,6 +14,18 @@ output: |
 
 spq: a+1
 
+flags: -dynamic
+
+input: |
+  {a?:none::int64}
+
+output: |
+  error("+: option value not handled (consider ??)")
+
+---
+
+spq: a+1
+
 input: |
   {a?:none::int64}
 

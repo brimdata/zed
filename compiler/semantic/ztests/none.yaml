@@ -1,14 +1,39 @@
 spq: values x+1
 
+flags: -dynamic
+
 input: |
   {x:1}
   {y:1}
 
-# this should be a -static test with compile-time-error
-
 output: |
   2
   error({message:"+: error value encountered",on:error({message:"no such field x",on:{y:1}})})
+
+---
+
+spq: values x+1
+
+input: |
+  {x:1}
+  {y:1}
+
+error: |
+  field may be missing (consider ok()) at line 1, column 8:
+  values x+1
+         ~
+
+---
+
+spq: values x??123+1
+
+input: |
+  {x:1}
+  {y:1}
+
+output: |
+  2
+  124
 
 ---
 
@@ -36,7 +61,7 @@ output: |
 
 ---
 
-spq: values {w?:x.ok()}
+spq: values {w?:x.ok()::option(int64)}
 
 input: |
   {x:1}

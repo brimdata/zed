@@ -183,7 +183,7 @@ func (c *checker) join(types []super.Type, op *sem.JoinOp) super.Type {
 	if len(types) != 2 {
 		c.error(op, errors.New("join requires two query inputs"))
 	}
-	typ := c.t.sctx.MustLookupTypeRecord([]super.Field{
+	typ := c.record([]super.Field{
 		super.NewField(op.LeftAlias, types[0]),
 		super.NewField(op.RightAlias, types[1]),
 	})
@@ -239,7 +239,7 @@ func (c *checker) unnestCheck(loc ast.Node, typ super.Type) (super.Type, bool) {
 			return c.unknown, false
 		}
 		fields := []super.Field{typ.Fields[0], {Name: arrayField.Name, Type: arrayElemType}}
-		return c.t.sctx.MustLookupTypeRecord(fields), true
+		return c.record(fields), true
 	default:
 		c.error(loc, errors.New("unnest value must be array or record"))
 		return c.unknown, false
@@ -300,7 +300,7 @@ func (c *checker) expr(typ super.Type, e sem.Expr) super.Type {
 		// the type checks with the output scope available).
 		return c.unknown
 	case *sem.ArrayExpr:
-		return c.t.sctx.LookupTypeArray(c.arrayElems(typ, e.Elems))
+		return c.array(c.arrayElems(typ, e.Elems))
 	case *sem.BadExpr:
 		return c.unknown
 	case *sem.BinaryExpr:
@@ -459,17 +459,35 @@ func defuse(typ super.Type) super.Type {
 	return typ
 }
 
+var errMissing = errors.New("field may be missing (consider ok())")
+var errNone = errors.New("none not handled (consider ?? or ?.)")
+
 func (c *checker) binary(op string, loc, lloc, rloc ast.Node, lhs, rhs super.Type) super.Type {
 	lhs = defuse(lhs)
 	rhs = defuse(rhs)
 	if op != "==" && op != "!=" && op != "??" {
-		if hasNone(lhs) && !hasUnknown(lhs) {
-			c.error(lloc, fmt.Errorf("'%s': none may appear, consider ok()", op))
-			return c.unknown
+		//XXX we should make unknown inside anything be unknown so we don't
+		// need to call hasUnknown and that way we can just call hasMissing directly
+		// since
+		if !hasUnknown(lhs) {
+			if hasMissing(lhs) {
+				c.error(lloc, errMissing)
+				return c.unknown
+			}
+			if hasOption(lhs) {
+				c.error(lloc, fmt.Errorf("%s: %w", sup.FormatType(lhs), errNone))
+				return c.unknown
+			}
 		}
-		if hasNone(rhs) && !hasUnknown(rhs) {
-			c.error(rloc, fmt.Errorf("'%s': none may appear, consider ok()", op))
-			return c.unknown
+		if !hasUnknown(rhs) {
+			if hasMissing(rhs) {
+				c.error(rloc, errMissing)
+				return c.unknown
+			}
+			if hasOption(rhs) {
+				c.error(rloc, fmt.Errorf("%s: %w", sup.FormatType(rhs), errNone))
+				return c.unknown
+			}
 		}
 	}
 	switch strings.ToLower(op) {
@@ -559,8 +577,6 @@ func (c *checker) recordElems(typ super.Type, elems []sem.RecordElem) super.Type
 	return c.formRecordElems(elems, types)
 }
 
-//XXX need to look at record expr optionality [?]
-
 func (c *checker) formRecordElems(elems []sem.RecordElem, types []super.Type) super.Type {
 	var fields []super.Field
 	order := make(map[string]int)
@@ -587,9 +603,6 @@ func (c *checker) formRecordElems(elems []sem.RecordElem, types []super.Type) su
 					fields = append(fields, f)
 				}
 			}
-			// {x:1,y:"foo",z:...q}
-			//XXX use fuse when field has multiple type possibilities due to spread
-			// (there will be a fusion type or a real union)
 		case *sem.FieldElem:
 			if k, ok := order[elem.Name]; ok {
 				//XXX need dup_2 algo here
@@ -602,7 +615,32 @@ func (c *checker) formRecordElems(elems []sem.RecordElem, types []super.Type) su
 			panic(elem)
 		}
 	}
+	return c.record(fields)
+}
+
+func (c *checker) record(fields []super.Field) super.Type {
+	if slices.ContainsFunc(fields, func(f super.Field) bool {
+		return f.Type == c.unknown
+	}) {
+		return c.unknown
+	}
 	return c.t.sctx.MustLookupTypeRecord(fields)
+}
+
+func (c *checker) union(types []super.Type) super.Type {
+	if slices.ContainsFunc(types, func(t super.Type) bool {
+		return t == c.unknown
+	}) {
+		return c.unknown
+	}
+	return c.t.sctx.MustLookupTypeUnion(types)
+}
+
+func (c *checker) array(typ super.Type) super.Type {
+	if typ == c.unknown {
+		return typ
+	}
+	return c.t.sctx.LookupTypeArray(typ)
 }
 
 func (c *checker) callBuiltin(call *sem.CallExpr, args []super.Type) super.Type {
@@ -684,9 +722,9 @@ func (c *checker) dropPath(typ super.Type, drop path) super.Type {
 	} else {
 		fields[off].Type = childType
 	}
-	types[pick] = c.t.sctx.MustLookupTypeRecord(fields)
+	types[pick] = c.record(fields)
 	if len(types) > 1 {
-		return c.t.sctx.MustLookupTypeUnion(super.Flatten(types))
+		return c.union(super.Flatten(types))
 	}
 	return types[0]
 }
@@ -742,9 +780,9 @@ func (c *checker) putInto(recType *super.TypeRecord, path []string, leaf super.T
 		} else {
 			fields = append(fields, super.NewField(path[0], c.putInto(nil, path[1:], leaf)))
 		}
-		return c.t.sctx.MustLookupTypeRecord(fields)
+		return c.record(fields)
 	}
-	return c.t.sctx.MustLookupTypeRecord([]super.Field{super.NewField(path[0], c.putInto(nil, path[1:], leaf))})
+	return c.record([]super.Field{super.NewField(path[0], c.putInto(nil, path[1:], leaf))})
 }
 
 type path struct {
@@ -867,7 +905,7 @@ func (c *checker) deref(loc ast.Node, inType super.Type, field string, noneish b
 			if len(recs) == 1 {
 				in = sup.FormatType(recs[0])
 			} else {
-				in = sup.FormatType(c.t.sctx.MustLookupTypeUnion(recs))
+				in = sup.FormatType(c.union(recs))
 			}
 			c.error(missings[0].loc, fmt.Errorf("no such field %s in %s", field, in))
 		}
@@ -876,7 +914,7 @@ func (c *checker) deref(loc ast.Node, inType super.Type, field string, noneish b
 		//XXX need to error when on !noneish
 		return c.deref(loc, typ.Type, field, noneish)
 	}
-	c.error(loc, fmt.Errorf("'.': applied to %s", sup.FormatType(inType)))
+	c.error(loc, fmt.Errorf("no such field '%s': . applied to %s", field, sup.FormatType(inType)))
 	return c.unknown
 
 }
@@ -1114,17 +1152,23 @@ func hasUnknown(typ super.Type) bool {
 	return isUnknown(typ)
 }
 
-func isNone(typ super.Type) bool {
-	return super.TypeUnder(typ) == super.TypeNone
-}
-
-func hasNone(typ super.Type) bool {
+func hasMissing(typ super.Type) bool {
 	if u, ok := super.TypeUnder(typ).(*super.TypeUnion); ok {
-		if slices.ContainsFunc(u.Types, hasNone) {
+		if slices.ContainsFunc(u.Types, hasMissing) {
 			return true
 		}
 	}
-	return isNone(typ)
+	return super.TypeUnder(typ) == super.TypeMissing
+}
+
+func hasOption(typ super.Type) bool {
+	if u, ok := super.TypeUnder(typ).(*super.TypeUnion); ok {
+		if slices.ContainsFunc(u.Types, hasOption) {
+			return true
+		}
+	}
+	_, ok := super.TypeUnder(typ).(*super.TypeOption)
+	return ok
 }
 
 func (c *checker) hasArray(typ super.Type) (super.Type, bool) {
